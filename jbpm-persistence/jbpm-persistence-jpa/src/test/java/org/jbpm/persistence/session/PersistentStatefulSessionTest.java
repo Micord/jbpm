@@ -16,7 +16,7 @@
 
 package org.jbpm.persistence.session;
 
-import static org.jbpm.persistence.util.PersistenceUtil.*;
+import static org.jbpm.test.persistence.util.PersistenceUtil.*;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
@@ -34,8 +34,8 @@ import org.drools.core.impl.KnowledgeBaseFactory;
 import org.drools.core.io.impl.ClassPathResource;
 import org.jbpm.persistence.api.integration.EventManagerProvider;
 import org.jbpm.persistence.api.integration.InstanceView;
-import org.jbpm.persistence.processinstance.objects.TestEventEmitter;
-import org.jbpm.persistence.processinstance.objects.TestTransactionalPersistenceEventManager;
+import org.jbpm.test.persistence.processinstance.objects.TestEventEmitter;
+import org.jbpm.test.persistence.processinstance.objects.TestTransactionalPersistenceEventManager;
 import org.jbpm.persistence.session.objects.TestWorkItemHandler;
 import org.jbpm.process.instance.impl.demo.SystemOutWorkItemHandler;
 import org.jbpm.test.util.AbstractBaseTest;
@@ -73,10 +73,10 @@ import org.slf4j.LoggerFactory;
 public class PersistentStatefulSessionTest extends AbstractBaseTest {
 
     private static final Logger logger = LoggerFactory.getLogger(PersistentStatefulSessionTest.class);
-    
+
     private HashMap<String, Object> context;
     private Environment env;
-    
+
     public PersistentStatefulSessionTest(boolean locking) { 
        this.useLocking = locking; 
     }
@@ -92,14 +92,13 @@ public class PersistentStatefulSessionTest extends AbstractBaseTest {
     
     @Before
     public void setUp() throws Exception {
-        String methodName = testName.getMethodName();
         context = setupWithPoolingDataSource(JBPM_PERSISTENCE_UNIT_NAME);
         
         env = createEnvironment(context);
         if( useLocking ) {
             env.set(EnvironmentName.USE_PESSIMISTIC_LOCKING, true);
         }
-        TestEventEmitter.clear();
+       
     }
 
     @After
@@ -672,7 +671,7 @@ public class PersistentStatefulSessionTest extends AbstractBaseTest {
         ksession.insert( "TestString" );
         assertEquals(ProcessInstance.STATE_COMPLETED, processInstance.getState());
         
-        List<InstanceView<?>> events = TestEventEmitter.getEvents();
+        Collection<InstanceView<?>> events = TestEventEmitter.getEvents();
         assertNotNull(events);
         assertEquals(1, events.size());
     }

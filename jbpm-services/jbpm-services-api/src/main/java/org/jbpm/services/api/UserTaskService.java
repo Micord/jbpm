@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2019 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.jbpm.services.api;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +61,16 @@ public interface UserTaskService {
 	 */
 	void claim(Long taskId, String userId);
 	
-	/**
+    /**
+     * Claim responsibility for a list of tasks, i.e. set the tasks to status Reserved
+     * 
+     * @param deploymentId
+     * @param taskIds list of task to be claimed 
+     * @param userId
+     */
+    void claim(String deploymentId, Collection<Long> taskIds, String userId);
+
+    /**
      * Claim responsibility for a task, i.e. set the task to status Reserved
      * 
      * @param deploymentId
@@ -76,7 +86,7 @@ public interface UserTaskService {
      * 
      * @param taskId
      * @param userId
-     * @param data
+     * @param params
      * @throws TaskNotFoundException in case task with given id was not found
      */
     void complete(Long taskId, String userId, Map<String, Object> params);
@@ -87,7 +97,7 @@ public interface UserTaskService {
      * @param deploymentId
      * @param taskId
      * @param userId
-     * @param data
+     * @param params
      * @throws TaskNotFoundException in case task with given id was not found or is not associated with given deployment id
      */
     void complete(String deploymentId, Long taskId, String userId, Map<String, Object> params);
@@ -98,7 +108,7 @@ public interface UserTaskService {
      * 
      * @param taskId
      * @param userId
-     * @param data
+     * @param params
      * @throws TaskNotFoundException in case task with given id was not found
      */
     void completeAutoProgress(Long taskId, String userId, Map<String, Object> params);
@@ -109,7 +119,7 @@ public interface UserTaskService {
      * @param deploymentId
      * @param taskId
      * @param userId
-     * @param data
+     * @param params
      * @throws TaskNotFoundException in case task with given id was not found or is not associated with given deployment id
      */
     void completeAutoProgress(String deploymentId, Long taskId, String userId, Map<String, Object> params);
@@ -494,6 +504,15 @@ public interface UserTaskService {
      */
     Long saveContent(Long taskId, Map<String, Object> values);
     
+    /**
+     * Saves gives values as content of a task, applies to task output as input cannot be altered
+     * @param taskId
+     * @param values
+     * @return
+     * @throws TaskNotFoundException in case task with given id was not found
+     */
+    Long saveContentFromUser(Long taskId, String userId, Map<String, Object> values);
+
     /**
      * Saves gives values as content of a task, applies to task output as input cannot be altered
      * 

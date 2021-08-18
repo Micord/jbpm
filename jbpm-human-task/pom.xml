@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm</artifactId>
-    <version>7.11.0-SNAPSHOT</version>
+    <version>7.59.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>jbpm-human-task</artifactId>
@@ -44,13 +44,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
     <maven.tx.type>JTA</maven.tx.type>
     <maven.data.source>&lt;jta-data-source&gt;jdbc/jbpm-ds&lt;/jta-data-source&gt;</maven.data.source>
-    
-    <!-- H2
-     -->
-    <maven.jdbc.url>jdbc:h2:mem:jbpm-db;MVCC=true</maven.jdbc.url>
   </properties>
 
   <build>

@@ -16,17 +16,6 @@
 
 package org.jbpm.casemgmt.impl;
 
-import static java.util.stream.Collectors.toMap;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.entry;
-import static org.assertj.core.api.Assertions.fail;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,9 +26,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import javax.persistence.EntityManager;
+
 import org.assertj.core.api.Assertions;
+import org.drools.core.definitions.rule.impl.RuleImpl;
+import org.drools.core.rule.GroupElement;
+import org.drools.core.spi.Activation;
+import org.drools.persistence.info.SessionInfo;
 import org.jbpm.bpmn2.objects.Person;
 import org.jbpm.casemgmt.api.AdHocFragmentNotFoundException;
 import org.jbpm.casemgmt.api.CaseActiveException;
@@ -64,29 +61,77 @@ import org.jbpm.casemgmt.api.model.instance.StageStatus;
 import org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl;
 import org.jbpm.casemgmt.impl.objects.EchoService;
 import org.jbpm.casemgmt.impl.util.AbstractCaseServicesBaseTest;
+import org.jbpm.casemgmt.impl.util.CountDownListenerFactory;
 import org.jbpm.document.Document;
 import org.jbpm.document.service.impl.DocumentImpl;
+import org.jbpm.process.core.context.variable.VariableViolationException;
+import org.jbpm.runtime.manager.impl.jpa.ContextMappingInfo;
+import org.jbpm.services.api.ProcessInstanceNotFoundException;
 import org.jbpm.services.api.TaskNotFoundException;
 import org.jbpm.services.api.model.NodeInstanceDesc;
 import org.jbpm.services.api.model.ProcessInstanceDesc;
 import org.jbpm.services.api.model.VariableDesc;
 import org.jbpm.services.task.impl.model.GroupImpl;
 import org.jbpm.services.task.impl.model.UserImpl;
+import org.jbpm.test.listener.process.NodeLeftCountDownProcessEventListener;
+import org.jbpm.workflow.instance.node.MilestoneNodeInstance;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.kie.api.command.ExecutableCommand;
+import org.kie.api.event.rule.MatchCreatedEvent;
+import org.kie.api.runtime.Context;
+import org.kie.api.runtime.KieSession;
+import org.kie.api.runtime.manager.RuntimeEngine;
+import org.kie.api.runtime.manager.RuntimeManager;
 import org.kie.api.runtime.process.CaseAssignment;
+import org.kie.api.runtime.process.WorkflowProcessInstance;
 import org.kie.api.runtime.query.QueryContext;
 import org.kie.api.task.model.OrganizationalEntity;
 import org.kie.api.task.model.Status;
 import org.kie.api.task.model.TaskSummary;
 import org.kie.internal.KieInternalServices;
+import org.kie.internal.command.RegistryContext;
 import org.kie.internal.process.CorrelationKey;
 import org.kie.internal.query.QueryFilter;
+import org.kie.internal.runtime.conf.ObjectModel;
+import org.kie.internal.runtime.manager.RuntimeManagerRegistry;
+import org.kie.internal.runtime.manager.SessionNotFoundException;
+import org.kie.internal.runtime.manager.context.ProcessInstanceIdContext;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.util.stream.Collectors.toMap;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class CaseServiceImplTest extends AbstractCaseServicesBaseTest {
 
     private static final Logger logger = LoggerFactory.getLogger(CaseServiceImplTest.class);
+
+    private static final String NEW_RESTRICTED_VALUE = "new restricted value";
+    
+    private static final List<String> RESTRICTED_TESTS = Arrays.asList(
+            "testCaseWithRestrictedCaseFileItem", 
+            "testCaseWithRequiredRestrictedCaseFileItem");
+    
+    private static final List<String> VIOLATING_RESTRICTED_TESTS = Arrays.asList(
+            "testCaseWithViolatingRestrictedCaseFileItem", 
+            "testCaseReopenWithViolatingRestrictedCaseFileItem",
+            "testAddDataCaseWithViolatingRestrictedCaseFileItem");
+
+    @Rule
+    public TestName name = new TestName();
 
     @Override
     protected List<String> getProcessDefinitionFiles() {
@@ -105,8 +150,17 @@ public class CaseServiceImplTest extends AbstractCaseServicesBaseTest {
         processes.add("cases/UserTaskCaseDataRestrictions.bpmn2");
         processes.add("cases/InclusiveGatewayInDynamicCase.bpmn2");
         processes.add("cases/CaseMultiInstanceStage.bpmn2");
+        processes.add("cases/UserTaskCaseData.bpmn2");
+        processes.add("cases/CaseWithStageAndBoundaryTimer.bpmn2");
+        processes.add("cases/CaseWithBoundaryTimerStage.bpmn2");
+        processes.add("cases/NoStartNodeCaseWithBoundaryTimerStage.bpmn2");
+        processes.add("cases/UserTaskCaseRequiredCaseFileItem.bpmn2");
+        processes.add("cases/UserTaskCaseRestrictedCaseFileItem.bpmn2");
+        processes.add("cases/UserTaskCaseRequiredRestrictedCaseFileItem.bpmn2");
+        processes.add("cases/UserTaskCaseReadOnlyCaseFileItem.bpmn2");
         // add processes that can be used by cases but are not cases themselves
         processes.add("processes/DataVerificationProcess.bpmn2");
+        processes.add("processes/DynamicSubProcess.bpmn2");
         return processes;
     }
 
@@ -586,6 +640,124 @@ public class CaseServiceImplTest extends AbstractCaseServicesBaseTest {
     }
 
     @Test
+    public void testPerCaseCleanup() throws InterruptedException {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("s", "description");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID, data, roleAssignments);
+        CaseDefinition caseDef = caseRuntimeDataService.getCase(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID);
+        assertNotNull(caseDef);
+        assertEquals(deploymentUnit.getIdentifier(), caseDef.getDeploymentId());
+        assertEquals(3, caseDef.getAdHocFragments().size());
+        Map<String, AdHocFragment> mappedFragments = mapAdHocFragments(caseDef.getAdHocFragments());
+        assertTrue(mappedFragments.containsKey("Hello2"));
+        assertTrue(mappedFragments.containsKey("Milestone1"));
+        assertTrue(mappedFragments.containsKey("Milestone2"));
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(HR_CASE_ID, caseId);
+        Collection<ProcessInstanceDesc> desc = runtimeDataService.getProcessInstancesByDeploymentId(deploymentUnit.getIdentifier(), Arrays.asList(0,1,2,3,4), new QueryContext());
+        List<Long> ids = desc.stream().map(e -> e.getId()).collect(Collectors.toList());
+        Long pid = ids.get(0);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Runnable run = new Runnable() {
+            public void run() {
+                for(int i = 0; i <= 5; i++) {
+
+                    RuntimeManager manager = RuntimeManagerRegistry.get().getManager(deploymentUnit.getIdentifier());
+                    RuntimeEngine engine = manager.getRuntimeEngine(ProcessInstanceIdContext.get(pid));
+                    try {
+                        KieSession ksession = engine.getKieSession();
+                        ((org.drools.core.process.instance.WorkItemManager) ksession.getWorkItemManager()).getWorkItem(1000000);
+                    } catch(SessionNotFoundException e) {
+                        throw new ProcessInstanceNotFoundException("Process instance with id " + pid + " was not found", e);
+                    } finally {
+                        manager.disposeRuntimeEngine(engine);
+                    }
+                    if (i == 3) {
+                        try {
+                            latch.await();
+                        } catch (InterruptedException e) {
+                            //ignore
+                        }
+                    }
+
+                }
+            };
+        };
+
+        Thread executor = new Thread(run);
+        executor.start();
+
+        processService.abortProcessInstance(pid);
+        logger.info("cancelled");
+
+        latch.countDown();
+
+        executor.join();
+        EntityManager em = this.emf.createEntityManager();
+        List<ContextMappingInfo> contextMappingInfo = em.createQuery("SELECT o FROM ContextMappingInfo o", ContextMappingInfo.class).getResultList();
+        logger.info("ContextMappingInfo found {}", contextMappingInfo.stream().map(ContextMappingInfo::toString).collect(Collectors.toList()));
+        assertEquals(1, contextMappingInfo.size());
+
+        List<SessionInfo> sessionsInfo = em.createQuery("SELECT o FROM SessionInfo o", SessionInfo.class).getResultList();
+        logger.info("Sessions found {}", sessionsInfo.stream().map(SessionInfo::getId).collect(Collectors.toList()));
+        assertEquals(1, sessionsInfo.size());
+        em.close();
+    }
+
+    @Test
+    public void testPerCaseEnsureCleanupInDisposeEngine() throws InterruptedException {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("s", "description");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID, data, roleAssignments);
+        CaseDefinition caseDef = caseRuntimeDataService.getCase(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID);
+        assertNotNull(caseDef);
+        assertEquals(deploymentUnit.getIdentifier(), caseDef.getDeploymentId());
+        assertEquals(3, caseDef.getAdHocFragments().size());
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID, caseFile);
+
+        Collection<ProcessInstanceDesc> desc = runtimeDataService.getProcessInstancesByDeploymentId(deploymentUnit.getIdentifier(), Arrays.asList(0,1,2,3,4), new QueryContext());
+        List<Long> ids = desc.stream().map(ProcessInstanceDesc::getId).collect(Collectors.toList());
+        Long pid = ids.get(0);
+
+        RuntimeManager manager = RuntimeManagerRegistry.get().getManager(deploymentUnit.getIdentifier());
+        RuntimeEngine engine = manager.getRuntimeEngine(ProcessInstanceIdContext.get(pid));
+        // no op so the runtime is not being init when lazy loading is used
+        CountDownLatch latch = new CountDownLatch(1);
+        manager.disposeRuntimeEngine(engine);
+        try {
+            Thread executor = new Thread(() -> {
+                RuntimeEngine localEngine = manager.getRuntimeEngine(ProcessInstanceIdContext.get(pid));
+                manager.disposeRuntimeEngine(localEngine);
+                latch.countDown();
+            });
+            executor.start();
+            latch.await(1000, TimeUnit.MILLISECONDS);
+            assertEquals(0, latch.getCount());
+        } finally {
+            caseService.cancelCase(caseId);
+        }
+
+        logger.info("cancelled");
+        EntityManager em = this.emf.createEntityManager();
+        List<ContextMappingInfo> contextMappingInfo = em.createQuery("SELECT o FROM ContextMappingInfo o", ContextMappingInfo.class).getResultList();
+        logger.info("ContextMappingInfo found {}", contextMappingInfo.stream().map(ContextMappingInfo::toString).collect(Collectors.toList()));
+        assertEquals(1, contextMappingInfo.size());
+
+        List<SessionInfo> sessionsInfo = em.createQuery("SELECT o FROM SessionInfo o", SessionInfo.class).getResultList();
+        logger.info("Sessions found {}", sessionsInfo.stream().map(SessionInfo::getId).collect(Collectors.toList()));
+        assertEquals(1, sessionsInfo.size());
+        em.close();
+    }
+
+    @Test
     public void testTriggerTaskAndMilestoneInCase() {
         Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
         roleAssignments.put("owner", new UserImpl("john"));
@@ -661,7 +833,7 @@ public class CaseServiceImplTest extends AbstractCaseServicesBaseTest {
 
             List<String> expectedMilestones = Arrays.asList("Milestone1", "Milestone2");
             for (CaseMilestoneInstance mi : milestones) {
-                assertTrue("Expected mile stopne not found", expectedMilestones.contains(mi.getName()));
+                assertTrue("Expected milestone not found", expectedMilestones.contains(mi.getName()));
                 assertEquals("Wrong milestone status", MilestoneStatus.Available, mi.getStatus());
                 assertFalse("Should not be achieved", mi.isAchieved());
                 assertNull("Achieved date should be null", mi.getAchievedAt());
@@ -692,6 +864,186 @@ public class CaseServiceImplTest extends AbstractCaseServicesBaseTest {
 
             // add dataComplete to case file to achieve milestone
             caseService.addDataToCaseFile(HR_CASE_ID, "dataComplete", true);
+
+            milestones = caseRuntimeDataService.getCaseInstanceMilestones(HR_CASE_ID, true, new QueryContext());
+            assertNotNull(milestones);
+            assertEquals(2, milestones.size());
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+    
+    @Test
+    public void testTriggerTaskAndMilestoneInCaseFakeMatchCreated() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("s", "description");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID, data, roleAssignments);
+
+        CaseDefinition caseDef = caseRuntimeDataService.getCase(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID);
+        assertNotNull(caseDef);
+        assertEquals(deploymentUnit.getIdentifier(), caseDef.getDeploymentId());
+        assertEquals(3, caseDef.getAdHocFragments().size());
+        Map<String, AdHocFragment> mappedFragments = mapAdHocFragments(caseDef.getAdHocFragments());
+        assertTrue(mappedFragments.containsKey("Hello2"));
+        assertTrue(mappedFragments.containsKey("Milestone1"));
+        assertTrue(mappedFragments.containsKey("Milestone2"));
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(HR_CASE_ID, caseId);
+        try {
+            CaseInstance cInstance = caseService.getCaseInstance(caseId);
+            assertNotNull(cInstance);
+            assertEquals(HR_CASE_ID, cInstance.getCaseId());
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+
+            List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("john", new QueryFilter());
+            assertNotNull(tasks);
+            assertEquals(1, tasks.size());
+
+            TaskSummary task = tasks.get(0);
+            assertNotNull(task);
+            assertEquals("Hello1", task.getName());
+            assertEquals("john", task.getActualOwnerId());
+            assertEquals(Status.Reserved, task.getStatus());
+
+            // now let's trigger one (human task) fragment
+            Map<String, Object> taskData = new HashMap<>();
+            taskData.put("test", "value");
+            taskData.put("fromVar", "#{s}");
+            caseService.triggerAdHocFragment(HR_CASE_ID, "Hello2", taskData);
+
+            tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("john", new QueryFilter());
+            assertNotNull(tasks);
+            assertEquals(2, tasks.size());
+
+            task = tasks.get(0);
+            assertNotNull(task);
+            assertEquals("Hello2", task.getName());
+            assertEquals("john", task.getActualOwnerId());
+            assertEquals(Status.Reserved, task.getStatus());
+
+            Map<String, Object> taskInputs = userTaskService.getTaskInputContentByTaskId(task.getId());
+            assertNotNull(taskInputs);
+            assertTrue(taskInputs.containsKey("test"));
+            assertTrue(taskInputs.containsKey("fromVar"));
+            assertEquals("value", taskInputs.get("test"));
+            assertEquals("description", taskInputs.get("fromVar"));
+
+            task = tasks.get(1);
+            assertNotNull(task);
+            assertEquals("Hello1", task.getName());
+            assertEquals("john", task.getActualOwnerId());
+            assertEquals(Status.Reserved, task.getStatus());
+
+            Collection<CaseMilestoneInstance> milestones = caseRuntimeDataService.getCaseInstanceMilestones(HR_CASE_ID, true, new QueryContext());
+            assertNotNull(milestones);
+            assertEquals(0, milestones.size());
+
+            milestones = caseRuntimeDataService.getCaseInstanceMilestones(HR_CASE_ID, false, new QueryContext());
+            assertNotNull(milestones);
+            assertEquals(2, milestones.size());
+
+            List<String> expectedMilestones = Arrays.asList("Milestone1", "Milestone2");
+            for (CaseMilestoneInstance mi : milestones) {
+                assertTrue("Expected milestone not found", expectedMilestones.contains(mi.getName()));
+                assertEquals("Wrong milestone status", MilestoneStatus.Available, mi.getStatus());
+                assertFalse("Should not be achieved", mi.isAchieved());
+                assertNull("Achieved date should be null", mi.getAchievedAt());
+            }
+
+            // trigger milestone node
+            caseService.triggerAdHocFragment(HR_CASE_ID, "Milestone1", null);
+
+            milestones = caseRuntimeDataService.getCaseInstanceMilestones(HR_CASE_ID, true, new QueryContext());
+            assertNotNull(milestones);
+            assertEquals(1, milestones.size());
+            CaseMilestoneInstance msInstance = milestones.iterator().next();
+            assertNotNull(msInstance);
+            assertEquals("Milestone1", msInstance.getName());
+            assertTrue(msInstance.isAchieved());
+            assertNotNull(msInstance.getAchievedAt());
+
+            // trigger another milestone node that has condition so it should not be achieved
+            caseService.triggerAdHocFragment(HR_CASE_ID, "Milestone2", null);
+
+            milestones = caseRuntimeDataService.getCaseInstanceMilestones(HR_CASE_ID, true, new QueryContext());
+            assertNotNull(milestones);
+            assertEquals(1, milestones.size());
+
+            milestones = caseRuntimeDataService.getCaseInstanceMilestones(HR_CASE_ID, false, new QueryContext());
+            assertNotNull(milestones);
+            assertEquals(2, milestones.size());
+
+            // now let's fact match created to see if active vs inactive activations achieve milestone
+            String eventName = "RuleFlow-Milestone-" + caseDef.getId() + caseDef.getCaseMilestones().stream().filter(cm -> cm.getName().equals("Milestone2")).findFirst().get().getId().replaceFirst("_", "-");
+            
+            MatchCreatedEvent event = Mockito.mock(MatchCreatedEvent.class);
+            Activation<?> activation = Mockito.mock(Activation.class);
+            RuleImpl rule = Mockito.mock(RuleImpl.class);
+            GroupElement groupElement = Mockito.mock(GroupElement.class);
+                        
+            Mockito.when(rule.getName()).thenReturn(eventName);
+            Mockito.when(rule.getRuleFlowGroup()).thenReturn("DROOLS_SYSTEM");
+            
+            Mockito.when(groupElement.getOuterDeclarations()).thenReturn(Collections.emptyMap());
+            
+            Mockito.when(activation.getRule()).thenReturn(rule);
+            Mockito.when(activation.isActive()).thenReturn(false);
+            Mockito.when(activation.getSubRule()).thenReturn(groupElement);
+            
+            Mockito.when(event.getMatch()).thenReturn(activation);
+            
+            final long processInstanceId = ((CaseInstanceImpl)cInstance).getProcessInstanceId();
+            
+            processService.execute(caseDef.getDeploymentId(), ProcessInstanceIdContext.get(processInstanceId), new ExecutableCommand<Void>() {
+
+                private static final long serialVersionUID = -8605689943374937006L;
+
+                @Override
+                public Void execute(Context context) {
+                    KieSession ksession = ((RegistryContext) context).lookup( KieSession.class );
+                    
+                    MilestoneNodeInstance milestone = (MilestoneNodeInstance) ((WorkflowProcessInstance) ksession.getProcessInstance(processInstanceId)).getNodeInstances()
+                                                                                                                                                        .stream()
+                                                                                                                                                        .filter(ni -> ni.getNodeName().equals("Milestone2"))
+                                                                                                                                                        .findFirst().get();
+                    milestone.signalEvent(milestone.getActivationEventType(), event);
+                    return null;
+                }
+
+            });
+            
+            milestones = caseRuntimeDataService.getCaseInstanceMilestones(HR_CASE_ID, true, new QueryContext());
+            assertNotNull(milestones);
+            assertEquals(1, milestones.size());
+            
+            // now let's make it an active activation which in turn should trigger milestone to be completed
+            Mockito.when(activation.isActive()).thenReturn(true);
+            processService.execute(caseDef.getDeploymentId(), ProcessInstanceIdContext.get(processInstanceId), new ExecutableCommand<Void>() {
+
+                private static final long serialVersionUID = -8605689943374937006L;
+
+                @Override
+                public Void execute(Context context) {
+                    KieSession ksession = ((RegistryContext) context).lookup( KieSession.class );
+                    
+                    MilestoneNodeInstance milestone = (MilestoneNodeInstance) ((WorkflowProcessInstance) ksession.getProcessInstance(processInstanceId)).getNodeInstances()
+                                                                                                                                                        .stream()
+                                                                                                                                                        .filter(ni -> ni.getNodeName().equals("Milestone2"))
+                                                                                                                                                        .findFirst().get();
+                    milestone.signalEvent(milestone.getActivationEventType(), event);
+                    return null;
+                }          
+            });
 
             milestones = caseRuntimeDataService.getCaseInstanceMilestones(HR_CASE_ID, true, new QueryContext());
             assertNotNull(milestones);
@@ -1589,6 +1941,41 @@ public class CaseServiceImplTest extends AbstractCaseServicesBaseTest {
     }
 
     @Test
+    public void testCaseOwnedBy() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+        roleAssignments.put("contact", new GroupImpl("HR"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("s", "description");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID, data, roleAssignments);
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(HR_CASE_ID, caseId);
+
+        try {
+            Collection<CaseInstance> instances = caseRuntimeDataService.getCaseInstancesOwnedBy("john", Collections.singletonList(CaseStatus.OPEN), true, new QueryContext());
+            assertNotNull(instances);
+            assertEquals(1, instances.size());
+            assertNotNull(instances.iterator().next().getCaseFile());
+
+            instances = caseRuntimeDataService.getCaseInstancesOwnedBy("john", Collections.singletonList(CaseStatus.OPEN), false, new QueryContext());
+            assertNotNull(instances);
+            assertEquals(1, instances.size());
+            assertNull(instances.iterator().next().getCaseFile());
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            identityProvider.setName("john");
+            if (caseId != null) {
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+
+    @Test
     public void testCaseRolesWithQueries() {
         Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
         roleAssignments.put("owner", new UserImpl("john"));
@@ -1613,17 +2000,18 @@ public class CaseServiceImplTest extends AbstractCaseServicesBaseTest {
             assertNotNull(instances);
             assertEquals(0, instances.size());
 
-            List<CaseStatus> status = Arrays.asList(CaseStatus.CANCELLED);
+            List<CaseStatus> status = Collections.singletonList(CaseStatus.CANCELLED);
 
             instances = caseRuntimeDataService.getCaseInstancesAnyRole(status, new QueryContext());
             assertNotNull(instances);
             assertFalse("Opened case was returned when searching for cancelled case instances.", instances.stream().anyMatch(n -> n.getCaseId().equals(caseId)));
 
-            status = Arrays.asList(CaseStatus.OPEN);
+            status = Collections.singletonList(CaseStatus.OPEN);
 
             instances = caseRuntimeDataService.getCaseInstancesAnyRole(status, new QueryContext());
             assertNotNull(instances);
             assertEquals(1, instances.size());
+            assertNull(instances.iterator().next().getCaseFile());
 
             instances = caseRuntimeDataService.getCaseInstancesByRole(null, status, new QueryContext());
             assertNotNull(instances);
@@ -1632,6 +2020,12 @@ public class CaseServiceImplTest extends AbstractCaseServicesBaseTest {
             instances = caseRuntimeDataService.getCaseInstancesByRole("owner", status, new QueryContext());
             assertNotNull(instances);
             assertEquals(1, instances.size());
+            assertNull(instances.iterator().next().getCaseFile());
+
+            instances = caseRuntimeDataService.getCaseInstancesByRole("owner", status, true, new QueryContext());
+            assertNotNull(instances);
+            assertEquals(1, instances.size());
+            assertNotNull(instances.iterator().next().getCaseFile());
 
             identityProvider.setName("mary");
 
@@ -1644,6 +2038,7 @@ public class CaseServiceImplTest extends AbstractCaseServicesBaseTest {
             instances = caseRuntimeDataService.getCaseInstancesByRole("contact", status, new QueryContext());
             assertNotNull(instances);
             assertEquals(1, instances.size());
+            assertNull(instances.iterator().next().getCaseFile());
         } catch (Exception e) {
             logger.error("Unexpected error {}", e.getMessage(), e);
             fail("Unexpected exception " + e.getMessage());
@@ -3333,5 +3728,691 @@ public class CaseServiceImplTest extends AbstractCaseServicesBaseTest {
                 caseService.cancelCase(caseId);
             }
         }
+    }
+    
+    @Test
+    public void testStartEmptyCaseWithCaseFileValueTooLong() {
+        System.setProperty("org.jbpm.cases.var.log.length", "10");
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", "my first case data bit too long");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), EMPTY_CASE_P_ID, data);
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), EMPTY_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+        try {
+            CaseInstance cInstance = caseService.getCaseInstance(caseId, true, false, false, false);
+            assertNotNull(cInstance);
+            assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+            assertNotNull(cInstance.getCaseFile());
+            assertEquals("my first case data bit too long", cInstance.getCaseFile().getData("name"));
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+
+            Collection<VariableDesc> vars = runtimeDataService.getVariablesCurrentState(((CaseInstanceImpl) cInstance).getProcessInstanceId());
+            assertNotNull(vars);
+            assertEquals(3, vars.size());
+            Map<String, Object> mappedVars = vars.stream().collect(toMap(v -> v.getVariableId(), v -> v.getNewValue()));
+            assertEquals("my first case data bit too long", mappedVars.get("caseFile_name"));
+            assertEquals(FIRST_CASE_ID, mappedVars.get("CaseId"));
+            assertEquals("john", mappedVars.get("initiator"));
+            
+            Collection<CaseFileItem> caseFileItems = caseRuntimeDataService.getCaseInstanceDataItems(caseId, new QueryContext());
+            assertNotNull(caseFileItems);
+            assertEquals(1, caseFileItems.size());
+            mappedVars = caseFileItems.stream().collect(toMap(cs -> cs.getName(), cs -> cs.getValue()));
+            assertEquals("my first c", mappedVars.get("name"));           
+            
+            caseService.cancelCase(caseId);
+            CaseInstance instance = caseService.getCaseInstance(caseId);
+            Assertions.assertThat(instance.getStatus()).isEqualTo(CaseStatus.CANCELLED.getId());
+            caseId = null;
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                caseService.cancelCase(caseId);
+            }
+            System.clearProperty("org.jbpm.cases.var.log.length");
+        }
+    }
+    
+    @Test
+    public void testCaseWithIndexedFromVariableUpdates() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+        roleAssignments.put("participant", new UserImpl("mary"));
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("contactInfo", "main street 10, NYC");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_DATA_CASE_P_ID, data, roleAssignments);
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_DATA_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+        try {
+            CaseInstance cInstance = caseService.getCaseInstance(caseId, true, false, false, false);
+            assertNotNull(cInstance);
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+            
+            Map<String, Object> caseData = cInstance.getCaseFile().getData();
+            assertNotNull(caseData);
+            assertEquals(1, caseData.size());            
+            assertEquals("main street 10, NYC", caseData.get("contactInfo"));
+            
+            Collection<CaseFileItem> dataItems = caseRuntimeDataService.getCaseInstanceDataItems(caseId, new QueryContext());
+            assertThat(dataItems).isNotNull().hasSize(1);
+                        
+            Map<String, CaseFileItem> mappedDataItems = dataItems.stream().collect(toMap(CaseFileItem::getName, t -> t));
+            assertThat(mappedDataItems).containsKeys("contactInfo");
+         
+            identityProvider.setName("john");
+            List<TaskSummary> tasks = caseRuntimeDataService.getCaseTasksAssignedAsPotentialOwner(caseId, "john", null, new QueryContext());
+            assertThat(tasks).isNotNull().hasSize(1);
+            
+            Map<String, Object> results = new HashMap<>();
+            results.put("reply_", "here is my reply");
+            
+            userTaskService.completeAutoProgress(tasks.get(0).getId(), "john", results);
+            
+            cInstance = caseService.getCaseInstance(caseId, true, false, false, false);
+            assertNotNull(cInstance);
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+            
+            caseData = cInstance.getCaseFile().getData();
+            assertNotNull(caseData);
+            assertEquals(2, caseData.size());            
+            assertEquals("main street 10, NYC", caseData.get("contactInfo"));
+            assertEquals("here is my reply", caseData.get("reply"));
+            
+            dataItems = caseRuntimeDataService.getCaseInstanceDataItems(caseId, new QueryContext());
+            assertThat(dataItems).isNotNull().hasSize(2);
+                        
+            mappedDataItems = dataItems.stream().collect(toMap(CaseFileItem::getName, t -> t));
+            assertThat(mappedDataItems).containsKeys("contactInfo", "reply");
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                identityProvider.setName("john");
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+    
+    @Test
+    public void testCaseWithIndexedFromVariableUpdatesResetVariable() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+        roleAssignments.put("participant", new UserImpl("mary"));
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("contactInfo", "main street 10, NYC");
+        data.put("reply", "here is my reply");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_DATA_CASE_P_ID, data, roleAssignments);
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_DATA_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+        try {
+            CaseInstance cInstance = caseService.getCaseInstance(caseId, true, false, false, false);
+            assertNotNull(cInstance);
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+            
+            Map<String, Object> caseData = cInstance.getCaseFile().getData();
+            assertNotNull(caseData);
+            assertEquals(2, caseData.size());            
+            assertEquals("main street 10, NYC", caseData.get("contactInfo"));
+            assertEquals("here is my reply", caseData.get("reply"));
+            
+            Collection<CaseFileItem> dataItems = caseRuntimeDataService.getCaseInstanceDataItems(caseId, new QueryContext());
+            assertThat(dataItems).isNotNull().hasSize(2);
+                        
+            Map<String, CaseFileItem> mappedDataItems = dataItems.stream().collect(toMap(CaseFileItem::getName, t -> t));
+            assertThat(mappedDataItems).containsKeys("contactInfo", "reply");
+         
+            identityProvider.setName("john");
+            List<TaskSummary> tasks = caseRuntimeDataService.getCaseTasksAssignedAsPotentialOwner(caseId, "john", null, new QueryContext());
+            assertThat(tasks).isNotNull().hasSize(1);
+            
+            Map<String, Object> results = new HashMap<>();
+            results.put("reply_", null);
+            
+            userTaskService.completeAutoProgress(tasks.get(0).getId(), "john", results);
+            
+            cInstance = caseService.getCaseInstance(caseId, true, false, false, false);
+            assertNotNull(cInstance);
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+            
+            caseData = cInstance.getCaseFile().getData();
+            assertNotNull(caseData);
+            assertEquals(1, caseData.size());            
+            assertEquals("main street 10, NYC", caseData.get("contactInfo"));            
+            
+            dataItems = caseRuntimeDataService.getCaseInstanceDataItems(caseId, new QueryContext());
+            assertThat(dataItems).isNotNull().hasSize(1);
+                        
+            mappedDataItems = dataItems.stream().collect(toMap(CaseFileItem::getName, t -> t));
+            assertThat(mappedDataItems).containsKeys("contactInfo");
+            assertThat(mappedDataItems).doesNotContainKeys("reply");
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                identityProvider.setName("john");
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        registerListenerMvelDefinition("org.jbpm.casemgmt.impl.util.CountDownListenerFactory.get(\"" +
+                                       getClass().getSimpleName() + "1\", " +
+                                       "\"end 1\", 1)");
+        registerListenerMvelDefinition("org.jbpm.casemgmt.impl.util.CountDownListenerFactory.get(\"" +
+                                       getClass().getSimpleName() + "2\", " +
+                                       "\"Stage 1\", 1)");
+        super.setUp();
+    }
+
+    @After
+    public void tear() {
+        CountDownListenerFactory.reset();
+    }
+
+    @Test
+    public void testCaseWithStageAndBoundaryTimerFired() throws InterruptedException {
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), "CaseWithStageAndBoundaryTimer");
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+
+        // wait till we hit end node
+        ((NodeLeftCountDownProcessEventListener) CountDownListenerFactory.getExisting(getClass().getSimpleName() + "1")).waitTillCompleted();
+        
+        try {
+            Collection<CaseStageInstance> stages = caseRuntimeDataService.getCaseInstanceStages(caseId, false, null);
+            assertThat(stages).isNotNull().hasSize(1);
+            Iterator<CaseStageInstance> iterator = stages.iterator();
+
+            CaseStageInstance stage1 = iterator.next();
+            assertThat(stage1.getName()).isEqualTo("Stage 1");
+            assertThat(stage1.getStatus()).isEqualTo(StageStatus.Completed);
+
+            caseService.cancelCase(caseId);
+            CaseInstance instance = caseService.getCaseInstance(caseId);
+            assertThat(instance.getStatus()).isEqualTo(CaseStatus.CANCELLED.getId());
+            caseId = null;
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+
+
+
+    @Test
+    public void testCaseWithBoundaryTimerFiredAtStage() throws InterruptedException {
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), "CaseWithBoundaryTimerStage");
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+
+        // wait till we hit end node
+        ((NodeLeftCountDownProcessEventListener) CountDownListenerFactory.getExisting(getClass().getSimpleName() + "2")).waitTillCompleted();
+        try {
+            Collection<CaseStageInstance> stages = caseRuntimeDataService.getCaseInstanceStages(caseId, false, null);
+            assertThat(stages).isNotNull().hasSize(2);
+            Iterator<CaseStageInstance> iterator = stages.iterator();
+
+            CaseStageInstance stage1 = iterator.next();
+            assertThat(stage1.getName()).isEqualTo("Stage 1");
+            assertThat(stage1.getStatus()).isEqualTo(StageStatus.Completed);
+
+            CaseStageInstance stage2 = iterator.next();
+            assertThat(stage2.getName()).isEqualTo("Stage 2");
+            assertThat(stage2.getStatus()).isEqualTo(StageStatus.Active);
+
+            caseService.cancelCase(caseId);
+            CaseInstance instance = caseService.getCaseInstance(caseId);
+            assertThat(instance.getStatus()).isEqualTo(CaseStatus.CANCELLED.getId());
+            caseId = null;
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+    
+    @Test(timeout=15000)
+    public void testCaseWithHumanTaskAfterReopen() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("contactInfo", "main street 10, NYC");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_DATA_CASE_P_ID, data, roleAssignments);
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_DATA_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+        try {
+            CaseInstance cInstance = caseService.getCaseInstance(caseId, true, false, false, false);
+            assertNotNull(cInstance);
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+            
+            identityProvider.setName("john");
+            List<TaskSummary> tasks = caseRuntimeDataService.getCaseTasksAssignedAsPotentialOwner(caseId, "john", null, new QueryContext());
+            assertThat(tasks).isNotNull().hasSize(1);
+            
+            Map<String, Object> results = new HashMap<>();
+            results.put("reply_", "here is my reply");
+            
+            userTaskService.completeAutoProgress(tasks.get(0).getId(), "john", results);
+            
+            caseService.closeCase(caseId, "closed temporarily");
+            caseService.reopenCase(caseId, deploymentUnit.getIdentifier(), USER_TASK_DATA_CASE_P_ID);
+            cInstance = caseService.getCaseInstance(caseId, true, false, false, false);
+            assertNotNull(cInstance);
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+            
+            Map<String, Object> caseData = cInstance.getCaseFile().getData();
+            assertNotNull(caseData);
+            assertEquals(2, caseData.size());  
+            assertEquals("main street 10, NYC", caseData.get("contactInfo"));
+            assertEquals("here is my reply", caseData.get("reply"));
+            
+            Collection<CaseFileItem> dataItems = caseRuntimeDataService.getCaseInstanceDataItems(caseId, new QueryContext());
+            assertThat(dataItems).isNotNull().hasSize(2);
+                        
+            Map<String, CaseFileItem> mappedDataItems = dataItems.stream().collect(toMap(CaseFileItem::getName, t -> t));
+            assertThat(mappedDataItems).containsKeys("reply", "contactInfo");
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                identityProvider.setName("john");
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+    
+    @Test(timeout=15000)
+    public void testCaseWithBoundaryTimerFiredAtStageAndThenReopen() throws InterruptedException {
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), STAGE_WITH_BOUNDARY_EVENT_CONDITION);
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+        
+        Collection<CaseStageInstance> activeStages = caseRuntimeDataService.getCaseInstanceStages(caseId, true, new QueryContext());
+        assertThat(activeStages).hasSize(0);
+
+        caseService.addDataToCaseFile(caseId, "readyToActivate", true);
+        
+        activeStages = caseRuntimeDataService.getCaseInstanceStages(caseId, true, new QueryContext());
+        assertThat(activeStages).hasSize(1);
+        
+        // wait till we hit end node
+        ((NodeLeftCountDownProcessEventListener) CountDownListenerFactory.getExisting(getClass().getSimpleName() + "2")).waitTillCompleted();
+        try {
+            Collection<CaseStageInstance> stages = caseRuntimeDataService.getCaseInstanceStages(caseId, false, null);
+            assertThat(stages).isNotNull().hasSize(2);
+            Iterator<CaseStageInstance> iterator = stages.iterator();
+
+            CaseStageInstance stage = iterator.next();
+            assertThat(stage.getName()).isEqualTo("Stage 1");
+            assertThat(stage.getStatus()).isEqualTo(StageStatus.Completed);
+
+            caseService.cancelCase(caseId);
+            
+            caseService.reopenCase(caseId, deploymentUnit.getIdentifier(), STAGE_WITH_BOUNDARY_EVENT_CONDITION);
+            
+            activeStages = caseRuntimeDataService.getCaseInstanceStages(caseId, true, new QueryContext());
+            //Stage 1 should be not active as boundary event was fired and completion condition set,
+            //and Stage 2 should be
+            assertThat(activeStages).hasSize(1);
+            stage = activeStages.iterator().next();
+            assertThat(stage.getName()).isEqualTo("Stage 2");
+            assertThat(stage.getStatus()).isEqualTo(StageStatus.Active);
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+    
+    @Test(timeout=15000)
+    public void testReopenAfterAddingDynamicSubprocess() {
+        Map<String, Object> data = new HashMap<>();
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_CASE_P_ID, data);
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_STAGE_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+        try {
+            CaseInstance cInstance = caseService.getCaseInstance(caseId);
+            assertNotNull(cInstance);
+            assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+
+            CaseDefinition caseDef = caseRuntimeDataService.getCase(deploymentUnit.getIdentifier(), USER_TASK_STAGE_CASE_P_ID);
+            assertNotNull(caseDef);
+            assertEquals(1, caseDef.getCaseStages().size());
+            assertEquals(deploymentUnit.getIdentifier(), caseDef.getDeploymentId());
+
+            CaseStage stage = caseDef.getCaseStages().iterator().next();
+
+            // add dynamic user task to empty case instance - first by case id
+            Map<String, Object> parameters = new HashMap<>();
+                        
+            caseService.addDynamicSubprocessToStage(FIRST_CASE_ID, stage.getId(), DYNAMIC_SUBPROCESS_P_ID, parameters);
+            
+            caseService.addDataToCaseFile(FIRST_CASE_ID, "stage_subprocess_finished", true);
+            
+            caseService.cancelCase(FIRST_CASE_ID);
+            caseService.reopenCase(FIRST_CASE_ID, deploymentUnit.getIdentifier(), USER_TASK_STAGE_CASE_P_ID);
+            
+            Map<String, Object> caseData = caseService.getCaseFileInstance(FIRST_CASE_ID).getData();
+            assertNotNull(caseData);
+            assertEquals("is not easy to say", caseData.get("mySecret"));
+            
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+
+    @Test
+    public void testCaseWithRequiredCaseFileItem() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("s", "this is a required value");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_REQUIRED_V_CASE_P_ID, data, roleAssignments);
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_REQUIRED_V_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+        try {
+            CaseInstance cInstance = caseService.getCaseInstance(caseId);
+            assertNotNull(cInstance);
+            assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+    
+    @Test
+    public void testCaseWithMissingRequiredCaseFileItem() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_REQUIRED_V_CASE_P_ID, data, roleAssignments);
+
+        assertThatExceptionOfType(VariableViolationException.class)
+            .isThrownBy(() -> caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_REQUIRED_V_CASE_P_ID, caseFile));
+      
+        
+        assertThatExceptionOfType(CaseNotFoundException.class)
+            .isThrownBy(() -> caseService.getCaseInstance(FIRST_CASE_ID));
+        
+    }
+    
+    @Test
+    public void testCaseWithMissingRequiredEmptyCaseFileItem() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("s", "");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_REQUIRED_V_CASE_P_ID, data, roleAssignments);
+
+        assertThatExceptionOfType(VariableViolationException.class)
+            .isThrownBy(() -> caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_REQUIRED_V_CASE_P_ID, caseFile));
+      
+        
+        assertThatExceptionOfType(CaseNotFoundException.class)
+            .isThrownBy(() -> caseService.getCaseInstance(FIRST_CASE_ID));
+        
+    }
+    
+    @Test
+    public void testCaseWithRestrictedCaseFileItem() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("s", "first restricted value");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_RESTRICTED_V_CASE_P_ID, data, roleAssignments);
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_RESTRICTED_V_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+        try {
+            CaseInstance cInstance = caseService.getCaseInstance(caseId);
+            assertNotNull(cInstance);
+            assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+            
+            caseService.cancelCase(caseId);
+            data.put("s", NEW_RESTRICTED_VALUE);
+            caseService.reopenCase(FIRST_CASE_ID, deploymentUnit.getIdentifier(), USER_TASK_RESTRICTED_V_CASE_P_ID, data);
+            Map<String, Object> caseData = caseService.getCaseFileInstance(FIRST_CASE_ID).getData();
+            assertNotNull(caseData);
+            assertEquals(NEW_RESTRICTED_VALUE, caseData.get("s"));
+            
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+    
+    @Test
+    public void testCaseWithViolatingRestrictedCaseFileItem() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("s", "this is a restricted value");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_RESTRICTED_V_CASE_P_ID, data, roleAssignments);
+
+        assertThatExceptionOfType(VariableViolationException.class)
+        .isThrownBy(() -> caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_RESTRICTED_V_CASE_P_ID, caseFile));
+    
+        assertThatExceptionOfType(CaseNotFoundException.class)
+        .isThrownBy(() -> caseService.getCaseInstance(FIRST_CASE_ID));
+    }
+    
+    @Test
+    public void testCaseReopenWithViolatingRestrictedCaseFileItem() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_RESTRICTED_V_CASE_P_ID, data, roleAssignments);
+        
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_RESTRICTED_V_CASE_P_ID, caseFile);
+        
+        CaseInstance cInstance = caseService.getCaseInstance(caseId);
+        assertNotNull(cInstance);
+        assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+        assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+        
+        caseService.cancelCase(caseId);
+        data.put("s", NEW_RESTRICTED_VALUE);
+        
+        assertThatExceptionOfType(VariableViolationException.class)
+        .isThrownBy(() -> caseService.reopenCase(FIRST_CASE_ID, deploymentUnit.getIdentifier(), USER_TASK_RESTRICTED_V_CASE_P_ID, data));
+    }
+    
+    @Test
+    public void testCaseReopenWithViolatingReadOnlyCaseFileItemReopen() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("r", "unmodifiable value");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_READONLY_V_CASE_P_ID, data, roleAssignments);
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_READONLY_V_CASE_P_ID, caseFile);
+
+        CaseInstance cInstance = caseService.getCaseInstance(caseId);
+        assertNotNull(cInstance);
+        assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+        assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+
+        caseService.cancelCase(caseId);
+        data.put("r", "modifiedvalue");
+
+        assertThatExceptionOfType(VariableViolationException.class)
+                                                                   .isThrownBy(() -> caseService.reopenCase(FIRST_CASE_ID, deploymentUnit.getIdentifier(), USER_TASK_READONLY_V_CASE_P_ID, data));
+    }
+    
+    @Test
+    public void testCaseViolatingReadOnlyCaseFileItemAddData() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("r", "unmodifiable value");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_READONLY_V_CASE_P_ID, data, roleAssignments);
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_READONLY_V_CASE_P_ID, caseFile);
+
+        CaseInstance cInstance = caseService.getCaseInstance(caseId);
+        assertNotNull(cInstance);
+        assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+        assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+
+        assertThatExceptionOfType(VariableViolationException.class)
+                                                                   .isThrownBy(() -> caseService.addDataToCaseFile(caseId,"r", "modidiedValue")); 
+        assertThatExceptionOfType(VariableViolationException.class)
+        .isThrownBy(() -> caseService.addDataToCaseFile(caseId,Collections.singletonMap("r", "modidiedValue")));
+    }
+    
+    @Test
+    public void testCaseReadOnlyCaseFileItemAddDataOnce() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_READONLY_V_CASE_P_ID, Collections.emptyMap(), roleAssignments);
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_READONLY_V_CASE_P_ID, caseFile);
+
+        CaseInstance cInstance = caseService.getCaseInstance(caseId);
+        assertNotNull(cInstance);
+        assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+        assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+        
+        final String newValue = "newValue";
+        caseService.addDataToCaseFile(caseId,"r", newValue);
+        Map<String, Object> caseData = caseService.getCaseFileInstance(FIRST_CASE_ID).getData();
+        assertEquals(newValue, caseData.get("r"));
+    }
+    
+    @Test
+    public void testCaseReadOnlyCaseFileItemRemoveData() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("r", "unmodifiable value");
+      
+
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_READONLY_V_CASE_P_ID, data, roleAssignments);
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_READONLY_V_CASE_P_ID, caseFile);
+
+        CaseInstance cInstance = caseService.getCaseInstance(caseId);
+        assertNotNull(cInstance);
+        assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+        assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+        
+        assertThatExceptionOfType(VariableViolationException.class).isThrownBy(() -> caseService.removeDataFromCaseFile(caseId,"r"));
+    }
+
+    
+    @Test
+    public void testAddDataCaseWithViolatingRestrictedCaseFileItem() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_RESTRICTED_V_CASE_P_ID, data, roleAssignments);
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_RESTRICTED_V_CASE_P_ID, caseFile);
+        CaseInstance cInstance = caseService.getCaseInstance(caseId);
+        assertNotNull(cInstance);
+        assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+        assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+        
+        assertThatExceptionOfType(VariableViolationException.class)
+        .isThrownBy(() -> caseService.addDataToCaseFile(caseId, "s", NEW_RESTRICTED_VALUE));
+    }
+    
+    @Test
+    public void testCaseWithRequiredRestrictedCaseFileItem() {
+        Map<String, OrganizationalEntity> roleAssignments = new HashMap<>();
+        roleAssignments.put("owner", new UserImpl("john"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("s", "required and restricted value");
+        CaseFileInstance caseFile = caseService.newCaseFileInstance(deploymentUnit.getIdentifier(), USER_TASK_REQUIRED_RESTRICTED_V_CASE_P_ID, data, roleAssignments);
+
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), USER_TASK_REQUIRED_RESTRICTED_V_CASE_P_ID, caseFile);
+        assertNotNull(caseId);
+        assertEquals(FIRST_CASE_ID, caseId);
+        try {
+            CaseInstance cInstance = caseService.getCaseInstance(caseId);
+            assertNotNull(cInstance);
+            assertEquals(FIRST_CASE_ID, cInstance.getCaseId());
+            assertEquals(deploymentUnit.getIdentifier(), cInstance.getDeploymentId());
+        } catch (Exception e) {
+            logger.error("Unexpected error {}", e.getMessage(), e);
+            fail("Unexpected exception " + e.getMessage());
+        } finally {
+            if (caseId != null) {
+                caseService.cancelCase(caseId);
+            }
+        }
+    }
+    
+    @Override
+    protected List<ObjectModel> getProcessListeners() {
+        List<ObjectModel> listeners = super.getProcessListeners();
+
+        if (RESTRICTED_TESTS.contains(name.getMethodName())) {
+          identityProvider.setRoles(Arrays.asList("admin"));
+          listeners.add(new ObjectModel("mvel", "new org.jbpm.process.instance.event.listeners.VariableGuardProcessEventListener(\"admin\", identityProvider)"));
+        } else if (VIOLATING_RESTRICTED_TESTS.contains(name.getMethodName())) {
+          identityProvider.setRoles(Arrays.asList("normal"));
+          listeners.add(new ObjectModel("mvel", "new org.jbpm.process.instance.event.listeners.VariableGuardProcessEventListener(\"admin\", identityProvider)"));
+        }
+
+        return listeners;
     }
 }

@@ -28,7 +28,7 @@ import org.jbpm.kie.services.impl.KModuleDeploymentUnit;
 import org.jbpm.kie.services.impl.store.DeploymentStore;
 import org.jbpm.kie.services.impl.store.DeploymentSyncInvoker;
 import org.jbpm.kie.services.impl.store.DeploymentSynchronizer;
-import org.jbpm.kie.services.test.objects.CoundDownDeploymentListener;
+import org.jbpm.kie.services.test.objects.CountDownDeploymentListener;
 import org.jbpm.kie.test.util.AbstractKieServicesBaseTest;
 import org.jbpm.services.api.ListenerSupport;
 import org.jbpm.services.api.model.DeployedUnit;
@@ -70,6 +70,7 @@ public class DeploymentServiceWithSyncTest extends AbstractKieServicesBaseTest {
     @Before
     public void prepare() {
     	configureServices();
+    	
 
         KieServices ks = KieServices.Factory.get();
         ReleaseId releaseId = ks.newReleaseId(GROUP_ID, ARTIFACT_ID, VERSION);
@@ -130,8 +131,12 @@ public class DeploymentServiceWithSyncTest extends AbstractKieServicesBaseTest {
         invoker.start();
     }
     
-    protected CoundDownDeploymentListener configureListener(int threads, boolean deploy, boolean undeploy, boolean activate, boolean deactivate) {
-        CoundDownDeploymentListener countDownListener = new CoundDownDeploymentListener(threads);
+    protected CountDownDeploymentListener configureListener(int threads, boolean deploy, boolean undeploy, boolean activate, boolean deactivate) {
+        CountDownDeploymentListener countDownListener = new CountDownDeploymentListener(threads);
+        countDownListener.setDeploy(deploy);
+        countDownListener.setUndeploy(undeploy);
+        countDownListener.setActivate(activate);
+        countDownListener.setDeactivate(deactivate);
         ((ListenerSupport)deploymentService).addListener(countDownListener);
         
         return countDownListener;
@@ -161,7 +166,7 @@ public class DeploymentServiceWithSyncTest extends AbstractKieServicesBaseTest {
     @Test
     public void testDeploymentOfProcessesBySync() throws Exception {
         
-        CoundDownDeploymentListener countDownListener = configureListener(1, true, false, false, false);
+        CountDownDeploymentListener countDownListener = configureListener(1, true, false, false, false);
 
     	Collection<DeployedUnit> deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
@@ -182,7 +187,7 @@ public class DeploymentServiceWithSyncTest extends AbstractKieServicesBaseTest {
     
     @Test
     public void testUndeploymentOfProcessesBySync() throws Exception {
-        CoundDownDeploymentListener countDownListener = configureListener(1, false, true, false, false);
+        CountDownDeploymentListener countDownListener = configureListener(1, false, true, false, false);
         
     	Collection<DeployedUnit> deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
@@ -205,11 +210,12 @@ public class DeploymentServiceWithSyncTest extends AbstractKieServicesBaseTest {
 		deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
     	assertEquals(0, deployed.size());
+    	units.remove(unit);
     }
     
     @Test
     public void testDeactivateAndActivateOfProcessesBySync() throws Exception {
-        CoundDownDeploymentListener countDownListener = configureListener(2, false, false, true, true);
+        CountDownDeploymentListener countDownListener = configureListener(2, false, false, true, true);
         
     	Collection<DeployedUnit> deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
@@ -246,7 +252,7 @@ public class DeploymentServiceWithSyncTest extends AbstractKieServicesBaseTest {
     
     @Test
     public void testDeploymentOfProcessesBySyncWithDisabledAttribute() throws Exception {
-        CoundDownDeploymentListener countDownListener = configureListener(1, true, false, false, false);
+        CountDownDeploymentListener countDownListener = configureListener(1, true, false, false, false);
         
     	Collection<DeployedUnit> deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
@@ -256,7 +262,6 @@ public class DeploymentServiceWithSyncTest extends AbstractKieServicesBaseTest {
     	unit.addAttribute("sync", "false");
     	
     	store.enableDeploymentUnit(unit);
-		units.add(unit);
 		
 		countDownListener.waitTillCompleted(4000);
 		

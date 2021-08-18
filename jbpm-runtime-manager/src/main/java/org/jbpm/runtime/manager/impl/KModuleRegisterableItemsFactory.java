@@ -30,6 +30,9 @@ import org.kie.api.event.rule.RuleRuntimeEventListener;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.manager.RuntimeEngine;
 import org.kie.api.runtime.process.WorkItemHandler;
+import org.kie.internal.runtime.manager.InternalRuntimeEngine;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This implementation extends the DefaultRegisterableItemsFactory
@@ -40,6 +43,8 @@ import org.kie.api.runtime.process.WorkItemHandler;
  *
  */
 public class KModuleRegisterableItemsFactory extends DefaultRegisterableItemsFactory {
+
+    private static final Logger logger = LoggerFactory.getLogger(KModuleRegisterableItemsFactory.class);
 
 	private static final String DEFAULT_KIE_SESSION = "defaultKieSession";
 	
@@ -79,7 +84,7 @@ public class KModuleRegisterableItemsFactory extends DefaultRegisterableItemsFac
             throw new IllegalStateException("Cannot find ksession, either it does not exist or there are multiple default ksession in kmodule.xml");
         }
         Map<String, Object> parameters = new HashMap<String, Object>();
-        parameters.put("ksession", runtime.getKieSession());
+        parameters.put("ksession", ((InternalRuntimeEngine) runtime).internalGetKieSession());
         parameters.put("taskService", runtime.getTaskService());
         parameters.put("runtimeManager", ((RuntimeEngineImpl)runtime).getManager());
         if (getRuntimeManager().getKieContainer() != null) {
@@ -88,11 +93,11 @@ public class KModuleRegisterableItemsFactory extends DefaultRegisterableItemsFac
         parameters.put("classLoader", getRuntimeManager().getEnvironment().getClassLoader());
         try {
 
-            InjectionHelper.wireSessionComponents(ksessionModel, runtime.getKieSession(), parameters);
+            InjectionHelper.wireSessionComponents(ksessionModel, ((InternalRuntimeEngine) runtime).internalGetKieSession(), parameters);
         } catch (Exception e) {
-        	e.printStackTrace();
+            logger.debug("Failed with MVELBeanCreator. Falls back to default beanCreator", e);
             // use fallback mechanism
-            InjectionHelper.wireSessionComponents(ksessionModel, runtime.getKieSession());
+            InjectionHelper.wireSessionComponents(ksessionModel, ((InternalRuntimeEngine) runtime).internalGetKieSession());
         }
         
         return super.getWorkItemHandlers(runtime);

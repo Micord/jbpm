@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Map.Entry;
 
 import org.drools.core.impl.EnvironmentFactory;
 import org.jbpm.process.audit.AbstractAuditLogger;
@@ -29,12 +30,15 @@ import org.jbpm.process.audit.AuditLoggerFactory;
 import org.jbpm.process.audit.event.AuditEventBuilder;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
 import org.jbpm.services.task.audit.JPATaskLifeCycleEventListener;
+import org.jbpm.services.task.audit.TaskAuditLoggerFactory;
+import org.jbpm.services.task.audit.jms.AsyncTaskLifeCycleEventProducer;
 import org.jbpm.services.task.wih.LocalHTWorkItemHandler;
 import org.kie.api.event.process.ProcessEventListener;
 import org.kie.api.event.rule.AgendaEventListener;
 import org.kie.api.event.rule.RuleRuntimeEventListener;
 import org.kie.api.runtime.Environment;
 import org.kie.api.runtime.EnvironmentName;
+import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.manager.RuntimeEngine;
 import org.kie.api.runtime.manager.RuntimeManager;
 import org.kie.api.runtime.process.WorkItemHandler;
@@ -47,6 +51,7 @@ import org.kie.internal.runtime.conf.NamedObjectModel;
 import org.kie.internal.runtime.conf.ObjectModel;
 import org.kie.internal.runtime.conf.ObjectModelResolver;
 import org.kie.internal.runtime.conf.ObjectModelResolverProvider;
+import org.kie.internal.runtime.manager.InternalRuntimeEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +76,7 @@ public class DefaultRegisterableItemsFactory extends SimpleRegisterableItemsFact
 
     private AuditEventBuilder auditBuilder = new ManagedAuditEventBuilderImpl();
     private AbstractAuditLogger jmsLogger = null;
+    private AsyncTaskLifeCycleEventProducer jmsTaskLogger = null;
     
     @Override
     public Map<String, WorkItemHandler> getWorkItemHandlers(RuntimeEngine runtime) {
@@ -90,19 +96,20 @@ public class DefaultRegisterableItemsFactory extends SimpleRegisterableItemsFact
 
 
     @Override
-    public List<ProcessEventListener> getProcessEventListeners(RuntimeEngine runtime) {    	
+    public List<ProcessEventListener> getProcessEventListeners(RuntimeEngine runtime) {
+        KieSession ksession = ((InternalRuntimeEngine) runtime).internalGetKieSession();
         List<ProcessEventListener> defaultListeners = new ArrayList<ProcessEventListener>();
         DeploymentDescriptor descriptor = getRuntimeManager().getDeploymentDescriptor();
         if (descriptor == null) {
         	// register JPAWorkingMemoryDBLogger
-	        AbstractAuditLogger logger = AuditLoggerFactory.newJPAInstance(runtime.getKieSession().getEnvironment());
+	        AbstractAuditLogger logger = AuditLoggerFactory.newJPAInstance(ksession.getEnvironment());
 	        logger.setBuilder(getAuditBuilder(runtime));
 	        defaultListeners.add(logger);
         } else if (descriptor.getAuditMode() == AuditMode.JPA) {
         	// register JPAWorkingMemoryDBLogger
         	AbstractAuditLogger logger = null;
         	if (descriptor.getPersistenceUnit().equals(descriptor.getAuditPersistenceUnit())) {
-        		logger = AuditLoggerFactory.newJPAInstance(runtime.getKieSession().getEnvironment());
+        		logger = AuditLoggerFactory.newJPAInstance(ksession.getEnvironment());
         	} else {
         		Environment env = EnvironmentFactory.newEnvironment();
         		env.set(EnvironmentName.ENTITY_MANAGER_FACTORY, EntityManagerFactoryManager.get().getOrCreate(descriptor.getAuditPersistenceUnit()));
@@ -114,13 +121,7 @@ public class DefaultRegisterableItemsFactory extends SimpleRegisterableItemsFact
         } else if (descriptor.getAuditMode() == AuditMode.JMS) {
             try {
                 if (jmsLogger == null) {
-                    Properties properties = new Properties();
-                    InputStream input = getRuntimeManager().getEnvironment().getClassLoader().getResourceAsStream("/jbpm.audit.jms.properties");
-                    // required for junit test
-                    if (input == null) {
-                        input = getRuntimeManager().getEnvironment().getClassLoader().getResourceAsStream("jbpm.audit.jms.properties");
-                    }
-                    properties.load(input);
+                    Properties properties = loadJMSProperties();
                     logger.debug("Creating AsyncAuditLogProducer {}", properties);
 
                     jmsLogger = AuditLoggerFactory.newJMSInstance((Map) properties);
@@ -163,7 +164,29 @@ public class DefaultRegisterableItemsFactory extends SimpleRegisterableItemsFact
     @Override
 	public List<TaskLifeCycleEventListener> getTaskListeners() {
     	List<TaskLifeCycleEventListener> defaultListeners = new ArrayList<TaskLifeCycleEventListener>();
-        defaultListeners.add(new JPATaskLifeCycleEventListener(true));
+    	DeploymentDescriptor descriptor = getRuntimeManager().getDeploymentDescriptor();
+        if (descriptor == null) {
+            defaultListeners.add(new JPATaskLifeCycleEventListener(true));
+        } else if (descriptor.getAuditMode() == AuditMode.JPA) {
+            
+            if (descriptor.getPersistenceUnit().equals(descriptor.getAuditPersistenceUnit())) {
+                defaultListeners.add(TaskAuditLoggerFactory.newJPAInstance());
+            } else {                
+                defaultListeners.add(TaskAuditLoggerFactory.newJPAInstance(EntityManagerFactoryManager.get().getOrCreate(descriptor.getAuditPersistenceUnit())));
+            }
+            
+        } else if (descriptor.getAuditMode() == AuditMode.JMS) {
+            if (jmsTaskLogger == null) {
+                 try {
+                    Properties properties = loadJMSProperties();
+                    
+                    jmsTaskLogger = TaskAuditLoggerFactory.newJMSInstance((Map) properties);
+                } catch (IOException e) {
+                    logger.error("Unable to load jms audit properties from {}", "/jbpm.audit.jms.properties", e);
+                }
+            }
+            defaultListeners.add(jmsTaskLogger);
+        }
         // add any custom listeners
         defaultListeners.addAll(super.getTaskListeners());
         // add listeners from deployment descriptor
@@ -223,7 +246,7 @@ public class DefaultRegisterableItemsFactory extends SimpleRegisterableItemsFact
     protected Map<String, Object> getParametersMap(RuntimeEngine runtime) {
         RuntimeManager manager = ((RuntimeEngineImpl)runtime).getManager();
         Map<String, Object> parameters = new HashMap<String, Object>();
-        parameters.put("ksession", runtime.getKieSession());
+        parameters.put("ksession", ((InternalRuntimeEngine) runtime).internalGetKieSession());
         
         try {
             parameters.put("taskService", runtime.getTaskService());
@@ -233,8 +256,15 @@ public class DefaultRegisterableItemsFactory extends SimpleRegisterableItemsFact
         parameters.put("runtimeManager", manager);
         parameters.put("classLoader", getRuntimeManager().getEnvironment().getClassLoader());
         parameters.put("entityManagerFactory", 
-        		runtime.getKieSession().getEnvironment().get(EnvironmentName.ENTITY_MANAGER_FACTORY));
+                ((InternalRuntimeEngine) runtime).internalGetKieSession().getEnvironment().get(EnvironmentName.ENTITY_MANAGER_FACTORY));
         parameters.put("kieContainer", getRuntimeManager().getKieContainer());
+        parameters.put("identityProvider", ((SimpleRuntimeEnvironment)getRuntimeManager().getEnvironment()).getEnvironmentTemplate().get(EnvironmentName.IDENTITY_PROVIDER));
+
+        Map<Object, Object> env = new HashMap<>();
+        for(Entry<Object, Object> set : System.getProperties().entrySet()) {
+            env.put(set.getKey().toString(), set.getValue());
+        }
+        parameters.put("env", env);
         
         return parameters;
     }
@@ -310,5 +340,17 @@ public class DefaultRegisterableItemsFactory extends SimpleRegisterableItemsFact
         }
         
         return globals;
+    }
+    
+    protected Properties loadJMSProperties() throws IOException {
+        Properties properties = new Properties();
+        InputStream input = getRuntimeManager().getEnvironment().getClassLoader().getResourceAsStream("/jbpm.audit.jms.properties");
+        // required for junit test
+        if (input == null) {
+            input = getRuntimeManager().getEnvironment().getClassLoader().getResourceAsStream("jbpm.audit.jms.properties");
+        }
+        properties.load(input);
+        
+        return properties;
     }
 }

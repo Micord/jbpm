@@ -26,7 +26,6 @@ import java.util.Objects;
 
 import org.drools.core.command.SingleSessionCommandService;
 import org.drools.core.command.impl.CommandBasedStatefulKnowledgeSession;
-import org.drools.core.command.impl.RegistryContext;
 import org.drools.core.command.runtime.BatchExecutionCommandImpl;
 import org.drools.core.common.InternalKnowledgeRuntime;
 import org.drools.core.event.AbstractEventSupport;
@@ -57,6 +56,7 @@ import org.kie.api.runtime.manager.Context;
 import org.kie.api.runtime.manager.RuntimeEngine;
 import org.kie.api.runtime.manager.RuntimeEnvironment;
 import org.kie.api.task.TaskService;
+import org.kie.internal.command.RegistryContext;
 import org.kie.internal.runtime.manager.Disposable;
 import org.kie.internal.runtime.manager.InternalRuntimeManager;
 import org.kie.internal.runtime.manager.Mapper;
@@ -104,79 +104,43 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
         this.registry.register(this);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public RuntimeEngine getRuntimeEngine(Context<?> context) {
         if (isClosed()) {
             throw new IllegalStateException("Runtime manager " + identifier + " is already closed");
-        }
-        checkPermission();
+        }        
         RuntimeEngine runtime = null;
         Object contextId = context.getContextId();
 
         if (!(context instanceof ProcessInstanceIdContext || context instanceof CaseContext)) {
             logger.warn("ProcessInstanceIdContext or CaseContext shall be used when interacting with PerCase runtime manager");
         }
-        
+
+        RuntimeEngine localRuntime = findLocalRuntime(contextId);
+        if (localRuntime != null) {
+            logger.debug("Runtime engine found in local {} with context {}", localRuntime, contextId);
+            return localRuntime;
+        }
+
+        Long ksessionId = mapper.findMapping(context, this.getIdentifier());
+        if(ksessionId == null && mapper instanceof InternalMapper) {
+            // we fall back as process instance must be closed but not really case and kie session must be still there.
+            logger.debug("PerCaseRuntimeManager KieSessionId not found, falling back for context {} and owner {}", context.getContextId(), getIdentifier());
+            ksessionId = ((InternalMapper) mapper).findLogMapping(context, identifier);
+        }
+        logger.debug("PerCaseRuntimeManager KieSessionId {} found for context {} and owner {}", ksessionId, context.getContextId(), getIdentifier());
         if (engineInitEager) {
-            KieSession ksession = null;
-            Long ksessionId = null;
-
-            RuntimeEngine localRuntime = findLocalRuntime(contextId);
-            if (localRuntime != null) {
-                return localRuntime;
-            }
-            synchronized (this) {
-                ksessionId = mapper.findMapping(context, this.identifier);
-                if (ksessionId == null) {
-                    ksession = factory.newKieSession();
-                    ksessionId = ksession.getIdentifier();
-
-                    if (context instanceof CaseContext) {
-                        ksession.execute(new SaveMappingCommand(mapper, context, ksessionId, getIdentifier()));
-                    }
-                } else {
-                    ksession = factory.findKieSessionById(ksessionId);
-                }
-            }
             InternalTaskService internalTaskService = newTaskService(taskServiceFactory);
-            runtime = new RuntimeEngineImpl(ksession, internalTaskService);
+            runtime = new RuntimeEngineImpl(context, internalTaskService);
             ((RuntimeEngineImpl) runtime).setManager(this);
-            ((RuntimeEngineImpl) runtime).setContext(context);
             configureRuntimeOnTaskService(internalTaskService, runtime);
-            registerDisposeCallback(runtime, new DisposeSessionTransactionSynchronization(this, runtime), ksession.getEnvironment());
-            registerItems(runtime);
-            attachManager(runtime);
-            ksession.addEventListener(new MaintainMappingListener(ksessionId, runtime, this.identifier, (String) contextId));
-
-            if (context instanceof CaseContext) {
-                ksession.getEnvironment().set("CaseId", context.getContextId());
-            } else {
-                Object contexts = mapper.findContextId(ksession.getIdentifier(), this.identifier);
-                if (contexts instanceof Collection) {
-                    RuntimeEngine finalRuntimeEngnie = runtime;
-                    KieSession finalKieSession = ksession;
-                    ((Collection<Object>) contexts).forEach(o -> {
-                        try {
-                            
-                            saveLocalRuntime(null, Long.parseLong(o.toString()), finalRuntimeEngnie);
-                        } catch (NumberFormatException e) {
-                            saveLocalRuntime(o.toString(), null, finalRuntimeEngnie);
-                            finalKieSession.getEnvironment().set("CaseId", o.toString());
-                        }
-                    });                    
-                }
-            }
+            KieSession ksession = initPerCaseKSession(ksessionId, context, this, runtime);
+            ksessionId = ksession.getIdentifier();
         } else {
-            RuntimeEngine localRuntime = findLocalRuntime(contextId);
-            if (localRuntime != null) {
-                return localRuntime;
-            }
-            // lazy initialization of ksession and task service
-
-            runtime = new RuntimeEngineImpl(context, new PerCaseInitializer());
+            runtime = new RuntimeEngineImpl(context, new PerCaseInitializer(ksessionId));
             ((RuntimeEngineImpl) runtime).setManager(this);
         }
+
         String caseId = null;
         Long processInstanceId = null;
 
@@ -185,11 +149,101 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
         } else if (context instanceof ProcessInstanceIdContext) {
             processInstanceId = (Long) contextId;
         }
-        Long ksessionId = mapper.findMapping(context, this.identifier);
+
         createLockOnGetEngine(ksessionId, runtime);
-        saveLocalRuntime(caseId, processInstanceId, runtime);        
+        saveLocalRuntime(caseId, processInstanceId, runtime);
 
         return runtime;
+    }
+
+    private class PerCaseInitializer implements RuntimeEngineInitlializer {
+
+        private Long kieSessionId;
+
+        public PerCaseInitializer(Long kieSessionId) {
+            this.kieSessionId = kieSessionId;
+        }
+
+        @Override
+        public Long getKieSessionId() {
+            return kieSessionId;
+        }
+
+        @Override
+        public KieSession initKieSession(Context<?> context, InternalRuntimeManager manager, RuntimeEngine engine) {
+            Object contextId = context.getContextId();
+            if (contextId == null) {
+                contextId = manager.getIdentifier();
+            }
+
+            RuntimeEngine localRuntime = ((PerCaseRuntimeManager) manager).findLocalRuntime(contextId);
+            if (localRuntime != null && engine != null && ((RuntimeEngineImpl) engine).getKieSessionId() != null) {
+                return localRuntime.getKieSession();
+            }
+
+            return initPerCaseKSession(kieSessionId, context, manager, engine);
+        }
+
+        @Override
+        public TaskService initTaskService(Context<?> context, InternalRuntimeManager manager, RuntimeEngine engine) {
+            InternalTaskService internalTaskService = newTaskService(taskServiceFactory);
+            if (internalTaskService != null) {
+                registerDisposeCallback(engine, new DisposeSessionTransactionSynchronization(manager, engine), ((CommandBasedTaskService) internalTaskService).getEnvironment());
+                configureRuntimeOnTaskService(internalTaskService, engine);
+            }
+            return internalTaskService;
+        }
+
+    }
+
+    @SuppressWarnings("unchecked")
+    private KieSession initPerCaseKSession(Long kieSessionIdMapped, Context<?> context, InternalRuntimeManager manager, RuntimeEngine engine) {
+        Object contextId = context.getContextId();
+        if (contextId == null) {
+            contextId = manager.getIdentifier();
+        }
+
+        KieSession ksession = null;
+        Long ksessionId = kieSessionIdMapped;
+
+        synchronized (manager) {
+            if (ksessionId == null) {
+                ksession = factory.newKieSession();
+                ksessionId = ksession.getIdentifier();
+                if (context instanceof CaseContext) {
+                    ksession.execute(new SaveMappingCommand(mapper, context, ksessionId, manager.getIdentifier()));
+                }
+                logger.debug("Creating KieSessionId {} found for context {} and owner {}", ksessionId, context, getIdentifier());
+            } else {
+                ksession = factory.findKieSessionById(ksessionId);
+                logger.debug("Found KieSessionId {} for context {} and owner {}", ksessionId, context, getIdentifier());
+            }
+        }
+        ((RuntimeEngineImpl) engine).internalSetKieSession(ksession);
+        registerItems(engine);
+        attachManager(engine);
+        registerDisposeCallback(engine, new DisposeSessionTransactionSynchronization(manager, engine), ksession.getEnvironment());
+        ksession.addEventListener(new MaintainMappingListener(ksessionId, engine, manager.getIdentifier(), contextId.toString()));
+
+        if (context instanceof CaseContext) {
+            ksession.getEnvironment().set("CaseId", context.getContextId());
+        } else {
+            Object contexts = mapper.findContextId(ksession.getIdentifier(), manager.getIdentifier());
+            if (contexts instanceof Collection) {
+                KieSession finalKieSession = ksession;
+
+                ((Collection<Object>) contexts).forEach(o -> {
+                    try {
+                        saveLocalRuntime(null, Long.parseLong(o.toString()), engine);
+                    } catch (NumberFormatException e) {
+                        saveLocalRuntime(o.toString(), null, engine);
+                        finalKieSession.getEnvironment().set("CaseId", o.toString());
+                    }
+                });                    
+            }
+        }
+
+        return ksession;
     }
 
     @Override
@@ -197,17 +251,23 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
 
         // first signal with new context in case there are start event with signal
         RuntimeEngine runtimeEngine = getRuntimeEngine(ProcessInstanceIdContext.get());
-        runtimeEngine.getKieSession().signalEvent(type, event);
-        if (canDispose(runtimeEngine)) {
-            disposeRuntimeEngine(runtimeEngine);
+        try {
+            runtimeEngine.getKieSession().signalEvent(type, event);
+        } finally {
+            if (canDispose(runtimeEngine)) {
+                disposeRuntimeEngine(runtimeEngine);
+            }
         }
         // next find out all instances waiting for given event type
         List<String> processInstances = ((InternalMapper) mapper).findContextIdForEvent(type, getIdentifier());
         for (String piId : processInstances) {
             runtimeEngine = getRuntimeEngine(ProcessInstanceIdContext.get(Long.parseLong(piId)));
-            runtimeEngine.getKieSession().signalEvent(type, event);
-            if (canDispose(runtimeEngine)) {
-                disposeRuntimeEngine(runtimeEngine);
+            try {
+                runtimeEngine.getKieSession().signalEvent(type, event);
+            } finally {
+                if (canDispose(runtimeEngine)) {
+                    disposeRuntimeEngine(runtimeEngine);
+                }
             }
         }
 
@@ -241,32 +301,41 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
     @Override
     public void disposeRuntimeEngine(RuntimeEngine runtime) {
         if (isClosed()) {
-            throw new IllegalStateException("Runtime manager " + identifier + " is already closed");
+            logger.warn("Runtime manager {} is already closed", identifier);
+            return;
         }
+        // the init might not be init so we rely on the lazy kie session id
+        Long ksessionId = ((RuntimeEngineImpl) runtime).getLazyKieSessionId();
+        logger.debug("Trying to dispose for KieSessionId {} (Kie session id cannot be null at this point)", ksessionId);
         try {
             if (canDispose(runtime)) {
-                removeLocalRuntime(runtime);                
-                
-                Long ksessionId = ((RuntimeEngineImpl)runtime).getKieSessionId();
+                removeLocalRuntime(runtime);
+                logger.debug("About to release and clean runtime engine {}", runtime);
                 releaseAndCleanLock(ksessionId, runtime);
                 if (runtime instanceof Disposable) {
                     // special handling for in memory to not allow to dispose if there is any context in the mapper
                     if (mapper instanceof InMemoryMapper && ((InMemoryMapper) mapper).hasContext(ksessionId)) {
                         return;
                     }
+                    logger.debug("Calling dispose engine {}", runtime);
                     ((Disposable) runtime).dispose();
                 }
                 if (ksessionId != null) {
                     TimerService timerService = TimerServiceRegistry.getInstance().get(getIdentifier() + TimerServiceRegistry.TIMER_SERVICE_SUFFIX);
                     if (timerService != null) {
                         if (timerService instanceof GlobalTimerService) {
+                            logger.debug("About to clear timer job instances for engine {}", runtime);
                             ((GlobalTimerService) timerService).clearTimerJobInstances(ksessionId);
                         }
+                    } else {
+                        logger.debug("Not timer service found for engine {}. Cannot clean up timer jobs", runtime);
                     }
-                }
+                } 
+            } else {
+                logger.debug("Cannot dispose the engine {}", runtime);
             }
         } catch (Exception e) {
-            releaseAndCleanLock(runtime);
+            releaseAndCleanLock(ksessionId, runtime);
             removeLocalRuntime(runtime);           
             throw new RuntimeException(e);
         }            
@@ -318,12 +387,14 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
 
         @Override
         public void afterProcessCompleted(ProcessCompletedEvent event) {
+            logger.debug("Removing persistence mapping for kieSessionId {} runtime engine {} manager {} and case id {}",ksessionId, runtime, managerId, caseId);
             mapper.removeMapping(new EnvironmentAwareProcessInstanceContext(event.getKieRuntime().getEnvironment(), event.getProcessInstance().getId()), managerId);
-            removeLocalRuntime(runtime, event.getProcessInstance().getId());                       
+            removeLocalRuntime(runtime, event.getProcessInstance().getId());
         }
 
         @Override
         public void beforeProcessStarted(ProcessStartedEvent event) {
+            logger.debug("Saving persistence mapping for kieSessionId {} runtime engine {} manager {} and case id {}",ksessionId, runtime, managerId, caseId);
             mapper.saveMapping(new EnvironmentAwareProcessInstanceContext(event.getKieRuntime().getEnvironment(), event.getProcessInstance().getId()), ksessionId, managerId);
             saveLocalRuntime(caseId, event.getProcessInstance().getId(), runtime);
             ((RuntimeEngineImpl) runtime).setContext(ProcessInstanceIdContext.get(event.getProcessInstance().getId()));            
@@ -424,7 +495,7 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
 
     @Override
     public void init() {
-
+        super.init();
         TaskContentRegistry.get().addMarshallerContext(getIdentifier(), new ContentMarshallerContext(environment.getEnvironment(), environment.getClassLoader()));
         boolean owner = false;
         TransactionManager tm = null; 
@@ -647,74 +718,9 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
         }
     }
 
-    private class PerCaseInitializer implements RuntimeEngineInitlializer {
-        @SuppressWarnings("unchecked")
-        @Override
-        public KieSession initKieSession(Context<?> context, InternalRuntimeManager manager, RuntimeEngine engine) {
 
-            Object contextId = context.getContextId();
-            if (contextId == null) {
-                contextId = manager.getIdentifier();
-            }
 
-            KieSession ksession = null;
-            Long ksessionId = null;
 
-            RuntimeEngine localRuntime = ((PerCaseRuntimeManager) manager).findLocalRuntime(contextId);
-            if (localRuntime != null && ((RuntimeEngineImpl) engine).internalGetKieSession() != null) {
-                return localRuntime.getKieSession();
-            }
-            synchronized (manager) {
-
-                ksessionId = mapper.findMapping(context, manager.getIdentifier());
-                if (ksessionId == null) {
-                    ksession = factory.newKieSession();
-                    ksessionId = ksession.getIdentifier();
-                    if (context instanceof CaseContext) {
-                        ksession.execute(new SaveMappingCommand(mapper, context, ksessionId, manager.getIdentifier()));
-                    }
-                } else {
-                    ksession = factory.findKieSessionById(ksessionId);
-                }
-            }
-            ((RuntimeEngineImpl) engine).internalSetKieSession(ksession);
-            registerItems(engine);
-            attachManager(engine);
-            registerDisposeCallback(engine, new DisposeSessionTransactionSynchronization(manager, engine), ksession.getEnvironment());
-            ksession.addEventListener(new MaintainMappingListener(ksessionId, engine, manager.getIdentifier(), contextId.toString()));
-
-            if (context instanceof CaseContext) {
-                ksession.getEnvironment().set("CaseId", context.getContextId());
-            } else {
-                Object contexts = mapper.findContextId(ksession.getIdentifier(), manager.getIdentifier());
-                if (contexts instanceof Collection) {
-                    KieSession finalKieSession = ksession;
-                    ((Collection<Object>) contexts).forEach(o -> {
-                        try {
-                            
-                            saveLocalRuntime(null, Long.parseLong(o.toString()), engine);
-                        } catch (NumberFormatException e) {
-                            saveLocalRuntime(o.toString(), null, engine);
-                            finalKieSession.getEnvironment().set("CaseId", o.toString());
-                        }
-                    });                    
-                }
-            }
-
-            return ksession;
-        }
-
-        @Override
-        public TaskService initTaskService(Context<?> context, InternalRuntimeManager manager, RuntimeEngine engine) {
-            InternalTaskService internalTaskService = newTaskService(taskServiceFactory);
-            if (internalTaskService != null) {
-                registerDisposeCallback(engine, new DisposeSessionTransactionSynchronization(manager, engine), ((CommandBasedTaskService) internalTaskService).getEnvironment());
-                configureRuntimeOnTaskService(internalTaskService, engine);
-            }
-            return internalTaskService;
-        }
-
-    }
 
     @Override
     protected boolean isUseLocking() {

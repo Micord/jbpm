@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2019 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,23 +20,22 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
- * Maps raw data set into object instances
- *
+ * Maps raw data set into object instances.
  * @param <T> type of the object this mapper will produce
  */
 public interface QueryResultMapper<T> extends Serializable {
 
     /**
      * Based on raw data set returns mapped/transformed data. Usually it will get set of raw data
-     * and return list (or collection in general) of custom object like ProcessInstance or UserTaskInstance
+     * and return list (or collection in general) of custom object like ProcessInstance or UserTaskInstance.
      * @param result raw data set in custom format
      * @return mapped result of raw data set
      */
     T map(Object result);
     
     /**
-     * Returns unique name of this query result mapper implementation
-     * @return
+     * Returns unique name of this query result mapper implementation.
+     * @return name
      */
     String getName();
     
@@ -47,7 +46,7 @@ public interface QueryResultMapper<T> extends Serializable {
      * <code>
      *  List&lt;ProcessInstanceDesc&gt; returned type should be ProcessInstanceDesc.class
      * </code>
-     * @return
+     * @return type
      */
     Class<?> getType();
     
@@ -71,6 +70,7 @@ public interface QueryResultMapper<T> extends Serializable {
     public static final String COLUMN_IDENTITY = "USER_IDENTITY";
     public static final String COLUMN_PROCESSVERSION = "PROCESSVERSION";
     public static final String COLUMN_PROCESSNAME = "PROCESSNAME";
+    public static final String COLUMN_PROCESSTYPE = "PROCESSTYPE";
     public static final String COLUMN_CORRELATIONKEY = "CORRELATIONKEY";
     public static final String COLUMN_EXTERNALID = "EXTERNALID";
     public static final String COLUMN_PROCESSINSTANCEDESCRIPTION = "PROCESSINSTANCEDESCRIPTION";
@@ -99,6 +99,8 @@ public interface QueryResultMapper<T> extends Serializable {
     public static final String COLUMN_TASK_PROCESSINSTANCEID = "PROCESSINSTANCEID";
     public static final String COLUMN_TASK_STATUS = "STATUS";
     public static final String COLUMN_TASKID = "TASKID";
+    public static final String COLUMN_TASK_SLA_DUE_DATE = "SLA_DUE_DATE";
+    public static final String COLUMN_TASK_SLA_COMPLIANCE = "SLACOMPLIANCE";
     public static final String COLUMN_WORKITEMID = "WORKITEMID";
     public static final String COLUMN_ORGANIZATIONAL_ENTITY = "ID";
     public static final String COLUMN_EXCLUDED_OWNER = "ENTITY_ID";

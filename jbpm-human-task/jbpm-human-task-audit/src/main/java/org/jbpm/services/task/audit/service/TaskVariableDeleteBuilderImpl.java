@@ -16,8 +16,6 @@
 
 package org.jbpm.services.task.audit.service;
 
-import static org.kie.internal.query.QueryParameterIdentifiers.TASK_VARIABLE_DATE_ID_LIST;
-
 import java.util.Date;
 
 import org.jbpm.process.audit.JPAAuditLogService;
@@ -26,10 +24,11 @@ import org.jbpm.services.task.audit.impl.model.TaskEventImpl;
 import org.kie.api.runtime.CommandExecutor;
 import org.kie.internal.task.query.TaskVariableDeleteBuilder;
 
+import static org.kie.internal.query.QueryParameterIdentifiers.TASK_VARIABLE_DATE_ID_LIST;
+
 public class TaskVariableDeleteBuilderImpl extends AbstractAuditDeleteBuilderImpl<TaskVariableDeleteBuilder> implements TaskVariableDeleteBuilder {
 
-    private static String TASK_VARIABLE_IMPL_DELETE =
-            "DELETE\n" + "FROM TaskVariableImpl l\n";
+    private static final String TASK_VARIABLE_IMPL_DELETE = "TaskVariableImpl";
 
     public TaskVariableDeleteBuilderImpl(CommandExecutor cmdExecutor) {
         super(cmdExecutor);
@@ -74,12 +73,12 @@ public class TaskVariableDeleteBuilderImpl extends AbstractAuditDeleteBuilderImp
     }
 
     @Override
-    protected String getQueryBase() {
+    protected String getQueryTable() {
         return TASK_VARIABLE_IMPL_DELETE;
     }
 
     @Override
-    protected String getSubQuery() {
-        return ONLY_COMPLETED_PROCESS_INSTANCES;
+    protected boolean isSubquerySupported() {
+        return true;
     }
 }

@@ -16,6 +16,7 @@
 
 package org.jbpm.process.instance.command;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -26,12 +27,12 @@ import javax.xml.bind.annotation.XmlSchemaType;
 
 import org.drools.core.command.SingleSessionCommandService;
 import org.drools.core.command.impl.CommandBasedStatefulKnowledgeSession;
-import org.drools.core.command.impl.RegistryContext;
 import org.drools.core.impl.StatefulKnowledgeSessionImpl;
 import org.jbpm.process.instance.InternalProcessRuntime;
 import org.jbpm.process.instance.timer.TimerInstance;
 import org.jbpm.process.instance.timer.TimerManager;
 import org.jbpm.ruleflow.instance.RuleFlowProcessInstance;
+import org.jbpm.workflow.instance.impl.NodeInstanceImpl;
 import org.jbpm.workflow.instance.node.StateBasedNodeInstance;
 import org.jbpm.workflow.instance.node.TimerNodeInstance;
 import org.kie.api.command.ExecutableCommand;
@@ -39,6 +40,7 @@ import org.kie.api.runtime.Context;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.process.NodeInstance;
 import org.kie.internal.command.ProcessInstanceIdCommand;
+import org.kie.internal.command.RegistryContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,9 +119,22 @@ public class UpdateTimerCommand implements ExecutableCommand<Void>, ProcessInsta
             throw new IllegalArgumentException("Process instance with id " + processInstanceId + " not found");
         }
         for (NodeInstance nodeInstance : wfp.getNodeInstances(true)) {
+            long slaTimerId = ((NodeInstanceImpl) nodeInstance).getSlaTimerId();
+            if (slaTimerId != -1 && slaTimerId == timerId) {
+                TimerInstance timer = tm.getTimerMap().get(timerId);
+                
+                TimerInstance newTimer = rescheduleTimer(timer, tm);
+                logger.debug("New SLA timer {} about to be registered", newTimer);
+                tm.registerTimer(newTimer, wfp);                        
+                
+                ((NodeInstanceImpl) nodeInstance).internalSetSlaTimerId(newTimer.getId());
+                ((NodeInstanceImpl) nodeInstance).internalSetSlaDueDate(new Date(System.currentTimeMillis() + newTimer.getDelay()));
+                logger.debug("New SLA timer {} successfully registered", newTimer);
+                break;
+            }
             if (nodeInstance instanceof TimerNodeInstance) {
                 TimerNodeInstance tni = (TimerNodeInstance) nodeInstance;
-                if (tni.getNodeName().equals(timerName) || tni.getTimerId() == timerId) {
+                if (tni.getTimerId() == timerId || (tni.getNodeName() != null && tni.getNodeName().equals(timerName))) {
                     TimerInstance timer = tm.getTimerMap().get(tni.getTimerId());
                     
                     TimerInstance newTimer = rescheduleTimer(timer, tm);
@@ -133,7 +148,7 @@ public class UpdateTimerCommand implements ExecutableCommand<Void>, ProcessInsta
             } else if (nodeInstance instanceof StateBasedNodeInstance) {
                 StateBasedNodeInstance sbni = (StateBasedNodeInstance) nodeInstance;
                 List<Long> timerList = sbni.getTimerInstances();
-                if (sbni.getNodeName().equals(timerName) || (timerList != null && timerList.contains(timerId))) {
+                if ((timerList != null && timerList.contains(timerId)) || (sbni.getNodeName() != null && sbni.getNodeName().equals(timerName))) {
                     
                     if (timerList != null && timerList.size() == 1) {
                         TimerInstance timer = tm.getTimerMap().get(timerList.get(0));
@@ -193,6 +208,7 @@ public class UpdateTimerCommand implements ExecutableCommand<Void>, ProcessInsta
         if (delay != 0) {
             newTimer.setDelay(calculateDelay(delay, timer));
         }
+        newTimer.setName(timer.getName());
         newTimer.setPeriod(period);
         newTimer.setRepeatLimit(repeatLimit);
         newTimer.setTimerId(timer.getTimerId());        

@@ -16,19 +16,20 @@
 
 package org.jbpm.kie.services.impl.query;
 
-import static org.jbpm.services.api.query.QueryResultMapper.COLUMN_EXTERNALID;
-import static org.jbpm.services.api.query.QueryResultMapper.COLUMN_PROCESSINSTANCEID;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+
+import javax.sql.DataSource;
 
 import org.dashbuilder.DataSetCore;
 import org.dashbuilder.dataprovider.DataSetProviderRegistry;
 import org.dashbuilder.dataprovider.sql.SQLDataSetProvider;
+import org.dashbuilder.dataprovider.sql.SQLDataSourceLocator;
 import org.dashbuilder.dataset.DataSet;
 import org.dashbuilder.dataset.DataSetLookupBuilder;
 import org.dashbuilder.dataset.DataSetLookupFactory;
@@ -37,7 +38,9 @@ import org.dashbuilder.dataset.DataSetMetadata;
 import org.dashbuilder.dataset.def.DataSetDef;
 import org.dashbuilder.dataset.def.DataSetDefFactory;
 import org.dashbuilder.dataset.def.DataSetDefRegistry;
+import org.dashbuilder.dataset.def.SQLDataSetDef;
 import org.dashbuilder.dataset.def.SQLDataSetDefBuilder;
+import org.dashbuilder.dataset.def.SQLDataSourceDef;
 import org.dashbuilder.dataset.exception.DataSetLookupException;
 import org.dashbuilder.dataset.filter.ColumnFilter;
 import org.dashbuilder.dataset.group.DateIntervalType;
@@ -48,6 +51,7 @@ import org.jbpm.kie.services.impl.query.persistence.QueryDefinitionEntity;
 import org.jbpm.kie.services.impl.query.preprocessor.BusinessAdminTasksPreprocessor;
 import org.jbpm.kie.services.impl.query.preprocessor.DeploymentIdsPreprocessor;
 import org.jbpm.kie.services.impl.query.preprocessor.PotOwnerTasksPreprocessor;
+import org.jbpm.kie.services.impl.query.preprocessor.UserAndGroupsTasksPreprocessor;
 import org.jbpm.kie.services.impl.security.DeploymentRolesManager;
 import org.jbpm.runtime.manager.impl.identity.UserDataServiceProvider;
 import org.jbpm.services.api.DeploymentEvent;
@@ -70,7 +74,11 @@ import org.kie.api.runtime.query.QueryContext;
 import org.kie.api.task.UserGroupCallback;
 import org.kie.internal.identity.IdentityProvider;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;;
+import org.slf4j.LoggerFactory;
+
+import static org.jbpm.services.api.query.QueryResultMapper.COLUMN_EXTERNALID;
+import static org.jbpm.services.api.query.QueryResultMapper.COLUMN_POTOWNER;
+import static org.jbpm.services.api.query.QueryResultMapper.COLUMN_PROCESSINSTANCEID;;
 
 public class QueryServiceImpl implements QueryService, DeploymentEventListener {
 
@@ -88,9 +96,15 @@ public class QueryServiceImpl implements QueryService, DeploymentEventListener {
 
     private DeploymentRolesManager deploymentRolesManager = new DeploymentRolesManager();
     
+    private Function<String, String> dataSourceResolver = input -> input;
+    
+    private DataSourceResolverSQLDataSourceLocator dataSourceLocator;
     
     public QueryServiceImpl() {
         ServiceRegistry.get().register(QueryService.class.getSimpleName(), this);
+        // override data source locator to resolve the data source name if given as expression
+        SQLDataSetProvider sqlDataSetProvider = SQLDataSetProvider.get();
+        this.dataSourceLocator = apply(sqlDataSetProvider);        
     }
 
     public void setDeploymentRolesManager(DeploymentRolesManager deploymentRolesManager) {
@@ -109,6 +123,10 @@ public class QueryServiceImpl implements QueryService, DeploymentEventListener {
         this.dataSetDefRegistry = dataSetDefRegistry;
     }
 
+    public DataSetDefRegistry getDataSetDefRegistry() {
+        return dataSetDefRegistry;
+    }
+
     public void setProviderRegistry(DataSetProviderRegistry providerRegistry) {
         this.providerRegistry = providerRegistry;
     }
@@ -119,6 +137,15 @@ public class QueryServiceImpl implements QueryService, DeploymentEventListener {
 
     public void setUserGroupCallback(UserGroupCallback userGroupCallback) {
         this.userGroupCallback = userGroupCallback;
+    }
+ 
+    public void setDataSourceResolver(Function<String, String> dataSourceResolver) {
+        this.dataSourceResolver = dataSourceResolver;
+        this.dataSourceLocator.setDataSourceResolver(dataSourceResolver);
+    }
+    
+    protected Function<String, String> getDataSourceResolver() {
+        return dataSourceResolver;
     }
 
     public void init() {
@@ -165,11 +192,16 @@ public class QueryServiceImpl implements QueryService, DeploymentEventListener {
         if (queryDefinition instanceof SqlQueryDefinition) {
             SqlQueryDefinition sqlQueryDefinition = (SqlQueryDefinition) queryDefinition;
 
-            SQLDataSetDefBuilder<?> builder = DataSetDefFactory.newSQLDataSetDef().uuid(sqlQueryDefinition.getName()).name(sqlQueryDefinition.getName() + "::" + sqlQueryDefinition.getTarget().toString()).dataSource(sqlQueryDefinition.getSource()).dbSQL(sqlQueryDefinition.getExpression(), true);
+            SQLDataSetDefBuilder<?> builder = DataSetDefFactory.newSQLDataSetDef()
+                    .uuid(sqlQueryDefinition.getName())
+                    .name(sqlQueryDefinition.getName() + "::" + sqlQueryDefinition.getTarget().toString())
+                    .dataSource(sqlQueryDefinition.getSource())
+                    .dbSQL(sqlQueryDefinition.getExpression(), true)
+                    .estimateSize(false);
 
             DataSetDef sqlDef = builder.buildDef();
             try {
-                dataSetDefRegistry.registerDataSetDef(sqlDef);
+                dataSetDefRegistry.registerDataSetDef(sqlDef);                
                 DataSetMetadata metadata = dataSetManager.getDataSetMetadata(sqlDef.getUUID());
                 if (queryDefinition.getTarget().equals(Target.BA_TASK)) {
                     dataSetDefRegistry.registerPreprocessor(sqlDef.getUUID(), new BusinessAdminTasksPreprocessor(identityProvider, userGroupCallback, metadata));
@@ -181,6 +213,8 @@ public class QueryServiceImpl implements QueryService, DeploymentEventListener {
                     dataSetDefRegistry.registerPreprocessor(sqlDef.getUUID(), new BusinessAdminTasksPreprocessor(identityProvider, userGroupCallback, metadata));
                 } else if (queryDefinition.getTarget().equals(Target.FILTERED_PO_TASK)) {
                     dataSetDefRegistry.registerPreprocessor(sqlDef.getUUID(), new PotOwnerTasksPreprocessor(identityProvider, userGroupCallback, metadata));
+                } else if (queryDefinition.getTarget().equals(Target.USER_GROUPS_TASK)) {
+                    dataSetDefRegistry.registerPreprocessor(sqlDef.getUUID(), new UserAndGroupsTasksPreprocessor(identityProvider, userGroupCallback, COLUMN_POTOWNER, metadata));
                 }
                 
                 for (String columnId : metadata.getColumnIds()) {
@@ -235,13 +269,15 @@ public class QueryServiceImpl implements QueryService, DeploymentEventListener {
             } else if (filter instanceof GroupColumnFilter) {
                 GroupColumnFilter groupFilter = ((GroupColumnFilter) filter);
                 // add group function
-                builder.group(((GroupColumnFilter) filter).getColumnId(), ((GroupColumnFilter) filter).getNewColumnId());
+                builder.group(((GroupColumnFilter) filter).getColumnId(), ((GroupColumnFilter) filter).getNewColumnId(),
+                        false);
                 if (groupFilter.getIntervalSize() != null) {
                     ((AbstractDataSetLookupBuilder<?>) builder).dynamic(groupFilter.getMaxIntervals(), DateIntervalType.valueOf(groupFilter.getIntervalSize()), true);
                 }
             } else if (filter instanceof ExtraColumnFilter) {
                 // add extra column
-                builder.column(((ExtraColumnFilter) filter).getColumnId(), ((ExtraColumnFilter) filter).getNewColumnId());
+                builder.column(((ExtraColumnFilter) filter).getColumnId(), ((ExtraColumnFilter) filter)
+                        .getNewColumnId());
             } else {
                 logger.warn("Unsupported filter '{}' generated by '{}'", filter, paramBuilder);
             }
@@ -361,5 +397,43 @@ public class QueryServiceImpl implements QueryService, DeploymentEventListener {
     public void onDeactivate(DeploymentEvent event) {
         // no op
 
+    }
+    
+    public DataSourceResolverSQLDataSourceLocator apply(SQLDataSetProvider sqlDataSetProvider) {
+        if (!(sqlDataSetProvider.getDataSourceLocator() instanceof DataSourceResolverSQLDataSourceLocator)) {
+                    
+            sqlDataSetProvider.setDataSourceLocator(new DataSourceResolverSQLDataSourceLocator(sqlDataSetProvider.getDataSourceLocator(), 
+                    getDataSourceResolver()));
+        }
+        
+        return (DataSourceResolverSQLDataSourceLocator) sqlDataSetProvider.getDataSourceLocator();
+    }
+    
+    private class DataSourceResolverSQLDataSourceLocator implements SQLDataSourceLocator {
+
+        private SQLDataSourceLocator delegate;
+        private Function<String, String> dataSourceResolver;
+        
+        public DataSourceResolverSQLDataSourceLocator(SQLDataSourceLocator delegate, Function<String, String> dataSourceResolver) {
+            this.delegate = delegate;
+            this.dataSourceResolver = dataSourceResolver;
+        }               
+
+        @Override
+        public DataSource lookup(SQLDataSetDef def) throws Exception {
+            def.setDataSource(this.dataSourceResolver.apply(def.getDataSource()));
+            return delegate.lookup(def);
+        }
+
+        @Override
+        public List<SQLDataSourceDef> list() {
+            return delegate.list();
+        }
+        
+        protected void setDataSourceResolver(Function<String, String> dataSourceResolver) {
+            this.dataSourceResolver = dataSourceResolver;
+        }
+        
+        
     }
 }

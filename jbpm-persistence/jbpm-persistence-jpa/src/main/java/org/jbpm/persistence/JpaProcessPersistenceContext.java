@@ -20,9 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
-import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
 import javax.persistence.NonUniqueResultException;
+import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 
 import org.drools.persistence.api.TransactionManager;
@@ -37,7 +37,6 @@ import org.jbpm.persistence.processinstance.ProcessInstanceInfo;
 import org.jbpm.process.instance.ProcessInstance;
 import org.jbpm.process.instance.ProcessInstanceManager;
 import org.kie.internal.process.CorrelationKey;
-import org.kie.internal.process.CorrelationProperty;
 
 public class JpaProcessPersistenceContext extends JpaPersistenceContext
     implements
@@ -47,8 +46,8 @@ public class JpaProcessPersistenceContext extends JpaPersistenceContext
         super( em, txm );
     }
 
-    public JpaProcessPersistenceContext(EntityManager em, boolean useJTA, boolean locking, TransactionManager txm) {
-        super( em, useJTA, locking, txm);
+    public JpaProcessPersistenceContext(EntityManager em, boolean useJTA, boolean locking, String lockingMode, TransactionManager txm) {
+        super( em, useJTA, locking, lockingMode, txm);
     }
 
     public PersistentProcessInstance persist(PersistentProcessInstance processInstanceInfo) {
@@ -57,7 +56,7 @@ public class JpaProcessPersistenceContext extends JpaPersistenceContext
         TransactionManagerHelper.addToUpdatableSet(txm, processInstanceInfo);
         if( this.pessimisticLocking ) { 
         	em.flush();
-            return em.find(ProcessInstanceInfo.class, processInstanceInfo.getId(), LockModeType.PESSIMISTIC_FORCE_INCREMENT );
+            return em.find(ProcessInstanceInfo.class, processInstanceInfo.getId(), lockMode );
         }
         return processInstanceInfo;
     }
@@ -65,7 +64,7 @@ public class JpaProcessPersistenceContext extends JpaPersistenceContext
     public PersistentProcessInstance findProcessInstanceInfo(Long processId) {
     	EntityManager em = getEntityManager();       
     	if( this.pessimisticLocking ) { 
-            return em.find( ProcessInstanceInfo.class, processId, LockModeType.PESSIMISTIC_FORCE_INCREMENT );
+            return em.find( ProcessInstanceInfo.class, processId, lockMode );
         }
         return em.find( ProcessInstanceInfo.class, processId );
     }
@@ -115,18 +114,17 @@ public class JpaProcessPersistenceContext extends JpaPersistenceContext
     }
 
     public PersistentCorrelationKey persist(PersistentCorrelationKey correlationKeyInfo) {
-        Long processInstanceId = getProcessInstanceByCorrelationKey(correlationKeyInfo);
-        if (processInstanceId != null) {
-            throw new RuntimeException(correlationKeyInfo + " already exists");
+        try {
+            EntityManager em = getEntityManager();
+            em.persist(correlationKeyInfo);
+            em.flush();
+            if (this.pessimisticLocking) {
+                return em.find(CorrelationKeyInfo.class, correlationKeyInfo.getId(), this.lockMode);
+            }
+            return correlationKeyInfo;
+        } catch (PersistenceException e) {
+            throw new RuntimeException(correlationKeyInfo + " already exists", e);
         }
-        EntityManager em = getEntityManager();
-        em.persist( correlationKeyInfo );
-        if( this.pessimisticLocking) {
-        	em.flush();
-            return em.find(CorrelationKeyInfo.class, correlationKeyInfo.getId(), LockModeType.PESSIMISTIC_FORCE_INCREMENT);
-        }
-        return correlationKeyInfo;
-        
     }
 
     /**

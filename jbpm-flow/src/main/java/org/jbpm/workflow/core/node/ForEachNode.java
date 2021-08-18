@@ -19,14 +19,15 @@ package org.jbpm.workflow.core.node;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.kie.api.definition.process.Node;
-import org.jbpm.process.core.datatype.DataType;
 import org.jbpm.process.core.Context;
 import org.jbpm.process.core.context.AbstractContext;
 import org.jbpm.process.core.context.variable.Variable;
 import org.jbpm.process.core.context.variable.VariableScope;
+import org.jbpm.process.core.datatype.DataType;
 import org.jbpm.workflow.core.impl.ConnectionImpl;
 import org.jbpm.workflow.core.impl.ExtendedNodeImpl;
+import org.kie.api.definition.process.Node;
+import org.kie.api.definition.process.NodeType;
 
 /**
  * A for each node.
@@ -46,8 +47,11 @@ public class ForEachNode extends CompositeContextNode {
     private String outputCollectionExpression;
     private String completionConditionExpression;
     private boolean waitForCompletion = true;
+    
+    private boolean sequential = false;
 
     public ForEachNode() {
+        super(NodeType.FOR_EACH);
         // Split
         ForEachSplitNode split = new ForEachSplitNode();
         split.setName("ForEachSplit");
@@ -241,13 +245,29 @@ public class ForEachNode extends CompositeContextNode {
     public void setWaitForCompletion(boolean waitForCompletion) {
         this.waitForCompletion = waitForCompletion;
     }
+  
+    public boolean isSequential() {
+        return sequential;
+    }
+    
+    public void setSequential(boolean sequential) {
+        this.sequential = sequential;
+    }
 
-   public static class ForEachSplitNode extends ExtendedNodeImpl {
+    public static class ForEachSplitNode extends ExtendedNodeImpl {
         private static final long serialVersionUID = 510l;
+
+        public ForEachSplitNode() {
+            super(NodeType.INTERNAL);
+        }
     }
 
     public static class ForEachJoinNode extends ExtendedNodeImpl {
         private static final long serialVersionUID = 510l;
+
+        public ForEachJoinNode() {
+            super(NodeType.INTERNAL);
+        }
     }
 
     @Override

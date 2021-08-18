@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm-in-container-test</artifactId>
-    <version>7.11.0-SNAPSHOT</version>
+    <version>7.59.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>shrinkwrap-war-profiles</artifactId>
@@ -28,26 +28,8 @@
     </dependencies>
   </dependencyManagement>
 
-  <!--Default dependencies for all archives-->
-  <dependencies>
-    <dependency>
-      <groupId>org.assertj</groupId>
-      <artifactId>assertj-core</artifactId>
-    </dependency>
-  </dependencies>
-
   <!-- Configuration for specific integration modules -->
   <profiles>
-    <profile>
-      <id>hibernate-entitymanager</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.jbpm</groupId>
-          <artifactId>idep-hibernate-entitymanager</artifactId>
-        </dependency>
-      </dependencies>
-    </profile>
-
     <profile>
       <id>jbpm</id>
       <dependencies>
@@ -57,8 +39,8 @@
           <exclusions>
             <!-- conflicts with Hibernate on WAS -->
             <exclusion>
-              <groupId>org.hibernate.javax.persistence</groupId>
-              <artifactId>hibernate-jpa-2.1-api</artifactId>
+              <groupId>javax.persistence</groupId>
+              <artifactId>javax.persistence-api</artifactId>
             </exclusion>
             <!-- conflicts with Weld and Hibernate on WAS -->
             <exclusion>
@@ -75,7 +57,17 @@
               <groupId>org.jboss.spec.javax.annotation</groupId>
               <artifactId>jboss-annotations-api_1.2_spec</artifactId>
             </exclusion>
+            <!-- conflicts on WebLogic/WAS -->
+            <exclusion>
+              <groupId>org.jboss.spec.javax.transaction</groupId>
+              <artifactId>jboss-transaction-api_1.2_spec</artifactId>
+            </exclusion>
           </exclusions>
+        </dependency>
+        <!-- AssertJ is only needed if we deploy tests (with jBPM engine) into a container -->
+        <dependency>
+          <groupId>org.assertj</groupId>
+          <artifactId>assertj-core</artifactId>
         </dependency>
       </dependencies>
     </profile>
@@ -89,8 +81,8 @@
           <exclusions>
             <!-- conflicts with Hibernate on WAS -->
             <exclusion>
-              <groupId>org.hibernate.javax.persistence</groupId>
-              <artifactId>hibernate-jpa-2.1-api</artifactId>
+              <groupId>javax.persistence</groupId>
+              <artifactId>javax.persistence-api</artifactId>
             </exclusion>
             <!-- conflicts with Weld and Hibernate on WAS -->
             <exclusion>
@@ -131,8 +123,8 @@
           <exclusions>
             <!-- conflicts with Hibernate on EWS -->
             <exclusion>
-              <groupId>org.hibernate.javax.persistence</groupId>
-              <artifactId>hibernate-jpa-2.1-api</artifactId>
+              <groupId>javax.persistence</groupId>
+              <artifactId>javax.persistence-api</artifactId>
             </exclusion>
             <!-- conflicts with BTM/Hibernate on EWS -->
             <exclusion>
@@ -152,7 +144,7 @@
             <!-- conflicts on WAS -->
             <exclusion>
               <groupId>org.jboss.spec.javax.xml.bind</groupId>
-              <artifactId>jboss-jaxb-api_2.2_spec</artifactId>
+              <artifactId>jboss-jaxb-api_2.3_spec</artifactId>
             </exclusion>
           </exclusions>
         </dependency>
@@ -184,11 +176,11 @@
     </profile>
 
     <profile>
-      <id>shrinkwrap-remote-wildfly11</id>
+      <id>shrinkwrap-remote-wildfly</id>
       <activation>
         <property>
           <name>container.profile</name>
-          <value>wildfly11</value>
+          <value>wildfly</value>
         </property>
       </activation>
       <dependencies>
@@ -196,7 +188,7 @@
     </profile>
 
     <profile>
-      <id>shrinkwrap-ews-tomcat-8</id>
+      <id>shrinkwrap-ews-tomcat-9</id>
       <activation>
         <property>
           <name>container.profile</name>
@@ -210,15 +202,18 @@
         </dependency>
         <dependency>
           <groupId>org.jbpm</groupId>
-          <artifactId>idep-hibernate-entitymanager</artifactId>
+          <artifactId>idep-hibernate-core</artifactId>
+          <exclusions>
+            <exclusion>
+              <groupId>org.jboss.spec.javax.transaction</groupId>
+              <artifactId>jboss-transaction-api_1.2_spec</artifactId>
+            </exclusion>
+          </exclusions>
         </dependency>
+        <!-- Needed for JDK 11 -->
         <dependency>
-          <groupId>org.jboss.narayana.tomcat</groupId>
-          <artifactId>tomcat-jta</artifactId>
-        </dependency>
-        <dependency>
-          <groupId>org.jboss.spec.javax.transaction</groupId>
-          <artifactId>jboss-transaction-api_1.2_spec</artifactId>
+          <groupId>org.jboss.spec.javax.xml.bind</groupId>
+          <artifactId>jboss-jaxb-api_2.3_spec</artifactId>
         </dependency>
       </dependencies>
     </profile>
@@ -231,6 +226,20 @@
           <value>was9</value>
         </property>
       </activation>
+      <dependencyManagement>
+       <dependencies>
+        <dependency>
+          <groupId>org.hibernate</groupId>
+          <artifactId>hibernate-entitymanager</artifactId>
+          <version>${version.org.hibernate-4ee7}</version>
+         </dependency>
+         <dependency>
+          <groupId>org.hibernate</groupId>
+          <artifactId>hibernate-core</artifactId>
+          <version>${version.org.hibernate-4ee7}</version>
+         </dependency>
+        </dependencies>
+      </dependencyManagement>
       <dependencies>
         <dependency>
           <groupId>org.slf4j</groupId>
@@ -246,8 +255,16 @@
               <artifactId>jboss-transaction-api_1.1_spec</artifactId>
             </exclusion>
             <exclusion>
+              <groupId>javax.persistence</groupId>
+              <artifactId>javax.persistence-api</artifactId>
+            </exclusion>
+            <exclusion>
               <groupId>org.hibernate.javax.persistence</groupId>
               <artifactId>hibernate-jpa-2.1-api</artifactId>
+            </exclusion>
+            <exclusion>
+              <groupId>org.apache.geronimo.specs</groupId>
+              <artifactId>geronimo-jta_1.1_spec</artifactId>
             </exclusion>
             <exclusion>
               <groupId>xml-apis</groupId>
@@ -255,7 +272,6 @@
             </exclusion>
           </exclusions>
         </dependency>
-
         <dependency>
           <groupId>xerces</groupId>
           <artifactId>xercesImpl</artifactId>
@@ -287,6 +303,20 @@
           <value>oracle-wls-12</value>
         </property>
       </activation>
+      <dependencyManagement>
+       <dependencies>
+        <dependency>
+          <groupId>org.hibernate</groupId>
+          <artifactId>hibernate-entitymanager</artifactId>
+          <version>${version.org.hibernate-4ee7}</version>
+         </dependency>
+         <dependency>
+          <groupId>org.hibernate</groupId>
+          <artifactId>hibernate-core</artifactId>
+          <version>${version.org.hibernate-4ee7}</version>
+         </dependency>
+        </dependencies>
+      </dependencyManagement>
       <dependencies>
         <!-- there is no Hibernate on WLS -->
         <dependency>
@@ -298,12 +328,20 @@
               <artifactId>jboss-transaction-api_1.1_spec</artifactId>
             </exclusion>
             <exclusion>
-              <groupId>org.hibernate.javax.persistence</groupId>
-              <artifactId>hibernate-jpa-2.1-api</artifactId>
+              <groupId>javax.persistence</groupId>
+              <artifactId>javax.persistence-api</artifactId>
             </exclusion>
             <exclusion>
               <groupId>org.javassist</groupId>
               <artifactId>javassist</artifactId>
+            </exclusion>
+             <exclusion>
+              <groupId>org.hibernate.javax.persistence</groupId>
+              <artifactId>hibernate-jpa-2.1-api</artifactId>
+            </exclusion>
+            <exclusion>
+              <groupId>org.apache.geronimo.specs</groupId>
+              <artifactId>geronimo-jta_1.1_spec</artifactId>
             </exclusion>
             <exclusion>
               <groupId>xml-apis</groupId>

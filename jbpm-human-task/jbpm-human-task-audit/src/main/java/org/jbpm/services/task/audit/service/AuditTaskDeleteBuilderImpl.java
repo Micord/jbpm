@@ -16,9 +16,6 @@
 
 package org.jbpm.services.task.audit.service;
 
-import static org.kie.internal.query.QueryParameterIdentifiers.CREATED_ON_LIST;
-import static org.kie.internal.query.QueryParameterIdentifiers.DEPLOYMENT_ID_LIST;
-
 import java.util.Date;
 
 import org.jbpm.process.audit.JPAAuditLogService;
@@ -27,11 +24,12 @@ import org.jbpm.services.task.audit.impl.model.AuditTaskImpl;
 import org.kie.api.runtime.CommandExecutor;
 import org.kie.internal.task.query.AuditTaskDeleteBuilder;
 
+import static org.kie.internal.query.QueryParameterIdentifiers.CREATED_ON_LIST;
+import static org.kie.internal.query.QueryParameterIdentifiers.DEPLOYMENT_ID_LIST;
+
 public class AuditTaskDeleteBuilderImpl extends AbstractAuditDeleteBuilderImpl<AuditTaskDeleteBuilder> implements AuditTaskDeleteBuilder {
 
-    private static String AUDIT_TASK_IMPL_DELETE = 
-            "DELETE\n"
-            + "FROM AuditTaskImpl l\n";
+    private static final String AUDIT_TASK_IMPL_DELETE = "AuditTaskImpl";
     
     public AuditTaskDeleteBuilderImpl(CommandExecutor cmdExecutor ) {
         super(cmdExecutor);
@@ -85,12 +83,12 @@ public class AuditTaskDeleteBuilderImpl extends AbstractAuditDeleteBuilderImpl<A
     }
 
     @Override
-    protected String getQueryBase() {
+    protected String getQueryTable() {
         return AUDIT_TASK_IMPL_DELETE;
     }
-    
+
     @Override
-    protected String getSubQuery() {
-        return ONLY_COMPLETED_PROCESS_INSTANCES;
+    protected boolean isSubquerySupported() {
+        return true;
     }
 }

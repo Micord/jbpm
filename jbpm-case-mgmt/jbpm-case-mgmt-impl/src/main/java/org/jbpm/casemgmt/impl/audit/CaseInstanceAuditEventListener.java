@@ -16,15 +16,24 @@
 
 package org.jbpm.casemgmt.impl.audit;
 
+import static org.jbpm.casemgmt.impl.audit.CaseInstanceAuditConstants.DELETE_CASE_DATA_BY_NAME_QUERY;
+import static org.jbpm.casemgmt.impl.audit.CaseInstanceAuditConstants.DELETE_CASE_ROLE_ASSIGNMENT_QUERY;
+import static org.jbpm.casemgmt.impl.audit.CaseInstanceAuditConstants.FIND_CASE_DATA_BY_NAME_QUERY;
+import static org.jbpm.casemgmt.impl.audit.CaseInstanceAuditConstants.FIND_CASE_DATA_QUERY;
+import static org.jbpm.casemgmt.impl.audit.CaseInstanceAuditConstants.FIND_CASE_PROCESS_INST_ID_QUERY;
+import static org.jbpm.casemgmt.impl.audit.CaseInstanceAuditConstants.UPDATE_CASE_PROCESS_INST_ID_QUERY;
+
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import org.jbpm.casemgmt.api.audit.CaseFileData;
 import org.jbpm.casemgmt.api.auth.AuthorizationManager;
 import org.jbpm.casemgmt.api.event.CaseDataEvent;
+import org.jbpm.casemgmt.api.event.CaseEvent;
 import org.jbpm.casemgmt.api.event.CaseEventListener;
 import org.jbpm.casemgmt.api.event.CaseReopenEvent;
 import org.jbpm.casemgmt.api.event.CaseRoleAssignmentEvent;
@@ -46,14 +55,10 @@ import org.slf4j.LoggerFactory;
 public class CaseInstanceAuditEventListener implements CaseEventListener, Cacheable {
 
     private static final Logger logger = LoggerFactory.getLogger(CaseInstanceAuditEventListener.class);
-    private static final String UPDATE_CASE_PROCESS_INST_ID_QUERY = "update CaseRoleAssignmentLog set processInstanceId =:piID where caseId =:caseId";
-    private static final String DELETE_CASE_ROLE_ASSIGNMENT_QUERY = "delete from CaseRoleAssignmentLog where caseId =:caseId and roleName =:role and entityId =:entity";
-    private static final String FIND_CASE_PROCESS_INST_ID_QUERY = "select processInstanceId from ProcessInstanceLog where correlationKey =:caseId";
     
-    private static final String FIND_CASE_DATA_QUERY = "select itemName from CaseFileDataLog where caseId =:caseId";
-    private static final String FIND_CASE_DATA_BY_NAME_QUERY = "select cfdl from CaseFileDataLog cfdl where cfdl.caseId =:caseId and cfdl.itemName =:itemName";
-    private static final String DELETE_CASE_DATA_BY_NAME_QUERY = "delete from CaseFileDataLog where caseId =:caseId and itemName in (:itemNames)";
     private TransactionalCommandService commandService;
+    
+    private CaseIndexerManager indexManager = CaseIndexerManager.get();
     
     public CaseInstanceAuditEventListener(TransactionalCommandService commandService) {
         this.commandService = commandService;
@@ -88,26 +93,6 @@ public class CaseInstanceAuditEventListener implements CaseEventListener, Cachea
             CaseRoleAssignmentLog assignmentLog = new CaseRoleAssignmentLog(event.getProcessInstanceId(), event.getCaseId(), "*", TaskModelProvider.getFactory().newGroup(AuthorizationManager.PUBLIC_GROUP));
             commandService.execute(new PersistObjectCommand(assignmentLog));
         }
-        
-        Map<String, Object> initialData = caseFile.getData();
-        if (initialData.isEmpty()) {
-            return;
-        }
-        List<CaseFileDataLog> insert = new ArrayList<>();
-        initialData.forEach((name, value) -> {
-            
-            if (value != null) {
-                CaseFileDataLog caseFileDataLog = new CaseFileDataLog(event.getCaseId(), caseFile.getDefinitionId(), name);                
-                insert.add(caseFileDataLog);
-                
-                
-                caseFileDataLog.setItemType(value.getClass().getName());
-                caseFileDataLog.setItemValue(value.toString());
-                caseFileDataLog.setLastModified(new Date());
-                caseFileDataLog.setLastModifiedBy(event.getUser());
-            }
-        });
-        commandService.execute(new PersistObjectCommand(insert.toArray()));
 
     }
     
@@ -121,7 +106,7 @@ public class CaseInstanceAuditEventListener implements CaseEventListener, Cachea
         int updated = commandService.execute(updateCommand);
         logger.debug("Updated {} role assignment entries for case id {}", updated, event.getCaseId());
         
-        updateCaseFileItems(event.getData(), event.getCaseId(), event.getCaseDefinitionId(), event.getUser());
+        updateCaseFileItems(event, event.getData(), event.getCaseId(), event.getCaseDefinitionId(), event.getUser());
     }    
 
     @Override
@@ -156,15 +141,23 @@ public class CaseInstanceAuditEventListener implements CaseEventListener, Cachea
 
     @Override
     public void afterCaseDataAdded(CaseDataEvent event) {
-        updateCaseFileItems(event.getData(), event.getCaseId(), event.getDefinitionId(), event.getUser());
+        updateCaseFileItems(event, event.getData(), event.getCaseId(), event.getDefinitionId(), event.getUser());
     }
 
     @Override
     public void afterCaseDataRemoved(CaseDataEvent event) {
         Map<String, Object> parameters = new HashMap<>();
+        List<String> names = new ArrayList<>();
+        for (Entry<String, Object> entry : event.getData().entrySet()) {
+        
+            List<String> indexedNames = indexManager.getIndexNames(entry.getKey(), entry.getValue());
+            if (indexedNames != null) {
+                names.addAll(indexedNames);
+            }
+        }
         
         parameters.put("caseId", event.getCaseId());
-        parameters.put("itemNames", new ArrayList<>(event.getData().keySet()));
+        parameters.put("itemNames", names);
         UpdateStringCommand updateCommand = new UpdateStringCommand(DELETE_CASE_DATA_BY_NAME_QUERY, parameters);
         commandService.execute(updateCommand);
     }
@@ -200,7 +193,7 @@ public class CaseInstanceAuditEventListener implements CaseEventListener, Cachea
         return caseDataLog.get(0);
     }
     
-    protected void updateCaseFileItems(Map<String, Object> addedData, String caseId, String caseDefinitionId, String user) {
+    protected void updateCaseFileItems(CaseEvent event, Map<String, Object> addedData, String caseId, String caseDefinitionId, String user) {
         
         if (addedData.isEmpty()) {
             return;
@@ -211,24 +204,30 @@ public class CaseInstanceAuditEventListener implements CaseEventListener, Cachea
         addedData.forEach((name, value) -> {
             
             if (value != null) {
-                CaseFileDataLog caseFileDataLog = null;
-                if (currentCaseData.contains(name)) {
-                    logger.debug("Case instance {} has already stored log value for {} thus it's going to be updated", caseId, name);
-                    caseFileDataLog = caseFileDataByName(caseId, name);
-                    update.add(caseFileDataLog);
-                } else {
-                    logger.debug("Case instance {} has no log value for {} thus it's going to be inserted", caseId, name);                
-                    caseFileDataLog = new CaseFileDataLog(caseId, caseDefinitionId, name);                
-                    insert.add(caseFileDataLog);
-                }
+                List<CaseFileData> indexedValues = indexManager.index(event, name, value);
                 
-                caseFileDataLog.setItemType(value.getClass().getName());
-                caseFileDataLog.setItemValue(value.toString());
-                caseFileDataLog.setLastModified(new Date());
-                caseFileDataLog.setLastModifiedBy(user);
+                for (CaseFileData item : indexedValues) {
+                
+                    CaseFileDataLog caseFileDataLog = null;
+                    if (currentCaseData.contains(item.getItemName())) {
+                        logger.debug("Case instance {} has already stored log value for {} thus it's going to be updated", caseId, item.getItemName());
+                        caseFileDataLog = caseFileDataByName(caseId, item.getItemName());
+                        update.add(caseFileDataLog);
+                    } else {
+                        logger.debug("Case instance {} has no log value for {} thus it's going to be inserted", caseId, item.getItemName());                
+                        caseFileDataLog = new CaseFileDataLog(caseId, caseDefinitionId, item.getItemName());                
+                        insert.add(caseFileDataLog);
+                    }
+                    caseFileDataLog.setItemType(item.getItemType());
+                    caseFileDataLog.setItemValue(item.getItemValue());
+                    caseFileDataLog.setLastModified(item.getLastModified());
+                    caseFileDataLog.setLastModifiedBy(item.getLastModifiedBy());
+                }                
             }
         });
         commandService.execute(new PersistObjectCommand(insert.toArray()));
         commandService.execute(new MergeObjectCommand(update.toArray()));
     }
+    
+    
 }

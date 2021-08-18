@@ -51,8 +51,8 @@ import org.jbpm.executor.entities.RequestInfo;
 import org.jbpm.executor.impl.concurrent.LoadAndScheduleRequestsTask;
 import org.jbpm.executor.impl.concurrent.PrioritisedScheduledThreadPoolExecutor;
 import org.jbpm.executor.impl.concurrent.ScheduleTaskTransactionSynchronization;
-import org.jbpm.executor.impl.event.ExecutorEventSupportImpl;
 import org.jbpm.executor.impl.event.ExecutorEventSupport;
+import org.jbpm.executor.impl.event.ExecutorEventSupportImpl;
 import org.kie.api.executor.CommandContext;
 import org.kie.api.executor.ExecutorStoreService;
 import org.kie.api.executor.STATUS;
@@ -99,6 +99,7 @@ public class ExecutorImpl implements Executor {
     private int retries = Integer.parseInt(System.getProperty("org.kie.executor.retry.count", "3"));
     private int interval = Integer.parseInt(System.getProperty("org.kie.executor.interval", "0"));
     private TimeUnit timeunit = TimeUnit.valueOf(System.getProperty("org.kie.executor.timeunit", "SECONDS"));
+    private boolean jobIdInHeader = Boolean.getBoolean("org.kie.executor.jms.jobHeader");
 
     // jms related instances
     private boolean useJMS = Boolean.parseBoolean(System.getProperty("org.kie.executor.jms", "true"));
@@ -339,11 +340,11 @@ public class ExecutorImpl implements Executor {
         if (ctx.getData("priority") != null) {
             priority = (Integer) ctx.getData("priority");
             if (priority < MIN_PRIORITY) {
-                logger.warn("Priority {} is not valid (cannot be less than {}) setting it to {}", MIN_PRIORITY, MIN_PRIORITY, priority);
+                logger.warn("Priority {} is not valid (cannot be less than {}) setting it to {}", priority, MIN_PRIORITY, MIN_PRIORITY);
                 priority = MIN_PRIORITY;
 
             } else if (priority > MAX_PRIORITY) {
-                logger.warn("Priority {} is not valid (cannot be more than {}) setting it to {}", MAX_PRIORITY, MAX_PRIORITY, priority);
+                logger.warn("Priority {} is not valid (cannot be more than {}) setting it to {}", priority, MAX_PRIORITY, MAX_PRIORITY);
                 priority = MAX_PRIORITY;
             }
 
@@ -428,13 +429,21 @@ public class ExecutorImpl implements Executor {
         eventSupport.fireBeforeJobCancelled(job, null);
         try {
             
-            executorStoreService.removeRequest(requestId, (T) -> {((PrioritisedScheduledThreadPoolExecutor) scheduler).cancel(requestId);});
+            executorStoreService.removeRequest(requestId, (T) -> {
+                    if (scheduler != null) {
+                        ((PrioritisedScheduledThreadPoolExecutor) scheduler).cancel(requestId);
+                    }
+                });
             eventSupport.fireAfterJobCancelled(job, null);
         } catch (Throwable e) {
             eventSupport.fireAfterJobCancelled(job, e);
         }
 
         logger.debug("After - Cancelling Request with Id: {}", requestId);
+    }
+
+    public void markAsPendingRetryRequest(Long requestId) {
+        ((PrioritisedScheduledThreadPoolExecutor) scheduler).markAsPendingRetry(requestId);
     }
 
     @Override
@@ -512,6 +521,9 @@ public class ExecutorImpl implements Executor {
             queueSession = queueConnection.createSession(transacted, Session.AUTO_ACKNOWLEDGE);
 
             TextMessage message = queueSession.createTextMessage(messageBody);
+            if (jobIdInHeader) {
+                message.setStringProperty("jobId", messageBody);
+            }
             producer = queueSession.createProducer(queue);
             producer.setPriority(priority);
 
@@ -581,5 +593,7 @@ public class ExecutorImpl implements Executor {
         
         return deploymentId;
     }
+
+
 
 }

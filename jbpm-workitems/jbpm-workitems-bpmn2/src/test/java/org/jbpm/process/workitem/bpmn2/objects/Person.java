@@ -21,6 +21,10 @@ public class Person {
     private String name;
     private Integer age;
 
+    public Person() {
+        // do nothing
+    }
+
     public Person(String name) {
         this.name = name;
     }
@@ -40,4 +44,5 @@ public class Person {
     public void setAge(Integer age) {
         this.age = age;
     }
+
 }

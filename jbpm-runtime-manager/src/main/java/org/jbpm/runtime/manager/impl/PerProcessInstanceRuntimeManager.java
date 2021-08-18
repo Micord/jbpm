@@ -22,7 +22,6 @@ import java.util.Objects;
 
 import org.drools.core.command.SingleSessionCommandService;
 import org.drools.core.command.impl.CommandBasedStatefulKnowledgeSession;
-import org.drools.core.command.impl.RegistryContext;
 import org.drools.core.common.InternalKnowledgeRuntime;
 import org.drools.core.time.TimerService;
 import org.drools.persistence.api.OrderedTransactionSynchronization;
@@ -50,6 +49,7 @@ import org.kie.api.runtime.manager.Context;
 import org.kie.api.runtime.manager.RuntimeEngine;
 import org.kie.api.runtime.manager.RuntimeEnvironment;
 import org.kie.api.task.TaskService;
+import org.kie.internal.command.RegistryContext;
 import org.kie.internal.runtime.manager.Disposable;
 import org.kie.internal.runtime.manager.InternalRuntimeManager;
 import org.kie.internal.runtime.manager.Mapper;
@@ -107,7 +107,7 @@ public class PerProcessInstanceRuntimeManager extends AbstractRuntimeManager {
     	if (isClosed()) {
     		throw new IllegalStateException("Runtime manager " + identifier + " is already closed");
     	}
-    	checkPermission();
+    	
     	RuntimeEngine runtime = null;
     	Object contextId = context.getContextId();
     	
@@ -162,19 +162,26 @@ public class PerProcessInstanceRuntimeManager extends AbstractRuntimeManager {
     public void signalEvent(String type, Object event) {
         
         // first signal with new context in case there are start event with signal
-        RuntimeEngine runtimeEngine = getRuntimeEngine(ProcessInstanceIdContext.get());        
-        runtimeEngine.getKieSession().signalEvent(type, event);  
-        
-        disposeRuntimeEngine(runtimeEngine);
+        RuntimeEngine runtimeEngine = getRuntimeEngine(ProcessInstanceIdContext.get());
+        try {
+            // signal execution can rise errors
+            runtimeEngine.getKieSession().signalEvent(type, event);
+        } finally {
+            // ensure we clean up
+            disposeRuntimeEngine(runtimeEngine);
+        }
     
         // next find out all instances waiting for given event type
         List<String> processInstances = ((InternalMapper) mapper).findContextIdForEvent(type, getIdentifier());
         for (String piId : processInstances) {
-            runtimeEngine = getRuntimeEngine(ProcessInstanceIdContext.get(Long.parseLong(piId)));        
-            runtimeEngine.getKieSession().signalEvent(type, event);        
-            
-            disposeRuntimeEngine(runtimeEngine);
-            
+            runtimeEngine = getRuntimeEngine(ProcessInstanceIdContext.get(Long.parseLong(piId)));
+            try {
+                // signal execution can rise errors
+                runtimeEngine.getKieSession().signalEvent(type, event);
+            } finally {
+                // ensure we clean up
+                disposeRuntimeEngine(runtimeEngine);
+            }
         }
         
         // process currently active runtime engines
@@ -219,7 +226,8 @@ public class PerProcessInstanceRuntimeManager extends AbstractRuntimeManager {
     @Override
     public void disposeRuntimeEngine(RuntimeEngine runtime) {
     	if (isClosed()) {
-    		throw new IllegalStateException("Runtime manager " + identifier + " is already closed");
+    	    logger.warn("Runtime manager {} is already closed", identifier);
+            return;
     	}
     	try {
         	if (canDispose(runtime)) {
@@ -395,7 +403,7 @@ public class PerProcessInstanceRuntimeManager extends AbstractRuntimeManager {
     
     @Override
     public void init() {
-
+        super.init();
         TaskContentRegistry.get().addMarshallerContext(getIdentifier(), new ContentMarshallerContext(environment.getEnvironment(), environment.getClassLoader()));
         boolean owner = false;
         TransactionManager tm = null;
@@ -572,7 +580,7 @@ public class PerProcessInstanceRuntimeManager extends AbstractRuntimeManager {
                 ksessionId = ksession.getIdentifier();                 
             } else {
                 RuntimeEngine localRuntime = ((PerProcessInstanceRuntimeManager)manager).findLocalRuntime(contextId);
-                if (localRuntime != null && ((RuntimeEngineImpl)engine).internalGetKieSession() != null) {
+                if (localRuntime != null && ((RuntimeEngineImpl)engine).getKieSessionId() != null) {
                     return localRuntime.getKieSession();
                 }
                 ksessionId = mapper.findMapping(context, manager.getIdentifier());
@@ -591,7 +599,8 @@ public class PerProcessInstanceRuntimeManager extends AbstractRuntimeManager {
 
     	@Override
     	public TaskService initTaskService(Context<?> context, InternalRuntimeManager manager, RuntimeEngine engine) {
-    		InternalTaskService internalTaskService = newTaskService(taskServiceFactory);
+    		
+    	    InternalTaskService internalTaskService = newTaskService(taskServiceFactory);
     		if (internalTaskService != null) {
         		registerDisposeCallback(engine, new DisposeSessionTransactionSynchronization(manager, engine), ((CommandBasedTaskService) internalTaskService).getEnvironment());
                 configureRuntimeOnTaskService(internalTaskService, engine);

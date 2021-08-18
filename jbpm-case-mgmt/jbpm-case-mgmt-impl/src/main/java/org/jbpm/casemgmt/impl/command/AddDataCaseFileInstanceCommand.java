@@ -17,18 +17,20 @@
 package org.jbpm.casemgmt.impl.command;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.drools.core.ClassObjectFilter;
-import org.drools.core.command.impl.RegistryContext;
 import org.drools.core.common.InternalKnowledgeRuntime;
 import org.drools.core.event.ProcessEventSupport;
 import org.jbpm.casemgmt.api.auth.AuthorizationManager;
 import org.jbpm.casemgmt.api.model.instance.CaseFileInstance;
 import org.jbpm.casemgmt.impl.event.CaseEventSupport;
 import org.jbpm.casemgmt.impl.model.instance.CaseFileInstanceImpl;
+import org.jbpm.process.core.context.variable.VariableScope;
+import org.jbpm.process.core.context.variable.VariableViolationException;
 import org.jbpm.process.instance.InternalProcessRuntime;
 import org.jbpm.process.instance.ProcessInstance;
 import org.jbpm.services.api.ProcessService;
@@ -37,6 +39,7 @@ import org.kie.api.runtime.Context;
 import org.kie.api.runtime.KieRuntime;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.rule.FactHandle;
+import org.kie.internal.command.RegistryContext;
 import org.kie.internal.identity.IdentityProvider;
 import org.kie.internal.runtime.manager.context.CaseContext;
 
@@ -79,6 +82,16 @@ public class AddDataCaseFileInstanceCommand extends CaseCommand<Void> {
         // apply authorization
         authorizationManager.checkDataAuthorization(caseFile.getCaseId(), caseFile, parameters.keySet());
         
+        // check read only variables, due to dependencies between firexxxCaseData methods, we need this logic here, we cannot reuse VariableScopeInstance.setVariable
+        org.jbpm.process.instance.ProcessInstance pi = (org.jbpm.process.instance.ProcessInstance) ksession.getProcessInstance(processInstanceId);
+        VariableScope variableScope = (VariableScope) pi.getContextContainer().getDefaultContext(VariableScope.VARIABLE_SCOPE);
+        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+            Object oldValue = caseFile.getData(entry.getKey());
+            if (oldValue != null && !oldValue.equals(entry.getValue()) && variableScope.isReadOnly(VariableScope.CASE_FILE_PREFIX + entry.getKey())) {
+                throw new VariableViolationException(pi.getId(), entry.getKey(), "variable is read only and cannot be replaced");
+            }
+        }
+
         FactHandle factHandle = ksession.getFactHandle(caseFile);
         
         CaseEventSupport caseEventSupport = getCaseEventSupport(context);
@@ -105,12 +118,22 @@ public class AddDataCaseFileInstanceCommand extends CaseCommand<Void> {
                     ProcessInstance pi = (ProcessInstance) ksession.getProcessInstance(processInstanceId);
                     if (pi != null) {
                         ProcessEventSupport processEventSupport = ((InternalProcessRuntime) ((InternalKnowledgeRuntime) ksession).getProcessRuntime()).getProcessEventSupport();
+                        VariableScope variableScope = (VariableScope) pi.getContextContainer().getDefaultContext(VariableScope.VARIABLE_SCOPE);
                         for (Entry<String, Object> entry : parameters.entrySet()) {  
                             String name = "caseFile_" + entry.getKey();
+                            List<String> tags = variableScope == null ? Collections.emptyList() : variableScope.tags(name);
+                            processEventSupport.fireBeforeVariableChanged(
+                                name,
+                                name,
+                                null, entry.getValue(), 
+                                tags,
+                                pi,
+                                (KieRuntime) ksession );
                             processEventSupport.fireAfterVariableChanged(
                                 name,
                                 name,
                                 null, entry.getValue(), 
+                                tags,
                                 pi,
                                 (KieRuntime) ksession );
                         }
@@ -119,7 +142,7 @@ public class AddDataCaseFileInstanceCommand extends CaseCommand<Void> {
                 }
             });
         }
-        
+         
         ksession.update(factHandle, caseFile);
         triggerRules(ksession);
         caseEventSupport.fireAfterCaseDataAdded(caseFile.getCaseId(), caseFile, caseFile.getDefinitionId(), parameters);

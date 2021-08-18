@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2019 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,18 @@
  */
 
 package org.jbpm.services.task.commands;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlSchemaType;
 
 import org.jbpm.services.task.assignment.AssignmentService;
 import org.jbpm.services.task.assignment.AssignmentServiceProvider;
@@ -44,17 +56,6 @@ import org.kie.internal.task.api.model.NotificationType;
 import org.kie.internal.task.api.model.Reassignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @XmlRootElement(name="execute-deadlines-command")
 @XmlAccessorType(XmlAccessType.NONE)
@@ -102,8 +103,7 @@ public class ExecuteDeadlinesCommand extends TaskCommand<Void> {
 	            // check if task is still in valid status
 	            if (type.isValidStatus(taskData.getStatus())) {
 	                Map<String, Object> variables = null;
-	
-	
+
 	                    Content content = persistenceContext.findContent(taskData.getDocumentContentId());
 	
 	                    if (content != null) {
@@ -150,6 +150,7 @@ public class ExecuteDeadlinesCommand extends TaskCommand<Void> {
 	                        // use assignment service to directly assign actual owner if enabled
 	                        AssignmentService assignmentService = AssignmentServiceProvider.get();
 	                        if (assignmentService.isEnabled()) {
+	                            ctx.loadTaskVariables(task);
 	                            assignmentService.assignTask(task, ctx);
 	                        }
 
@@ -160,7 +161,7 @@ public class ExecuteDeadlinesCommand extends TaskCommand<Void> {
 	                            
 	                            taskEventSupport.fireBeforeTaskNotified(task, ctx);
 	                            logger.debug("Sending an Email");
-	                            NotificationListenerManager.get().broadcast(new NotificationEvent(notification, task, variables), userInfo);
+	                            NotificationListenerManager.get().broadcast(ctx, new NotificationEvent(notification, task, variables), userInfo);
 	                            
 	                            taskEventSupport.fireAfterTaskNotified(task, ctx);
 	                        }
@@ -171,10 +172,11 @@ public class ExecuteDeadlinesCommand extends TaskCommand<Void> {
 	        }
 	        
 	        deadline.setEscalated(true);
-	        persistenceContext.updateDeadline(deadline);
-	        persistenceContext.updateTask(task);
-            DeadlineSchedulerHelper.rescheduleDeadlinesForTask((InternalTask) task, ctx, type);
-        } catch (Exception e) {
+
+			persistenceContext.updateDeadline(deadline);
+			persistenceContext.updateTask(task);
+			DeadlineSchedulerHelper.rescheduleDeadlinesForTask((InternalTask) task, ctx, true, deadline, type);
+		} catch (Exception e) {
 
         	logger.error("Error when executing deadlines", e);
         }

@@ -16,7 +16,10 @@
 
 package org.jbpm.process.audit.jms;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.ServiceLoader;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -26,12 +29,14 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 
 import org.jbpm.process.audit.AbstractAuditLogger;
+import org.jbpm.process.audit.ArchiveLoggerProvider;
+import org.jbpm.process.audit.AuditLoggerArchiveTreat;
 import org.jbpm.process.audit.NodeInstanceLog;
 import org.jbpm.process.audit.ProcessInstanceLog;
 
 import com.thoughtworks.xstream.XStream;
 
-import static org.kie.soup.commons.xstream.XStreamUtils.createXStream;
+import static org.kie.soup.xstream.XStreamUtils.createTrustingXStream;
 
 /**
  * Asynchronous audit event receiver. Receives messages from JMS queue
@@ -53,24 +58,26 @@ import static org.kie.soup.commons.xstream.XStreamUtils.createXStream;
  *  <li>dependency injection - inject entity manager factory or entity manager by annotating methods</li>
  * </ul>
  */
-public class AsyncAuditLogReceiver implements MessageListener {
+public class AsyncAuditLogReceiver implements MessageListener, AuditLoggerArchiveTreat {
     
     private EntityManagerFactory entityManagerFactory;
     private XStream xstream;
+    private List<ArchiveLoggerProvider> archiveLoggerProvider;
     
     public AsyncAuditLogReceiver(EntityManagerFactory entityManagerFactory) {
         this.entityManagerFactory = entityManagerFactory;
         initXStream();
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
 
     private void initXStream() {
         if(xstream==null) {
-            xstream = createXStream();
+            xstream = createTrustingXStream();
             String[] voidDeny = {"void.class", "Void.class"};
             xstream.denyTypes(voidDeny);
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public void onMessage(Message message) {
@@ -105,16 +112,19 @@ public class AsyncAuditLogReceiver implements MessageListener {
                     List<ProcessInstanceLog> result = em.createQuery(
                             "from ProcessInstanceLog as log where log.processInstanceId = :piId and log.end is null")
                             .setParameter("piId", processCompletedEvent.getProcessInstanceId()).getResultList();
-                            
-                            if (result != null && result.size() != 0) {
-                               ProcessInstanceLog log = result.get(result.size() - 1);
-                               log.setOutcome(processCompletedEvent.getOutcome());
-                               log.setStatus(processCompletedEvent.getStatus());
-                               log.setEnd(processCompletedEvent.getEnd());
-                               log.setDuration(processCompletedEvent.getDuration());
-                               
-                               em.merge(log);   
-                           }
+
+                    if (result != null && result.size() != 0) {
+                        ProcessInstanceLog log = result.get(result.size() - 1);
+                        log.setOutcome(processCompletedEvent.getOutcome());
+                        log.setStatus(processCompletedEvent.getStatus());
+                        log.setEnd(processCompletedEvent.getEnd());
+                        log.setDuration(processCompletedEvent.getDuration());
+
+                        em.merge(log);
+
+                        this.archiveLoggerProvider.stream().forEach(archiver -> archiver.archive(em, log));
+                    }
+
                     break;
                 default:
                     em.persist(event);

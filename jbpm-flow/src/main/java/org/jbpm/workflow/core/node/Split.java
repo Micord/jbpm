@@ -23,6 +23,7 @@ import org.jbpm.workflow.core.Constraint;
 import org.jbpm.workflow.core.impl.ConnectionRef;
 import org.jbpm.workflow.core.impl.NodeImpl;
 import org.kie.api.definition.process.Connection;
+import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of a split node.
@@ -59,18 +60,35 @@ public class Split extends NodeImpl implements Constrainable {
     private static final long serialVersionUID = 510l;
 
     private int type;
-//    private Map<ConnectionRef, Constraint> constraints = new HashMap<ConnectionRef, Constraint>();
 
     public Split() {
+        super(NodeType.COMPLEX_GATEWAY);
         this.type = TYPE_UNDEFINED;
     }
 
     public Split(final int type) {
+        super(fromType(type));
         this.type = type;
     }    
 
     public void setType(final int type) {
+        this.setNodeType(fromType(type));
         this.type = type;
+    }
+
+    private static NodeType fromType(int type) {
+        switch (type) {
+            case TYPE_AND:
+                return NodeType.PARALLEL_GATEWAY;
+            case TYPE_XAND:
+                return NodeType.EVENT_BASED_GATEWAY;
+            case TYPE_OR:
+                return NodeType.INCLUSIVE_GATEWAY;
+            case TYPE_XOR:
+                return NodeType.EXCLUSIVE_GATEWAY;
+            default:
+                return NodeType.COMPLEX_GATEWAY;
+        }
     }
 
     public int getType() {
@@ -83,7 +101,7 @@ public class Split extends NodeImpl implements Constrainable {
         }
 
         if ( this.type == TYPE_OR || this.type == TYPE_XOR ) {
-            ConnectionRef ref = new ConnectionRef(connection.getTo().getId(), connection.getToType());
+            ConnectionRef ref = new ConnectionRef((String)connection.getMetaData().get("UniqueId"), connection.getTo().getId(), connection.getToType());
             Constraint constraint = this.constraints.get(ref);
             String defaultConnection = (String) getMetaData().get("Default");
             String connectionId = (String) connection.getMetaData().get("UniqueId");
@@ -105,7 +123,7 @@ public class Split extends NodeImpl implements Constrainable {
         }
 
         if ( this.type == TYPE_OR || this.type == TYPE_XOR ) {
-            ConnectionRef ref = new ConnectionRef(connection.getTo().getId(), connection.getToType());
+            ConnectionRef ref = new ConnectionRef((String)connection.getMetaData().get("UniqueId"), connection.getTo().getId(), connection.getToType());
             return this.constraints.get(ref);
         }
         throw new UnsupportedOperationException( "Constraints are " + 
@@ -126,7 +144,7 @@ public class Split extends NodeImpl implements Constrainable {
                 throw new IllegalArgumentException("connection is unknown:" + connection);
             }
             addConstraint(
-                new ConnectionRef(connection.getTo().getId(), connection.getToType()),
+                new ConnectionRef((String)connection.getMetaData().get("UniqueId"), connection.getTo().getId(), connection.getToType()),
                 constraint);
         } else {
             throw new UnsupportedOperationException( "Constraints are " + 
@@ -175,7 +193,7 @@ public class Split extends NodeImpl implements Constrainable {
     }
     
     public void removeConstraint(Connection connection) {
-    	ConnectionRef ref = new ConnectionRef(connection.getTo().getId(), connection.getToType());
+    	ConnectionRef ref = new ConnectionRef((String)connection.getMetaData().get("UniqueId"), connection.getTo().getId(), connection.getToType());
         internalRemoveConstraint(ref);
     }
     

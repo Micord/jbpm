@@ -25,6 +25,7 @@ import org.drools.core.ClassObjectFilter;
 import org.drools.core.event.ProcessEventSupport;
 import org.jbpm.process.core.context.variable.Variable;
 import org.jbpm.process.core.context.variable.VariableScope;
+import org.jbpm.process.core.context.variable.VariableViolationException;
 import org.jbpm.process.instance.ContextInstanceContainer;
 import org.jbpm.process.instance.InternalProcessRuntime;
 import org.jbpm.process.instance.context.AbstractContextInstance;
@@ -32,6 +33,7 @@ import org.jbpm.workflow.core.Node;
 import org.jbpm.workflow.instance.node.CompositeContextNodeInstance;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.process.CaseData;
+import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.api.runtime.rule.FactHandle;
 
 /**
@@ -96,24 +98,29 @@ public class VariableScopeInstance extends AbstractContextInstance {
             throw new IllegalArgumentException(
                 "The name of a variable may not be null!");
         }
-        Object oldValue = variables.get(name);
+        Object oldValue = getVariable(name);
         if (oldValue == null) {
         	if (value == null) {
         		return;
         	}
-        } 
+        }
+        // check if variable that is being set is readonly and has already been set
+        if (oldValue != null && !oldValue.equals(value) && getVariableScope().isReadOnly(name)) {
+            throw new VariableViolationException(getProcessInstance().getId(), name, "Variable '" + name + "' is already set and is marked as read only");
+        }
+        
         ProcessEventSupport processEventSupport = ((InternalProcessRuntime) getProcessInstance()
     		.getKnowledgeRuntime().getProcessRuntime()).getProcessEventSupport();
     	processEventSupport.fireBeforeVariableChanged(
 			(variableIdPrefix == null ? "" : variableIdPrefix + ":") + name,
 			(variableInstanceIdPrefix == null? "" : variableInstanceIdPrefix + ":") + name,
-			oldValue, value, getProcessInstance(),
+			oldValue, value, getVariableScope().tags(name), getProcessInstance(),
 			getProcessInstance().getKnowledgeRuntime());
         internalSetVariable(name, value);
         processEventSupport.fireAfterVariableChanged(
 			(variableIdPrefix == null ? "" : variableIdPrefix + ":") + name,
 			(variableInstanceIdPrefix == null? "" : variableInstanceIdPrefix + ":") + name,
-    		oldValue, value, getProcessInstance(),
+    		oldValue, value, getVariableScope().tags(name), getProcessInstance(),
 			getProcessInstance().getKnowledgeRuntime());
     }
     
@@ -127,9 +134,16 @@ public class VariableScopeInstance extends AbstractContextInstance {
                 CaseData caseFile = (CaseData) caseFiles.iterator().next();
                 FactHandle factHandle = getProcessInstance().getKnowledgeRuntime().getFactHandle(caseFile);
                 
-                caseFile.add(nameInCaseFile, value);
-                getProcessInstance().getKnowledgeRuntime().update(factHandle, caseFile);
-                ((KieSession)getProcessInstance().getKnowledgeRuntime()).fireAllRules();
+                if (value == null) {
+                    caseFile.remove(nameInCaseFile);
+                } else {
+                    caseFile.add(nameInCaseFile, value);
+                }
+                // case data fire rules only if the state is not pending (active)
+                if (getProcessInstance().getState() != ProcessInstance.STATE_PENDING) {
+                    getProcessInstance().getKnowledgeRuntime().update(factHandle, caseFile);
+                    ((KieSession) getProcessInstance().getKnowledgeRuntime()).fireAllRules();
+                }
                 return;
             }
             
@@ -145,12 +159,54 @@ public class VariableScopeInstance extends AbstractContextInstance {
     public void setContextInstanceContainer(ContextInstanceContainer contextInstanceContainer) {
     	super.setContextInstanceContainer(contextInstanceContainer);
     	for (Variable variable : getVariableScope().getVariables()) {
-            setVariable(variable.getName(), variable.getValue());
+            if (variable.getValue() != null) {
+                setVariable(variable.getName(), variable.getValue());
+            }
         }
     	if (contextInstanceContainer instanceof CompositeContextNodeInstance) {
     		this.variableIdPrefix = ((Node) ((CompositeContextNodeInstance) contextInstanceContainer).getNode()).getUniqueId();
     		this.variableInstanceIdPrefix = ((CompositeContextNodeInstance) contextInstanceContainer).getUniqueId();
     	}
 	}
+    
+    public void enforceRequiredVariables() {
+        VariableScope variableScope = getVariableScope();
+        for (Variable variable : variableScope.getVariables()) {
+            String name = variable.getName();
+            if (variableScope.isRequired(name)) {  
+                // check case file if it is prefixed
+                if (name.startsWith(VariableScope.CASE_FILE_PREFIX)) {
+                    if (!findCaseData(name)) {
+                        throw new VariableViolationException(getProcessInstance().getId(), name, "Case file item '" + name + "' is required but not set");
+                        
+                    }
+                    // otherwise check variables                    
+                } else if (!hasData(variables.get(name))) {
+                    throw new VariableViolationException(getProcessInstance().getId(), name, "Variable '" + name + "' is required but not set");
+                }
+                
+            }
+        }
+    }
+    
+    protected boolean findCaseData(String name) {
+        boolean found = false;
+        String nameInCaseFile = name.replaceFirst(VariableScope.CASE_FILE_PREFIX, "");            
+        // store it under case file rather regular variables
+        @SuppressWarnings("unchecked")
+        Collection<CaseData> caseFiles = (Collection<CaseData>) getProcessInstance().getKnowledgeRuntime().getObjects(new ClassObjectFilter(CaseData.class));
+        if (caseFiles.size() == 1) {
+            CaseData caseData = caseFiles.iterator().next();
+            if (hasData(caseData.getData(nameInCaseFile))) {
+                found = true;
+            }
+        }
+        
+        return found;
+    }
+    
+    private boolean hasData(Object data) {
+        return data != null && (!(data instanceof CharSequence) || !data.toString().trim().isEmpty());
+    }
 
 }

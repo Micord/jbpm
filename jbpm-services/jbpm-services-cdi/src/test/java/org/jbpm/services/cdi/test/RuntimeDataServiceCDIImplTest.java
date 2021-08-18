@@ -32,6 +32,7 @@ import org.jbpm.services.api.RuntimeDataService;
 import org.jbpm.services.api.UserTaskService;
 import org.jbpm.shared.services.impl.TransactionalCommandService;
 import org.jbpm.shared.services.impl.commands.UpdateStringCommand;
+import org.jbpm.test.services.TestIdentityProvider;
 import org.junit.After;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -109,7 +110,7 @@ public class RuntimeDataServiceCDIImplTest extends RuntimeDataServiceImplTest {
                 .addPackage("org.jbpm.services.cdi.test") // Identity Provider Test Impl here
                 .addClass("org.jbpm.services.cdi.test.util.CDITestHelperNoTaskService")
                 .addClass("org.jbpm.services.cdi.test.util.CountDownDeploymentListenerCDIImpl")
-                .addClass("org.jbpm.kie.services.test.objects.CoundDownDeploymentListener")
+                .addClass("org.jbpm.kie.services.test.objects.CountDownDeploymentListener")
                 .addAsResource("jndi.properties", "jndi.properties")
                 .addAsManifestResource("META-INF/persistence.xml", ArchivePaths.create("persistence.xml"))
                 .addAsManifestResource("META-INF/beans.xml", ArchivePaths.create("beans.xml"));
@@ -163,10 +164,18 @@ public class RuntimeDataServiceCDIImplTest extends RuntimeDataServiceImplTest {
 		
 		super.setUserTaskService(userTaskService);
 	}
+
+    @Inject
+    @Override
+    public void setIdentityProvider(TestIdentityProvider identityProvider) {
+        super.setIdentityProvider(identityProvider);
+    }
 	
 	@After
 	public void removeAllData() {
-		int deleted = 0;
+        //need to abort all processes before deleting all the tables
+        super.cleanup();
+        int deleted = 0;
         deleted += commandService.execute(new UpdateStringCommand("delete from  NodeInstanceLog nid"));
         deleted += commandService.execute(new UpdateStringCommand("delete from  ProcessInstanceLog pid"));        
         deleted += commandService.execute(new UpdateStringCommand("delete from  VariableInstanceLog vsd"));

@@ -16,7 +16,10 @@
 
 package org.jbpm.process.audit;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.ServiceLoader;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -35,7 +38,6 @@ import org.drools.core.runtime.process.InternalProcessRuntime;
 import org.drools.persistence.api.TransactionManager;
 import org.jbpm.process.audit.variable.ProcessIndexerManager;
 import org.jbpm.process.instance.ProcessInstance;
-import org.jbpm.process.instance.impl.ProcessInstanceImpl;
 import org.jbpm.workflow.instance.NodeInstance;
 import org.jbpm.workflow.instance.impl.NodeInstanceImpl;
 import org.kie.api.event.KieRuntimeEvent;
@@ -57,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * Enables history log via JPA.
  * 
  */
-public class JPAWorkingMemoryDbLogger extends AbstractAuditLogger {
+public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter implements AuditLoggerArchiveTreat{
 
     private static final Logger logger = LoggerFactory.getLogger(JPAWorkingMemoryDbLogger.class);
     
@@ -69,7 +71,7 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLogger {
     private EntityManagerFactory emf;
     
     private ProcessIndexerManager indexManager = ProcessIndexerManager.get();
-
+    private List<ArchiveLoggerProvider> archiveLoggerProvider;
     /*
      * for backward compatibility
      */
@@ -79,12 +81,14 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLogger {
         if (processRuntime != null) {
             processRuntime.addEventListener( (ProcessEventListener) this );
         }
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
     
     public JPAWorkingMemoryDbLogger(KieSession session) {
     	Environment env = session.getEnvironment();
         internalSetIsJTA(env);
         session.addEventListener(this);
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
     /*
      * end of backward compatibility
@@ -92,19 +96,23 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLogger {
 
     public JPAWorkingMemoryDbLogger(EntityManagerFactory emf) {
         this.emf = emf;
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
     
     public JPAWorkingMemoryDbLogger() { 
         // default constructor when this is used with a persistent KieSession
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
         
     public JPAWorkingMemoryDbLogger(EntityManagerFactory emf, Environment env) {
         this.emf = emf;
         internalSetIsJTA(env);
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
 
     public JPAWorkingMemoryDbLogger(Environment env) {
         internalSetIsJTA(env);
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
 
     private void internalSetIsJTA(Environment env) { 
@@ -115,118 +123,110 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLogger {
     }
     
     @Override
-    public void beforeNodeTriggered(ProcessNodeTriggeredEvent event) {
-    	NodeInstanceLog log = (NodeInstanceLog) builder.buildEvent(event);
+    protected void nodeEnter(ProcessNodeTriggeredEvent event) {
+        NodeInstanceLog log = (NodeInstanceLog) builder.buildEvent(event);
+        setNodeInstanceMetadata(event.getNodeInstance(), METADATA_NODEINSTANCE_LOG, log);
         persist(log, event);
-        ((NodeInstanceImpl) event.getNodeInstance()).getMetaData().put("NodeInstanceLog", log);
+
     }
 
     @Override
-    public void afterNodeLeft(ProcessNodeLeftEvent event) {
+    protected void nodeLeft(ProcessNodeLeftEvent event) {
         NodeInstanceLog log = (NodeInstanceLog) builder.buildEvent(event, null);
+        setNodeInstanceMetadata(event.getNodeInstance(), METADATA_NODEINSTANCE_LOG, log);
         persist(log, event);
+
     }
 
     @Override
-    public void afterVariableChanged(ProcessVariableChangedEvent event) {
-        
+    protected void variableChanged(ProcessVariableChangedEvent event) {
         List<org.kie.api.runtime.manager.audit.VariableInstanceLog> variables = indexManager.index(getBuilder(), event);
-        for (org.kie.api.runtime.manager.audit.VariableInstanceLog log : variables) {        
-            persist(log, event);
-        }
+        setProcessInstanceMetadata(event.getProcessInstance(), METADATA_VARIABLEINSTANCE_LOG, variables);
+        variables.forEach(log -> persist(log, event));
     }
 
     @Override
-    public void beforeProcessStarted(ProcessStartedEvent event) {
+    protected void processStarted(ProcessStartedEvent event) {
         ProcessInstanceLog log = (ProcessInstanceLog) builder.buildEvent(event);
+        setProcessInstanceMetadata(event.getProcessInstance(), METADATA_PROCESSINTANCE_LOG, log);
         persist(log, event);
-        ((ProcessInstanceImpl) event.getProcessInstance()).getMetaData().put("ProcessInstanceLog", log);
     }
 
+
     @Override
-    public void afterProcessCompleted(ProcessCompletedEvent event) {
+    protected void processCompleted(ProcessCompletedEvent event) {
         long processInstanceId = event.getProcessInstance().getId();
         EntityManager em = getEntityManager(event);
         Object tx = joinTransaction(em);
-        
-        ProcessInstanceLog log = (ProcessInstanceLog) ((ProcessInstanceImpl) event.getProcessInstance()).getMetaData().get("ProcessInstanceLog");
+
+        ProcessInstanceLog log = (ProcessInstanceLog) getProcessInstanceMetadata(event.getProcessInstance(), METADATA_PROCESSINTANCE_LOG);
         if (log == null) {
-	        List<ProcessInstanceLog> result = em.createQuery(
-		        "from ProcessInstanceLog as log where log.processInstanceId = :piId and log.end is null")
-		            .setParameter("piId", processInstanceId).getResultList();
-	        if (result != null && result.size() != 0) {
-	           log = result.get(result.size() - 1);
-	        }
+            List<ProcessInstanceLog> result = em.createQuery("from ProcessInstanceLog as log where log.processInstanceId = :piId and log.end is null")
+                                                .setParameter("piId", processInstanceId).getResultList();
+            if (result != null && result.size() != 0) {
+                log = result.get(result.size() - 1);
+            }
         }
         if (log != null) {
             log = (ProcessInstanceLog) builder.buildEvent(event, log);
-            em.merge(log);   
+
+            // archive everything
+            final ProcessInstanceLog logToArchive = log;
+            this.archiveLoggerProvider.stream().forEach(archiver -> archiver.archive(em, logToArchive));
+
+            setProcessInstanceMetadata(event.getProcessInstance(), METADATA_PROCESSINTANCE_LOG, log);
+            em.merge(log);
+
         }
         leaveTransaction(em, tx);
     }
     
     @Override
-    public void afterNodeTriggered(ProcessNodeTriggeredEvent event) {
-    	// trigger this to record some of the data (like work item id) after activity was triggered
-    	NodeInstanceLog log = (NodeInstanceLog) ((NodeInstanceImpl) event.getNodeInstance()).getMetaData().get("NodeInstanceLog");
-    	builder.buildEvent(event, log);
-        
-    }
-
-    @Override
-    public void afterSLAViolated(SLAViolatedEvent event) {
+    protected void slaProcessInstanceViolated(SLAViolatedEvent event) {
+        // SLA violation for process instance
         EntityManager em = getEntityManager(event);
         Object tx = joinTransaction(em);
-        if (event.getNodeInstance() != null) {
-            // since node instance is set this is SLA violation for node instance
-            long nodeInstanceId = event.getNodeInstance().getId();
-            long processInstanceId = event.getProcessInstance().getId();
-            NodeInstanceLog log = (NodeInstanceLog) ((NodeInstanceImpl) event.getNodeInstance()).getMetaData().get("NodeInstanceLog");
-            if (log == null) {
-                List<NodeInstanceLog> result = em.createQuery(
-                        "from NodeInstanceLog as log where log.nodeInstanceId = :niId and log.processInstanceId = :piId and log.type = 0")
-                        .setParameter("niId", Long.toString(nodeInstanceId))
-                        .setParameter("piId", processInstanceId).getResultList();
-                if (result != null && !result.isEmpty()) {
-                    log = result.get(result.size() - 1);
-                }
+        long processInstanceId = event.getProcessInstance().getId();
+        ProcessInstanceLog log = (ProcessInstanceLog) getProcessInstanceMetadata(event.getProcessInstance(), METADATA_PROCESSINTANCE_LOG);
+        if (log == null) {
+            List<ProcessInstanceLog> result = em.createQuery("from ProcessInstanceLog as log where log.processInstanceId = :piId and log.end is null")
+                                                .setParameter("piId", processInstanceId).getResultList();
+            if (result != null && !result.isEmpty()) {
+                log = result.get(result.size() - 1);
             }
-            if (log != null) {
-                log.setSlaCompliance(((NodeInstance)event.getNodeInstance()).getSlaCompliance());
-                em.merge(log);
-            }
-        } else {
-            // SLA violation for process instance
-            long processInstanceId = event.getProcessInstance().getId();
-            ProcessInstanceLog log = (ProcessInstanceLog) ((ProcessInstanceImpl) event.getProcessInstance()).getMetaData().get("ProcessInstanceLog");
-            if (log == null) {
-                List<ProcessInstanceLog> result = em.createQuery(
-                        "from ProcessInstanceLog as log where log.processInstanceId = :piId and log.end is null")
-                        .setParameter("piId", processInstanceId).getResultList();
-                if (result != null && !result.isEmpty()) {
-                    log = result.get(result.size() - 1);
-                }
-            }
-            if (log != null) {
-                log.setSlaCompliance(((ProcessInstance) event.getProcessInstance()).getSlaCompliance());
-                em.merge(log);
-            }
+        }
+        if (log != null) {
+            log.setSlaCompliance(((ProcessInstance) event.getProcessInstance()).getSlaCompliance());
+            setProcessInstanceMetadata(event.getProcessInstance(), METADATA_PROCESSINTANCE_LOG, log);
+            em.merge(log);
         }
         leaveTransaction(em, tx);
     }
 
     @Override
-    public void beforeNodeLeft(ProcessNodeLeftEvent event) {
-
+    protected void slaNodeInstanceViolated(SLAViolatedEvent event) {
+        // since node instance is set this is SLA violation for node instance
+        EntityManager em = getEntityManager(event);
+        Object tx = joinTransaction(em);
+        long nodeInstanceId = event.getNodeInstance().getId();
+        long processInstanceId = event.getProcessInstance().getId();
         
-    }
-    @Override
-    public void beforeVariableChanged(ProcessVariableChangedEvent event) {
-        
-    }
-    @Override
-    public void afterProcessStarted(ProcessStartedEvent event) {
-        
+        NodeInstanceLog log = (NodeInstanceLog) getNodeInstanceMetadata(event.getNodeInstance(), METADATA_NODEINSTANCE_LOG);
+        if (log == null) {
+            List<NodeInstanceLog> result = em.createQuery("from NodeInstanceLog as log where log.nodeInstanceId = :niId and log.processInstanceId = :piId and log.type = 0")
+                                             .setParameter("niId", Long.toString(nodeInstanceId))
+                                             .setParameter("piId", processInstanceId).getResultList();
+            if (result != null && !result.isEmpty()) {
+                log = result.get(result.size() - 1);
+            }
+        }
+        if (log != null) {
+            log.setSlaCompliance(((NodeInstance) event.getNodeInstance()).getSlaCompliance());
+            setNodeInstanceMetadata(event.getNodeInstance(), METADATA_NODEINSTANCE_LOG, log);
+            ((NodeInstanceImpl) event.getNodeInstance()).getMetaData().put(METADATA_NODEINSTANCE_LOG, log);
+            em.merge(log);
+        }
+        leaveTransaction(em, tx);
     }
 
     @Override

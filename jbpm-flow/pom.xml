@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm</artifactId>
-    <version>7.11.0-SNAPSHOT</version>
+    <version>7.59.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>jbpm-flow</artifactId>
@@ -44,7 +44,7 @@
               <executable>protoc</executable>
               <arguments>
                 <argument>-I=src/main/resources</argument>
-                <argument>-I=../../drools/drools-core/src/main/resources</argument>
+                <argument>-I=../../drools/drools-serialization-protobuf/src/main/resources</argument>
                 <argument>--java_out=src/main/java</argument>
                 <argument>src/main/resources/org/jbpm/marshalling/jbpmmessages.proto</argument>
               </arguments>
@@ -52,6 +52,12 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>sonarcloud-analysis</id>
+      <properties>
+        <sonar.exclusions>**/JBPMMessages.java</sonar.exclusions>
+      </properties>
     </profile>
   </profiles>
 
@@ -65,9 +71,10 @@
             <Import-Package>
                 javax.swing.*;resolution:=optional,
                 org.jbpm.persistence.timer;resolution:=optional,
-                org.kie.dmn.api.core;resolution:=optional,  
+                org.kie.dmn.api.core;resolution:=optional,
+                org.kie.dmn.api.feel.runtime.events;resolution:=optional,
                 org.kie.dmn.core.impl;resolution:=optional,
-                org.kie.dmn.feel;resolution:=optional,                 
+                org.kie.dmn.feel;resolution:=optional,
                 *
             </Import-Package>
             <Export-Package>
@@ -77,7 +84,7 @@
             	org.jbpm.ruleflow.*,
             	org.jbpm.workflow.*,
             	org.jbpm.osgi.flow.core.*,
-              org.jbpm.util.*
+                org.jbpm.util.*
             </Export-Package>
             <Bundle-Activator>org.jbpm.osgi.flow.core.Activator</Bundle-Activator>
           </instructions>
@@ -98,6 +105,14 @@
     <dependency>
       <groupId>org.drools</groupId>
       <artifactId>drools-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-mvel</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-serialization-protobuf</artifactId>
     </dependency>
     <dependency>
       <groupId>org.kie.soup</groupId>
@@ -183,6 +198,20 @@
       <artifactId>commons-io</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jboss.spec.javax.xml.bind</groupId>
+      <artifactId>jboss-jaxb-api_2.3_spec</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
   </dependencies>
 
 </project>

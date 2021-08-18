@@ -16,23 +16,21 @@
 
 package org.jbpm.process.audit.query;
 
+import org.jbpm.process.audit.JPAAuditLogService;
+import org.jbpm.process.audit.NodeInstanceLog;
+import org.kie.api.runtime.CommandExecutor;
+import org.kie.internal.runtime.manager.audit.query.NodeInstanceLogDeleteBuilder;
+
 import static org.kie.internal.query.QueryParameterIdentifiers.EXTERNAL_ID_LIST;
 import static org.kie.internal.query.QueryParameterIdentifiers.NODE_ID_LIST;
 import static org.kie.internal.query.QueryParameterIdentifiers.NODE_INSTANCE_ID_LIST;
 import static org.kie.internal.query.QueryParameterIdentifiers.NODE_NAME_LIST;
 import static org.kie.internal.query.QueryParameterIdentifiers.WORK_ITEM_ID_LIST;
 
-import org.jbpm.process.audit.JPAAuditLogService;
-import org.jbpm.process.audit.NodeInstanceLog;
-import org.kie.api.runtime.CommandExecutor;
-import org.kie.internal.runtime.manager.audit.query.NodeInstanceLogDeleteBuilder;
-
 public class NodeInstanceLogDeleteBuilderImpl extends
 		AbstractAuditDeleteBuilderImpl<NodeInstanceLogDeleteBuilder> implements NodeInstanceLogDeleteBuilder {
 
-    private static String NODE_INSTANCE_LOG_DELETE = 
-            "DELETE\n"
-            + "FROM NodeInstanceLog l\n";
+    private static final String NODE_INSTANCE_LOG_DELETE = "NodeInstanceLog";
     
 
     
@@ -91,9 +89,9 @@ public class NodeInstanceLogDeleteBuilderImpl extends
 		return this;
 	}
 
-	@Override
-	protected String getSubQuery() {
-        return ONLY_COMPLETED_PROCESS_INSTANCES;
+    @Override
+    protected boolean isSubquerySupported() {
+        return true;
     }
 	
     @Override
@@ -102,7 +100,7 @@ public class NodeInstanceLogDeleteBuilderImpl extends
     }
 
     @Override
-    protected String getQueryBase() {
+    protected String getQueryTable() {
         return NODE_INSTANCE_LOG_DELETE;
     }
 

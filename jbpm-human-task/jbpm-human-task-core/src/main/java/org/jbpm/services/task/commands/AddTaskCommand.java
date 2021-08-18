@@ -15,6 +15,7 @@
  */
 package org.jbpm.services.task.commands;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -41,6 +42,7 @@ import org.kie.internal.task.api.model.ContentData;
 import org.kie.internal.task.api.model.InternalPeopleAssignments;
 import org.kie.internal.task.api.model.InternalTask;
 import org.kie.internal.task.api.model.InternalTaskData;
+import org.kie.internal.task.api.model.Operation;
 
 /**
  * Operation.Start : [ new OperationCommand().{ status = [ Status.Ready ],
@@ -98,6 +100,7 @@ public class AddTaskCommand extends UserGroupCallbackTaskCommand<Long> {
 	    initializeTask(taskImpl);
 	    context.getTaskRuleService().executeRules(taskImpl, userId, data != null?data:params, TaskRuleService.ADD_TASK_SCOPE);     
         
+	    ((InternalTaskData)taskImpl.getTaskData()).setTaskInputVariables(params);
         // use assignment service to directly assign actual owner if enabled
         AssignmentService assignmentService = AssignmentServiceProvider.get();
         if (assignmentService.isEnabled()) {
@@ -110,10 +113,16 @@ public class AddTaskCommand extends UserGroupCallbackTaskCommand<Long> {
 	    if (data != null) {
 	    	taskId = context.getTaskInstanceService().addTask(taskImpl, data);
         } else {
-            ((InternalTaskData)taskImpl.getTaskData()).setTaskInputVariables(params);
+            
         	taskId = context.getTaskInstanceService().addTask(taskImpl, params);
-        }      
-    	
+        }
+
+        // if the status is different from created it means it has been activated in the middle
+        if (!Status.Created.equals(taskImpl.getTaskData().getStatus())) {
+            ((InternalTask) taskImpl).setId(taskId);
+            context.getTaskInstanceService().fireEvent(Operation.Activate, taskImpl);
+        }
+
         DeadlineSchedulerHelper.scheduleDeadlinesForTask((InternalTask) taskImpl, context, DeadlineType.values());
     	
     	return taskId;

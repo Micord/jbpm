@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2019 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,19 +20,14 @@ import javax.persistence.Persistence;
 
 import org.jbpm.services.task.deadlines.notifications.impl.MockNotificationListener;
 import org.jbpm.services.task.impl.TaskDeadlinesServiceImpl;
-import org.jbpm.test.util.PoolingDataSource;
+import org.kie.test.util.db.PoolingDataSourceWrapper;
 import org.junit.After;
 import org.junit.Before;
 import org.kie.internal.task.api.InternalTaskService;
 
-/**
- *
- *
- */
-
 public class DeadlinesLocalTest extends DeadlinesBaseTest {
 
-	private PoolingDataSource pds;
+	private PoolingDataSourceWrapper pds;
 	private EntityManagerFactory emf;
 	
 	@Before

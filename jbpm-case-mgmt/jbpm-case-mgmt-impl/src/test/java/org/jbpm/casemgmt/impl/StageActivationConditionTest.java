@@ -15,15 +15,20 @@
  */
 package org.jbpm.casemgmt.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.drools.core.command.impl.RegistryContext;
 import org.jbpm.casemgmt.api.model.instance.CaseInstance;
 import org.jbpm.casemgmt.api.model.instance.CaseStageInstance;
 import org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl;
 import org.jbpm.casemgmt.impl.util.AbstractCaseServicesBaseTest;
+import org.jbpm.services.api.model.NodeInstanceDesc;
 import org.junit.Test;
 import org.kie.api.command.ExecutableCommand;
 import org.kie.api.runtime.Context;
@@ -31,22 +36,62 @@ import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.process.NodeInstance;
 import org.kie.api.runtime.process.WorkflowProcessInstance;
 import org.kie.api.runtime.query.QueryContext;
+import org.kie.internal.command.RegistryContext;
 import org.kie.internal.runtime.manager.context.ProcessInstanceIdContext;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class StageActivationConditionTest extends AbstractCaseServicesBaseTest {
 
     private static final String STAGE_WITH_ACTIVATION_COND = "NoStartNodeAdhocCaseWithActivationCondition";
+    private static final String STAGE_WITH_ACTIVATION_COND_NO_TERMINATE = "NoStartNodeAdhocCaseWithActivationConditionNoTerminate";
 
 
     @Override
     protected List<String> getProcessDefinitionFiles() {
         List<String> processes = new ArrayList<>();
         processes.add("cases/stage/activation/NoStartNodeAdhocCaseWithActivationCondition.bpmn2");
+        processes.add("cases/stage/activation/NoStartNodeAdhocCaseWithActivationConditionNoTerminate.bpmn2");
         return processes;
+    }
+    
+    @Test
+    public void testReopenWithCaseFileReevaluation() {
+        String caseId = caseService.startCase(deploymentUnit.getIdentifier(), STAGE_WITH_ACTIVATION_COND_NO_TERMINATE);
+        assertThat(caseId).isNotNull().isEqualTo(FIRST_CASE_ID);
+        assertCaseInstanceActive(caseId);
+        
+        caseService.triggerAdHocFragment(caseId, "Adhoc 1", null);
+        
+        Collection<CaseStageInstance> activeStages = caseRuntimeDataService.getCaseInstanceStages(caseId, true, new QueryContext());
+        assertThat(activeStages).hasSize(0);
+
+        caseService.addDataToCaseFile(caseId, "readyToActivate", true);
+        
+        activeStages = caseRuntimeDataService.getCaseInstanceStages(caseId, true, new QueryContext());
+        assertThat(activeStages).hasSize(1);
+        
+        caseService.addDataToCaseFile(caseId, "readyToComplete", true);
+        
+        activeStages = caseRuntimeDataService.getCaseInstanceStages(caseId, true, new QueryContext());
+        assertThat(activeStages).hasSize(0);
+        
+        caseService.closeCase(caseId, "closing for test");
+             
+        caseService.reopenCase(caseId, deploymentUnit.getIdentifier(), STAGE_WITH_ACTIVATION_COND_NO_TERMINATE);
+        
+        activeStages = caseRuntimeDataService.getCaseInstanceStages(caseId, true, new QueryContext());
+        assertThat(activeStages).hasSize(0);
+        
+        CaseInstance ci = caseService.getCaseInstance(caseId);
+        
+        Collection<NodeInstanceDesc> history = runtimeDataService.getProcessInstanceHistoryCompleted(((CaseInstanceImpl) ci).getProcessInstanceId(), new QueryContext());
+        assertThat(history).hasSize(2);
+        
+        List<String> completedNodeNames = history.stream().map(ni -> ni.getName()).collect(Collectors.toList());
+        assertThat(completedNodeNames).contains("stage", "end");
+        
+        caseService.closeCase(caseId, "closing for real");
+
+        assertCaseInstanceNotActive(caseId);
     }
 
     @Test

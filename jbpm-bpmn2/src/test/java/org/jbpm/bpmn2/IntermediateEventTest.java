@@ -20,11 +20,14 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -32,7 +35,6 @@ import javax.persistence.Persistence;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.drools.core.command.SingleSessionCommandService;
 import org.drools.core.command.impl.CommandBasedStatefulKnowledgeSession;
-import org.drools.core.command.impl.RegistryContext;
 import org.drools.core.command.runtime.process.SetProcessInstanceVariablesCommand;
 import org.drools.core.common.InternalKnowledgeRuntime;
 import org.drools.core.impl.StatefulKnowledgeSessionImpl;
@@ -60,7 +62,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.kie.api.KieBase;
 import org.kie.api.command.ExecutableCommand;
+import org.kie.api.definition.process.NodeType;
 import org.kie.api.event.process.DefaultProcessEventListener;
+import org.kie.api.event.process.MessageEvent;
 import org.kie.api.event.process.ProcessEventListener;
 import org.kie.api.event.process.ProcessNodeLeftEvent;
 import org.kie.api.event.process.ProcessNodeTriggeredEvent;
@@ -76,14 +80,18 @@ import org.kie.api.runtime.process.WorkItem;
 import org.kie.api.runtime.process.WorkItemManager;
 import org.kie.api.runtime.process.WorkflowProcessInstance;
 import org.kie.api.runtime.rule.FactHandle;
+import org.kie.internal.command.RegistryContext;
 import org.kie.internal.persistence.jpa.JPAKnowledgeService;
 import org.kie.internal.runtime.StatefulKnowledgeSession;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 
 @RunWith(Parameterized.class)
@@ -140,6 +148,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
     @After
     public void dispose() {
         if (ksession != null) {
+            abortProcessInstances(ksession);
             ksession.dispose();
             ksession = null;
         }
@@ -229,7 +238,6 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
                 .startProcess("BoundarySignalOnTask");
         ksession.signalEvent("MySignal", "value");
         assertProcessInstanceFinished(processInstance, ksession);
-
     }
 
     @Test
@@ -241,6 +249,20 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         ksession.addEventListener(LOGGING_EVENT_LISTENER);
         ProcessInstance processInstance = ksession
                 .startProcess("BoundarySignalOnTask");
+        ksession.signalEvent("MySignal", "value");
+        assertProcessInstanceFinished(processInstance, ksession);
+
+    }
+    
+    @Test
+    public void testSignalBoundaryEventOnTaskWithVariableSignalName() throws Exception {
+        KieBase kbase = createKnowledgeBase("BPMN2-BoundarySignalWithVariableNameEventOnTaskbpmn.bpmn");
+        ksession = createKnowledgeSession(kbase);
+        ksession.getWorkItemManager().registerWorkItemHandler("Human Task",
+                new TestWorkItemHandler());
+        ksession.addEventListener(LOGGING_EVENT_LISTENER);
+        ProcessInstance processInstance = ksession
+                .startProcess("BoundarySignalOnTask", Collections.singletonMap("signalName","MySignal"));
         ksession.signalEvent("MySignal", "value");
         assertProcessInstanceFinished(processInstance, ksession);
 
@@ -284,13 +306,22 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
     @Test
     public void testSignalIntermediateThrow() throws Exception {
         KieBase kbase = createKnowledgeBase("BPMN2-IntermediateThrowEventSignal.bpmn2");
+        CountDownLatch endSignal = new CountDownLatch(1);
         ksession = createKnowledgeSession(kbase);
+        ksession.addEventListener(new DefaultProcessEventListener() {
+
+            @Override
+            public void beforeNodeTriggered(ProcessNodeTriggeredEvent event) {
+                if (event.getNodeInstance().getNode().getNodeType() == NodeType.THROW_EVENT) {
+                    endSignal.countDown();
+                }
+            }
+        });
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("x", "MyValue");
-        ProcessInstance processInstance = ksession.startProcess(
-                "SignalIntermediateEvent", params);
+        ProcessInstance processInstance = ksession.startProcess("SignalIntermediateEvent", params);
         assertThat(processInstance.getState()).isEqualTo(ProcessInstance.STATE_COMPLETED);
-
+        assertTrue("Listener not invoked", endSignal.await(2, TimeUnit.SECONDS));
     }
 
     @Test
@@ -945,14 +976,23 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
     @Test
     public void testMessageIntermediateThrow() throws Exception {
         KieBase kbase = createKnowledgeBase("BPMN2-IntermediateThrowEventMessage.bpmn2");
+        DefaultProcessEventListener listener = Mockito.spy(new DefaultProcessEventListener() {
+            @Override
+            public void onMessage(MessageEvent event) {
+                assertEquals("_2_Message", event.getMessageName());
+                assertEquals("MyValue", event.getMessage());
+            }
+        });
         ksession = createKnowledgeSession(kbase);
         ksession.getWorkItemManager().registerWorkItemHandler("Send Task",
                 new SendTaskHandler());
+        ksession.addEventListener(listener);
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("x", "MyValue");
         ProcessInstance processInstance = ksession.startProcess(
                 "MessageIntermediateEvent", params);
         assertProcessInstanceCompleted(processInstance);
+        Mockito.verify(listener).onMessage(Mockito.any(MessageEvent.class));
 
     }
 
@@ -1537,6 +1577,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         final long piId = processInstance.getId();
         ksession.execute(new ExecutableCommand<Void>() {
 
+            @Override
             public Void execute(Context context) {
                 StatefulKnowledgeSession ksession = (StatefulKnowledgeSession) ((RegistryContext) context).lookup( KieSession.class );
                 WorkflowProcessInstance processInstance = (WorkflowProcessInstance) ksession.getProcessInstance(piId);
@@ -1551,6 +1592,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
 
         Integer xValue = ksession.execute(new ExecutableCommand<Integer>() {
 
+            @Override
             public Integer execute(Context context) {
                 StatefulKnowledgeSession ksession = (StatefulKnowledgeSession) ((RegistryContext) context).lookup( KieSession.class );
                 WorkflowProcessInstance processInstance = (WorkflowProcessInstance) ksession.getProcessInstance(piId);
@@ -1568,7 +1610,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         KieBase kbase = createKnowledgeBase("BPMN2-IntermediateThrowEventNone.bpmn2");
         ksession = createKnowledgeSession(kbase);
         ProcessInstance processInstance = ksession.startProcess(
-                "NoneIntermediateEvent", null);
+                "NoneIntermediateEvent");
         assertProcessInstanceCompleted(processInstance);
 
     }
@@ -1752,6 +1794,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         ksession.startProcess("BPMN2-IntermediateCatchSignalBetweenUserTasks");
 
         int signalListSize = ksession.execute(new ExecutableCommand<Integer>() {
+            @Override
             public Integer execute(Context context) {
                 SingleSessionCommandService commandService = (SingleSessionCommandService) ((CommandBasedStatefulKnowledgeSession) ksession).getRunner();
                 InternalKnowledgeRuntime kruntime = (InternalKnowledgeRuntime) commandService.getKieSession();
@@ -1770,6 +1813,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         ksession.getWorkItemManager().completeWorkItem(1, null);
 
         signalListSize = ksession.execute(new ExecutableCommand<Integer>() {
+            @Override
             public Integer execute(Context context) {
                 SingleSessionCommandService commandService = (SingleSessionCommandService) ((CommandBasedStatefulKnowledgeSession) ksession).getRunner();
                 InternalKnowledgeRuntime kruntime = (InternalKnowledgeRuntime) commandService.getKieSession();
@@ -1788,6 +1832,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         ksession.signalEvent("MySignal", null);
 
         signalListSize = ksession.execute(new ExecutableCommand<Integer>() {
+            @Override
             public Integer execute(Context context) {
                 SingleSessionCommandService commandService = (SingleSessionCommandService) ((CommandBasedStatefulKnowledgeSession) ksession).getRunner();
                 InternalKnowledgeRuntime kruntime = (InternalKnowledgeRuntime) commandService.getKieSession();
@@ -2119,6 +2164,31 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         for (WorkItem wi : workItems) {
             ksession.getWorkItemManager().completeWorkItem(wi.getId(), null);
         }
+
+        assertProcessInstanceFinished(processInstance, ksession);
+    }
+
+    @Test
+    public void testBoundaryTimerMultipleHumanTaskInstances() throws Exception {
+        NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("end1", 1);
+        KieBase kbase = createKnowledgeBaseWithoutDumper("BPMN2-MultiInstanceLoopHumanTaskWithBoundaryTimer.bpmn2");
+
+        ksession = createKnowledgeSession(kbase);
+        ksession.addEventListener(countDownListener);
+        TestWorkItemHandler handler = new TestWorkItemHandler();
+
+        ksession.getWorkItemManager().registerWorkItemHandler("Human Task", handler);
+        ProcessInstance processInstance = ksession.startProcess("simple.parallel");
+        assertProcessInstanceActive(processInstance);
+
+        countDownListener.waitTillCompleted(5000L);
+
+        List<WorkItem> workItems = handler.getWorkItems();
+        assertThat(workItems).isNotNull();
+        assertThat(workItems.size()).isEqualTo(3);
+
+        assertThat(handler.getAbortedWorkItems().size()).isEqualTo(3);
+        assertNotNodeTriggered(processInstance.getId(), "end2");
 
         assertProcessInstanceFinished(processInstance, ksession);
     }
@@ -2700,7 +2770,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
     public void testConditionalProcessFactInsertedBefore() throws Exception {
         KieBase kbase = createKnowledgeBase("BPMN2-IntermediateCatchEventConditionPI.bpmn2", "BPMN2-IntermediateCatchEventSignal.bpmn2");        
         ksession = createKnowledgeSession(kbase);
-        
+
         Person person0 = new Person("john");
         ksession.insert(person0);
         
@@ -2769,7 +2839,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         ksession.getWorkItemManager().registerWorkItemHandler("Human Task", handler);
         
         final List<Long> instances = new ArrayList<>();
-        
+
         ksession.addEventListener(new DefaultProcessEventListener() {
 
             @Override
@@ -2919,5 +2989,19 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         
         ksession.signalEvent("stopChild:999", null);
         assertProcessInstanceFinished(updatedChild, ksession);
+    }
+
+    @Test
+    public void testIntermediateCatchEventConditionIdWithHyphen() throws Exception {
+        KieBase kbase = createKnowledgeBase("BPMN2-IntermediateCatchEventConditionIdWithHyphen.bpmn2");
+        ksession = createKnowledgeSession(kbase);
+        ProcessInstance processInstance = ksession.startProcess("Intermediate-Catch-Event");
+        assertProcessInstanceActive(processInstance);
+        ksession = restoreSession(ksession, true);
+        // now activate condition
+        Person person = new Person();
+        person.setName("Jack");
+        ksession.insert(person);
+        assertProcessInstanceFinished(processInstance, ksession);
     }
 }

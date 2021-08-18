@@ -15,9 +15,6 @@
  */
 package org.jbpm.services.cdi.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,6 +56,9 @@ import org.kie.api.task.model.TaskSummary;
 import org.kie.internal.io.ResourceFactory;
 import org.kie.internal.query.QueryFilter;
 import org.kie.internal.runtime.manager.context.EmptyContext;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 
 @RunWith(Arquillian.class)
@@ -130,7 +130,7 @@ public class RuntimeDataServiceTest extends AbstractKieServicesBaseTest {
                 .addPackage("org.jbpm.services.cdi.test") // Identity Provider Test Impl here
                 .addClass("org.jbpm.services.cdi.test.util.CDITestHelperNoTaskService")
                 .addClass("org.jbpm.services.cdi.test.util.CountDownDeploymentListenerCDIImpl")
-                .addClass("org.jbpm.kie.services.test.objects.CoundDownDeploymentListener")
+                .addClass("org.jbpm.kie.services.test.objects.CountDownDeploymentListener")
                 .addAsResource("jndi.properties", "jndi.properties")
                 .addAsManifestResource("META-INF/persistence.xml", ArchivePaths.create("persistence.xml"))
                 .addAsManifestResource("META-INF/beans.xml", ArchivePaths.create("beans.xml"));
@@ -197,13 +197,13 @@ public class RuntimeDataServiceTest extends AbstractKieServicesBaseTest {
         // assert if logs are ordered by log.id ASC
         Iterator<NodeInstanceDesc> iterator = nodeInstanceLogs.iterator();
         NodeInstanceDesc log0 = iterator.next();
-        assertEquals("End", log0.getName());
+        assertEquals("Start", log0.getName());
 
         NodeInstanceDesc log1 = iterator.next();
         assertEquals("Hello", log1.getName());
 
         NodeInstanceDesc log2 = iterator.next();
-        assertEquals("Start", log2.getName());
+        assertEquals("End", log2.getName());
 
         Collection<NodeInstanceDesc> fullNodeInstanceLogs = runtimeDataService.getProcessInstanceFullHistory(
                 processInstance.getId(), new QueryContext());
@@ -211,24 +211,24 @@ public class RuntimeDataServiceTest extends AbstractKieServicesBaseTest {
         // assert if logs are ordered by log.date DESC, log.id DESC
         Iterator<NodeInstanceDesc> fullIterator = fullNodeInstanceLogs.iterator();
         NodeInstanceDesc fullLog0 = fullIterator.next();
-        assertEquals("Start", fullLog0.getName());
+        assertEquals("End", fullLog0.getName());
         assertEquals(true, fullLog0.isCompleted());
 
         NodeInstanceDesc fullLog1 = fullIterator.next();
-        assertEquals("Hello", fullLog1.getName());
-        assertEquals(true, fullLog1.isCompleted());
+        assertEquals("End", fullLog1.getName());
+        assertEquals(false, fullLog1.isCompleted());
 
         NodeInstanceDesc fullLog2 = fullIterator.next();
-        assertEquals("End", fullLog2.getName());
+        assertEquals("Hello", fullLog2.getName());
         assertEquals(true, fullLog2.isCompleted());
 
         NodeInstanceDesc fullLog3 = fullIterator.next();
-        assertEquals("End", fullLog3.getName());
+        assertEquals("Hello", fullLog3.getName());
         assertEquals(false, fullLog3.isCompleted());
 
         NodeInstanceDesc fullLog4 = fullIterator.next();
-        assertEquals("Hello", fullLog4.getName());
-        assertEquals(false, fullLog4.isCompleted());
+        assertEquals("Start", fullLog4.getName());
+        assertEquals(true, fullLog4.isCompleted());
 
         NodeInstanceDesc fullLog5 = fullIterator.next();
         assertEquals("Start", fullLog5.getName());
@@ -266,7 +266,8 @@ public class RuntimeDataServiceTest extends AbstractKieServicesBaseTest {
         List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwnerByStatus("katy", statuses, new QueryFilter());
         assertNotNull(tasks);
         assertEquals(1, tasks.size());
-        
+        TaskSummary task = tasks.get(0);
+        assertCorrelationAndProcess(task, processInstance.getId());
         ksession.abortProcessInstance(processInstance.getId());
         
     }

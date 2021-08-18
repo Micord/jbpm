@@ -19,7 +19,6 @@ package org.jbpm.kie.services.test;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,8 +28,8 @@ import org.jbpm.kie.services.impl.KModuleDeploymentUnit;
 import org.jbpm.kie.services.impl.query.SqlQueryDefinition;
 import org.jbpm.kie.services.impl.query.builder.UserTaskPotOwnerQueryBuilderFactory;
 import org.jbpm.kie.services.impl.query.mapper.UserTaskInstanceWithModifVarsQueryMapper;
+import org.jbpm.kie.services.impl.query.mapper.UserTaskInstanceWithPotOwnerQueryMapper;
 import org.jbpm.kie.test.util.AbstractKieServicesBaseTest;
-import org.jbpm.runtime.manager.impl.deploy.DeploymentDescriptorImpl;
 import org.jbpm.services.api.ProcessInstanceNotFoundException;
 import org.jbpm.services.api.model.DeploymentUnit;
 import org.jbpm.services.api.model.UserTaskInstanceWithPotOwnerDesc;
@@ -47,14 +46,17 @@ import org.kie.api.builder.ReleaseId;
 import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.api.runtime.query.QueryContext;
 import org.kie.internal.runtime.conf.DeploymentDescriptor;
+import org.kie.internal.runtime.manager.deploy.DeploymentDescriptorImpl;
 import org.kie.scanner.KieMavenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.jbpm.services.api.query.QueryResultMapper.*;
-import static org.junit.Assert.*;
+import static org.jbpm.services.api.query.QueryResultMapper.COLUMN_POTOWNER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.kie.scanner.KieMavenRepository.getKieMavenRepository;
-import org.jbpm.kie.services.impl.query.mapper.UserTaskInstanceWithPotOwnerQueryMapper;
 
 
 public class UserTaskInstanceWithPotOwnerTest extends AbstractKieServicesBaseTest {
@@ -269,16 +271,16 @@ public class UserTaskInstanceWithPotOwnerTest extends AbstractKieServicesBaseTes
     public void testSearchTaskWithModifVarsMapper() {
         query = new SqlQueryDefinition("jbpmGetTaskWithPO", dataSourceJNDIname);
         query.setExpression("select t.id as TASKID, t.name as NAME,  t.FORMNAME AS FORMNAME, t.subject as SUBJECT, " +
-                "t.actualowner_id as ACTUALOWNER, po.entity_id as POTOWNER, p.processinstancedescription as PROCESSINSTANCEDESCRIPTION, t.CREATEDON as CREATEDON, " +
-                "t.CREATEDBY_ID as CREATEDBY, t.EXPIRATIONTIME as EXPIRATIONTIME, " +
-                "(select max(logtime) from taskevent where processinstanceid = t.processinstanceid and taskid = t.id) as lastmodificationdate, " +
-                "(select userid from taskevent where logtime = (select max(logtime) from taskevent where processinstanceid = t.processinstanceid and taskid = t.id)) as lastmodificationuser, " +
-                "t.priority as PRIORITY, t.STATUS as STATUS, t.PROCESSINSTANCEID as PROCESSINSTANCEID, t.PROCESSID as PROCESSID, " +
-                "t.deploymentid as DEPLOYMENTID, d.name as TVNAME, d.type as TVTYPE, d.value as TVVALUE " +
-                "from TASK t " +
-                "inner join PEOPLEASSIGNMENTS_POTOWNERS po on t.id=po.task_id " +
-                "inner join PROCESSINSTANCELOG p on t.processinstanceid = p.processinstanceid " +
-                "inner join TASKVARIABLEIMPL d on t.id=d.taskid");
+                            "t.actualowner_id as ACTUALOWNER, po.entity_id as POTOWNER, p.processinstancedescription as PROCESSINSTANCEDESCRIPTION, t.CREATEDON as CREATEDON, " +
+                            "t.CREATEDBY_ID as CREATEDBY, t.EXPIRATIONTIME as EXPIRATIONTIME, " +
+                            "(select max(logtime) from taskevent where processinstanceid = t.processinstanceid and taskid = t.id) as lastmodificationdate, " +
+                            "(select a.userid from taskevent a left join taskevent b on a.id < b.id where b.id IS NULL) as lastmodificationuser, " +
+                            "t.priority as PRIORITY, t.STATUS as STATUS, t.PROCESSINSTANCEID as PROCESSINSTANCEID, t.PROCESSID as PROCESSID, " +
+                            "t.deploymentid as DEPLOYMENTID, d.name as TVNAME, d.type as TVTYPE, d.value as TVVALUE " +
+                            "from TASK t " +
+                            "inner join PEOPLEASSIGNMENTS_POTOWNERS po on t.id=po.task_id " +
+                            "inner join PROCESSINSTANCELOG p on t.processinstanceid = p.processinstanceid " +
+                            "inner join TASKVARIABLEIMPL d on t.id=d.taskid");
 
         queryService.registerQuery(query);
 

@@ -16,13 +16,15 @@
 
 package org.jbpm.shared.services.impl;
 
-import org.kie.api.runtime.Context;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
 import javax.persistence.Query;
-import java.util.HashMap;
-import java.util.Map;
+
+import org.kie.api.runtime.Context;
 
 public class JpaPersistenceContext implements Context {
 
@@ -46,6 +48,10 @@ public class JpaPersistenceContext implements Context {
 		
 		return query;
 	}
+
+    protected LockModeType getLockMode(String queryName, Map<String, Object> params) {
+        return QueryManager.get().getQuery(queryName, params) != null ? LockModeType.NONE : null;
+    }
 	
 	
 	public <T> T queryWithParametersInTransaction(String queryName,
@@ -53,7 +59,7 @@ public class JpaPersistenceContext implements Context {
 		check();
 		
 		Query query = getQueryByName(queryName, params);
-		return queryStringWithParameters(params, false, LockModeType.NONE, clazz, query);
+        return queryStringWithParameters(params, false, getLockMode(queryName, params), clazz, query);
 	}
 
 	
@@ -81,6 +87,13 @@ public class JpaPersistenceContext implements Context {
 	}
 
 	
+    public <T> List<T> nativeQueryStringWithParametersInTransaction(String queryString, Map<String, Object> params, Class<T> clazz) {
+        check();
+        Query query = this.em.createNativeQuery(queryString);
+        params.forEach(query::setParameter);
+        return (List<T>) query.getResultList();
+    }
+
 	public <T> T queryStringWithParametersInTransaction(String queryString,
 			Map<String, Object> params, Class<T> clazz) {
 		check();
@@ -179,7 +192,7 @@ public class JpaPersistenceContext implements Context {
 					continue;
 				}
 				else if (MAX_RESULTS.equals(name)) {
-					if (((Integer) params.get(name)) > -1) {
+					if (((Integer) params.get(name)) > 0) {
 						query.setMaxResults((Integer) params.get(name));
 					}
 					continue;

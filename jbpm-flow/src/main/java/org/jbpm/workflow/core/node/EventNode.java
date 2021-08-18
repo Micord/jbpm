@@ -18,12 +18,14 @@ package org.jbpm.workflow.core.node;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
-import org.kie.api.definition.process.Connection;
 import org.jbpm.process.core.event.EventFilter;
 import org.jbpm.process.core.event.EventTransformer;
 import org.jbpm.process.core.event.EventTypeFilter;
 import org.jbpm.workflow.core.impl.ExtendedNodeImpl;
+import org.kie.api.definition.process.Connection;
+import org.kie.api.definition.process.NodeType;
 
 public class EventNode extends ExtendedNodeImpl implements EventNodeInterface {
 
@@ -32,7 +34,15 @@ public class EventNode extends ExtendedNodeImpl implements EventNodeInterface {
 	private List<EventFilter> filters = new ArrayList<EventFilter>();
 	private EventTransformer transformer;
 	private String variableName;
-	private String scope; 
+    private String scope;
+
+    public EventNode() {
+        super(NodeType.CATCH_EVENT);
+    }
+
+    protected EventNode(NodeType nodeType) {
+        super(nodeType);
+    }
 
 	public String getVariableName() {
 		return variableName;
@@ -74,6 +84,16 @@ public class EventNode extends ExtendedNodeImpl implements EventNodeInterface {
     		}
     	}
     	return true;
+    }
+
+   @Override
+   public boolean acceptsEvent(String type, Object event, Function<String, Object> resolver) {
+        for (EventFilter filter: filters) {
+            if (!filter.acceptsEvent(type, event, resolver)) {
+                return false;
+            }
+        }
+        return true;
     }
 	
 	public void setEventTransformer(EventTransformer transformer) {

@@ -16,10 +16,14 @@
 
 package org.jbpm.workflow.instance.node;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.drools.core.common.InternalAgenda;
 import org.drools.core.definitions.rule.impl.RuleImpl;
 import org.drools.core.spi.Activation;
-import org.drools.core.util.MVELSafeHelper;
+import org.drools.mvel.MVELSafeHelper;
 import org.jbpm.workflow.core.impl.ExtendedNodeImpl;
 import org.jbpm.workflow.core.impl.NodeImpl;
 import org.jbpm.workflow.core.node.DynamicNode;
@@ -36,11 +40,6 @@ import org.kie.api.event.rule.RuleFlowGroupActivatedEvent;
 import org.kie.api.event.rule.RuleFlowGroupDeactivatedEvent;
 import org.kie.api.runtime.process.NodeInstance;
 import org.kie.api.runtime.rule.Match;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 public class DynamicNodeInstance extends CompositeContextNodeInstance implements AgendaEventListener {
 
@@ -60,9 +59,12 @@ public class DynamicNodeInstance extends CompositeContextNodeInstance implements
         return resolveVariable(super.getNodeName());
     }
 
+    @Override
     public void internalTrigger(NodeInstance from, String type) {
     	triggerEvent(ExtendedNodeImpl.EVENT_NODE_ENTER);
     	
+        this.registerBoundaryEvents();
+
     	// if node instance was cancelled, abort
 		if (getNodeInstanceContainer().getNodeInstance(getId()) == null) {
 			return;

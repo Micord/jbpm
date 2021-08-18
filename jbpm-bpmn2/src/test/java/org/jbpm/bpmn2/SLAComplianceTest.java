@@ -18,11 +18,13 @@ package org.jbpm.bpmn2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +34,9 @@ import java.util.concurrent.TimeUnit;
 import org.jbpm.bpmn2.objects.TestWorkItemHandler;
 import org.jbpm.process.audit.NodeInstanceLog;
 import org.jbpm.process.audit.ProcessInstanceLog;
+import org.jbpm.process.instance.command.UpdateTimerCommand;
 import org.jbpm.process.instance.impl.demo.SystemOutWorkItemHandler;
+import org.jbpm.workflow.instance.node.HumanTaskNodeInstance;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,6 +46,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.kie.api.KieBase;
 import org.kie.api.event.process.DefaultProcessEventListener;
 import org.kie.api.event.process.ProcessEventListener;
+import org.kie.api.event.process.ProcessNodeTriggeredEvent;
 import org.kie.api.event.process.SLAViolatedEvent;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.process.NodeInstance;
@@ -243,6 +248,81 @@ public class SLAComplianceTest extends JbpmBpmn2TestCase {
         
         ksession.dispose();
     }
+    
+    @Test
+    public void testSLAonUserTaskUpdated() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        TimerIdListener listener = new TimerIdListener(latch);
+        KieBase kbase = createKnowledgeBase("BPMN2-UserTaskWithSLAOnTask.bpmn2");
+        KieSession ksession = createKnowledgeSession(kbase);
+        TestWorkItemHandler workItemHandler = new TestWorkItemHandler();
+        ksession.getWorkItemManager().registerWorkItemHandler("Human Task", workItemHandler);        
+        ksession.addEventListener(listener);
+        
+        ProcessInstance processInstance = ksession.startProcess("UserTask");
+        assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
+        
+        WorkItem workItem = workItemHandler.getWorkItem();
+        assertNotNull(workItem);
+        assertEquals("john", workItem.getParameter("ActorId"));
+                
+        processInstance = ksession.getProcessInstance(processInstance.getId());
+        assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
+        
+        Collection<NodeInstance> active = ((WorkflowProcessInstance)processInstance).getNodeInstances();
+        assertEquals(1, active.size());
+        NodeInstance userTaskNode = active.iterator().next();
+        Date firstSlaDueDate = getSLADueDateForNodeInstance(processInstance.getId(), 
+                                                            (org.jbpm.workflow.instance.NodeInstance) userTaskNode, 
+                                                            NodeInstanceLog.TYPE_ENTER);
+
+        long timerId = listener.getTimerId();
+        assertNotEquals(-1, timerId);
+        
+        ksession.execute(new UpdateTimerCommand(processInstance.getId(), (long) timerId, 7));
+        
+        boolean slaViolated = latch.await(5, TimeUnit.SECONDS);
+        assertFalse("SLA should not be violated by timer", slaViolated);
+        
+        slaViolated = latch.await(5, TimeUnit.SECONDS);
+        assertTrue("SLA should be violated by timer", slaViolated);
+        
+        ksession.abortProcessInstance(processInstance.getId());
+        Date updatedSlaDueDate = getSLADueDateForNodeInstance(processInstance.getId(), 
+                                                              (org.jbpm.workflow.instance.NodeInstance) userTaskNode, 
+                                                              NodeInstanceLog.TYPE_ABORTED);
+
+        assertTrue(String.format("updatedSlaDueDate '%tc' should be around 4 seconds after firstSlaDueDate '%tc'", updatedSlaDueDate, firstSlaDueDate), 
+                   updatedSlaDueDate.after(firstSlaDueDate));
+        
+        ksession.dispose();
+    }
+    
+    class TimerIdListener extends DefaultProcessEventListener {
+
+        private long timerId = -1;
+        private CountDownLatch latch;
+        
+        public TimerIdListener(CountDownLatch latch) {
+            this.latch = latch;
+        }
+        	
+        @Override
+        public void afterNodeTriggered(ProcessNodeTriggeredEvent event) {
+            if (event.getNodeInstance() instanceof HumanTaskNodeInstance) {
+                timerId = ((HumanTaskNodeInstance) event.getNodeInstance()).getSlaTimerId();
+            }
+        }
+        
+        public long getTimerId() {
+            return timerId;
+        }
+        
+        @Override
+        public void afterSLAViolated(SLAViolatedEvent event) {
+            latch.countDown();
+        }
+    };
     
     @Test
     public void testSLAonProcessViolatedExternalTracking() throws Exception {
@@ -566,5 +646,22 @@ public class SLAComplianceTest extends JbpmBpmn2TestCase {
             slaCompliance = nodeInstance.getSlaCompliance();
         }
         return slaCompliance;
+    }
+    
+    private Date getSLADueDateForNodeInstance(long processInstanceId, org.jbpm.workflow.instance.NodeInstance nodeInstance, int logType) {
+        if (!sessionPersistence) 
+            return nodeInstance.getSlaDueDate();
+        
+        List<NodeInstanceLog> logs = logService.findNodeInstances(processInstanceId);
+        if (logs == null)
+            throw new RuntimeException("NodeInstanceLog not found");
+        
+        for (NodeInstanceLog log : logs) {
+            if (log.getType() == logType && log.getNodeInstanceId().equals(String.valueOf(nodeInstance.getId()))) {
+               return log.getSlaDueDate();
+            }
+        }
+        
+        throw new RuntimeException("NodeInstanceLog not found for id "+nodeInstance.getId()+" and type "+logType);
     }
 }

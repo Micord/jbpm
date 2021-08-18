@@ -19,28 +19,37 @@ package org.jbpm.services.task;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
-import org.jbpm.test.util.PoolingDataSource;
+import org.drools.core.impl.EnvironmentFactory;
 import org.junit.After;
 import org.junit.Before;
+import org.kie.api.runtime.Environment;
+import org.kie.api.runtime.EnvironmentName;
 import org.kie.internal.task.api.InternalTaskService;
+import org.kie.test.util.db.PoolingDataSourceWrapper;
 
 
 
 public class LifeCycleLocalCommandBasedTest extends LifeCycleBaseTest {
 
-	private PoolingDataSource pds;
+	private PoolingDataSourceWrapper pds;
 	private EntityManagerFactory emf;
 	
-	@Before
-	public void setup() {
-		pds = setupPoolingDataSource();
-		emf = Persistence.createEntityManagerFactory( "org.jbpm.services.task" );
+    @Before
+    public void setup() {
+        this.testIdentityProvider = new TestIdentityProvider();
+        pds = setupPoolingDataSource();
+        emf = Persistence.createEntityManagerFactory("org.jbpm.services.task");
 
-		this.taskService = (InternalTaskService) HumanTaskServiceFactory.newTaskServiceConfigurator()
-												.entityManagerFactory(emf)
-												.getTaskService();
-	}
-	
+        Environment env = EnvironmentFactory.newEnvironment();
+        env.set(EnvironmentName.IDENTITY_PROVIDER, this.testIdentityProvider);
+
+        this.taskService = (InternalTaskService) HumanTaskServiceFactory.newTaskServiceConfigurator()
+                                                                        .environment(env)
+                                                                        .entityManagerFactory(emf)
+                                                                        .getTaskService();
+
+    }
+
 	@After
 	public void clean() {
 		if (emf != null) {

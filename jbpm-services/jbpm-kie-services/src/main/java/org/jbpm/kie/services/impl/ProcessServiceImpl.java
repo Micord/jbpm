@@ -24,13 +24,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.drools.core.command.impl.RegistryContext;
 import org.drools.core.command.runtime.process.SetProcessInstanceVariablesCommand;
 import org.drools.core.command.runtime.process.StartProcessCommand;
 import org.drools.core.process.instance.WorkItemManager;
 import org.jbpm.process.instance.impl.ProcessInstanceImpl;
 import org.jbpm.process.instance.impl.util.VariableUtil;
 import org.jbpm.ruleflow.instance.RuleFlowProcessInstance;
+import org.jbpm.services.api.DeploymentNotActiveException;
 import org.jbpm.services.api.DeploymentNotFoundException;
 import org.jbpm.services.api.DeploymentService;
 import org.jbpm.services.api.ProcessInstanceNotFoundException;
@@ -48,6 +48,8 @@ import org.jbpm.workflow.instance.node.EventNodeInstance;
 import org.kie.api.command.Command;
 import org.kie.api.command.ExecutableCommand;
 import org.kie.api.definition.process.Node;
+import org.kie.api.event.process.DefaultProcessEventListener;
+import org.kie.api.event.process.ProcessVariableChangedEvent;
 import org.kie.api.runtime.EnvironmentName;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.manager.Context;
@@ -57,6 +59,7 @@ import org.kie.api.runtime.process.NodeInstance;
 import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.api.runtime.process.WorkItem;
 import org.kie.api.runtime.process.WorkflowProcessInstance;
+import org.kie.internal.command.RegistryContext;
 import org.kie.internal.process.CorrelationAwareProcessRuntime;
 import org.kie.internal.process.CorrelationKey;
 import org.kie.internal.runtime.manager.InternalRuntimeManager;
@@ -94,6 +97,75 @@ public class ProcessServiceImpl implements ProcessService, VariablesAware {
 		return startProcess(deploymentId, processId, new HashMap<>());
 	}
 
+    @Override
+    public Long startProcessFromNodeIds(String deploymentId, String processId, Map<String, Object> params, String... nodeIds) {
+        return this.startProcessFromNodeIds(deploymentId, processId, null, params, nodeIds);
+    }
+
+    @Override
+    public Long startProcessFromNodeIds(String deploymentId, String processId, CorrelationKey key, Map<String, Object> params, String... nodeIds) {
+
+        DeployedUnit deployedUnit = deploymentService.getDeployedUnit(deploymentId);
+        if (deployedUnit == null) {
+            throw new DeploymentNotFoundException("No deployments available for " + deploymentId);
+        }
+        if (!deployedUnit.isActive()) {
+            throw new DeploymentNotActiveException("Deployment " + deploymentId + " is not active");
+        }
+
+
+        RuntimeManager manager = deployedUnit.getRuntimeManager();
+
+        params = process(params, ((InternalRuntimeManager) manager).getEnvironment().getClassLoader());
+        RuntimeEngine engine = manager.getRuntimeEngine(getContext(params));
+        KieSession ksession = engine.getKieSession();
+        ProcessInstance pi;
+        try {
+            if(key == null) {
+                pi = ksession.startProcessFromNodeIds(processId, params, nodeIds);
+            } else {
+                pi = ((CorrelationAwareProcessRuntime) ksession).startProcessFromNodeIds(processId, key, params, nodeIds);
+            }
+            return pi.getId();
+        } finally {
+            disposeRuntimeEngine(manager, engine);
+        }
+    }
+
+
+    @Override
+    public Map<String, Object> computeProcessOutcome(String deploymentId, String processId, Map<String, Object> params) {
+        DeployedUnit deployedUnit = deploymentService.getDeployedUnit(deploymentId);
+        if (deployedUnit == null) {
+            throw new DeploymentNotFoundException("No deployments available for " + deploymentId);
+        }
+        if (!deployedUnit.isActive()) {
+            throw new DeploymentNotActiveException("Deployment " + deploymentId + " is not active");
+        }
+
+        RuntimeManager manager = deployedUnit.getRuntimeManager();
+
+        params = process(params, ((InternalRuntimeManager) manager).getEnvironment().getClassLoader());
+        RuntimeEngine engine = manager.getRuntimeEngine(getContext(params));
+        KieSession ksession = engine.getKieSession();
+
+        Map<String, Object> vars = params != null ? new HashMap<>(params) : new HashMap<>(); // copy variables
+        ksession.addEventListener(new DefaultProcessEventListener() {
+            @Override
+            public void afterVariableChanged(ProcessVariableChangedEvent event) {
+                vars.put(event.getVariableId(), event.getNewValue());
+            }
+        });
+
+        try {
+            ksession.startProcess(processId, params);
+        } finally {
+            disposeRuntimeEngine(manager, engine);
+        }
+        return vars;
+    }
+
+
 	@Override
 	public Long startProcess(String deploymentId, String processId, Map<String, Object> params) {
 		DeployedUnit deployedUnit = deploymentService.getDeployedUnit(deploymentId);
@@ -101,7 +173,7 @@ public class ProcessServiceImpl implements ProcessService, VariablesAware {
 			throw new DeploymentNotFoundException("No deployments available for " + deploymentId);
 		}
 		if (!deployedUnit.isActive()) {
-			throw new DeploymentNotFoundException("Deployments " + deploymentId + " is not active");
+			throw new DeploymentNotActiveException("Deployment " + deploymentId + " is not active");
 		}
 
 		RuntimeManager manager = deployedUnit.getRuntimeManager();
@@ -130,7 +202,7 @@ public class ProcessServiceImpl implements ProcessService, VariablesAware {
 			throw new DeploymentNotFoundException("No deployments available for " + deploymentId);
 		}
 		if (!deployedUnit.isActive()) {
-			throw new DeploymentNotFoundException("Deployments " + deploymentId + " is not active");
+			throw new DeploymentNotActiveException("Deployment " + deploymentId + " is not active");
 		}
 
 		RuntimeManager manager = deployedUnit.getRuntimeManager();
@@ -189,21 +261,29 @@ public class ProcessServiceImpl implements ProcessService, VariablesAware {
         	disposeRuntimeEngine(manager, engine);
         }
 	}
-	
-	@Override
-    public void abortProcessInstances(List<Long> processInstanceIds) {
-	    for (long processInstanceId : processInstanceIds) {
-            abortProcessInstance(processInstanceId);
-        }
-	}
 
-	@Override
-	public void abortProcessInstances(String deploymentId, List<Long> processInstanceIds) {
-		for (long processInstanceId : processInstanceIds) {
-			abortProcessInstance(deploymentId, processInstanceId);
-		}
-	}
-	
+    @Override
+    public void abortProcessInstances(List<Long> processInstanceIds) {
+        processInstanceIds.forEach(processInstanceId -> {
+            try {
+                abortProcessInstance(processInstanceId);
+            } catch (ProcessInstanceNotFoundException ex) {
+                logger.warn("Process instance with id " + processInstanceId + " was not found", ex);
+            }
+        });
+    }
+
+    @Override
+    public void abortProcessInstances(String deploymentId, List<Long> processInstanceIds) {
+        processInstanceIds.forEach(processInstanceId -> {
+            try {
+                abortProcessInstance(processInstanceId);
+            } catch (ProcessInstanceNotFoundException ex) {
+                logger.warn("Process instance with id " + processInstanceId + " was not found", ex);
+            }
+        });
+    }
+
 	@Override
     public void signalProcessInstance(Long processInstanceId, String signalName, Object event) {
         ProcessInstanceDesc piDesc = dataService.getProcessInstanceById(processInstanceId);
@@ -247,6 +327,48 @@ public class ProcessServiceImpl implements ProcessService, VariablesAware {
         for (Long processInstanceId : processInstanceIds) {
             signalProcessInstance(deploymentId, processInstanceId, signalName, event);
         }
+
+    }
+
+    @Override
+    public void signalProcessInstanceByCorrelationKey(CorrelationKey correlationKey, String signalName, Object event) {
+        ProcessInstanceDesc pi = dataService.getProcessInstanceByCorrelationKey(correlationKey);
+        if(pi == null) {
+            throw new ProcessInstanceNotFoundException("Process with correlation key " + correlationKey + " not found");
+        }
+        signalProcessInstance(pi.getId(), signalName, event);
+        
+    }
+
+    @Override
+    public void signalProcessInstanceByCorrelationKey(String deploymentId,
+                                                      CorrelationKey correlationKey,
+                                                      String signalName,
+                                                      Object event) {
+        ProcessInstanceDesc pi = dataService.getProcessInstanceByCorrelationKey(correlationKey);
+        if(pi == null) {
+            throw new ProcessInstanceNotFoundException("Process with correlation key " + correlationKey + " not found");
+        }
+        signalProcessInstance(deploymentId, pi.getId(), signalName, event);
+    }
+
+    @Override
+    public void signalProcessInstancesByCorrelationKeys(List<CorrelationKey> correlationKeys, String signalName, Object event) {
+        if(correlationKeys == null) {
+            return;
+        }
+        correlationKeys.forEach(key -> signalProcessInstanceByCorrelationKey(key, signalName, event));
+    }
+
+    @Override
+    public void signalProcessInstancesByCorrelationKeys(String deploymentId,
+                                                        List<CorrelationKey> correlationKeys,
+                                                        String signalName,
+                                                        Object event) {
+        if(correlationKeys == null) {
+            return;
+        }
+        correlationKeys.forEach(key -> signalProcessInstanceByCorrelationKey(deploymentId, key, signalName, event));
 
     }
 
@@ -413,7 +535,7 @@ public class ProcessServiceImpl implements ProcessService, VariablesAware {
                 @Override
                 public Object execute(org.kie.api.runtime.Context context) {
                     KieSession ksession = ((RegistryContext) context).lookup( KieSession.class );
-                    WorkflowProcessInstance pi = (WorkflowProcessInstance) ksession.getProcessInstance(processInstanceId, true);
+                    WorkflowProcessInstance pi = (WorkflowProcessInstance) ksession.getProcessInstance(processInstanceId);
                     if (pi == null) {
                         throw new ProcessInstanceNotFoundException("Process instance with id " + processInstanceId + " was not found");
                     }
@@ -703,7 +825,7 @@ public class ProcessServiceImpl implements ProcessService, VariablesAware {
 	protected void disallowWhenNotActive(DeployedUnit deployedUnit, Command<?> cmd) {
 		if (!deployedUnit.isActive() &&
 				cmd instanceof StartProcessCommand) {
-			throw new DeploymentNotFoundException("Deployments " + deployedUnit.getDeploymentUnit().getIdentifier() + " is not active");
+			throw new DeploymentNotActiveException("Deployment " + deployedUnit.getDeploymentUnit().getIdentifier() + " is not active");
 		}
 	}
 

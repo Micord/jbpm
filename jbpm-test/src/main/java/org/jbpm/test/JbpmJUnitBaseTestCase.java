@@ -16,16 +16,17 @@
 
 package org.jbpm.test;
 
-
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.naming.InitialContext;
 import javax.persistence.EntityManagerFactory;
@@ -45,7 +46,7 @@ import org.jbpm.runtime.manager.impl.DefaultRegisterableItemsFactory;
 import org.jbpm.runtime.manager.impl.SimpleRegisterableItemsFactory;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
 import org.jbpm.services.task.identity.JBossUserGroupCallbackImpl;
-import org.jbpm.test.util.PoolingDataSource;
+import org.jbpm.test.persistence.processinstance.objects.TestEventEmitter;
 import org.jbpm.workflow.instance.impl.WorkflowProcessInstanceImpl;
 import org.junit.After;
 import org.junit.Before;
@@ -75,10 +76,14 @@ import org.kie.api.task.UserGroupCallback;
 import org.kie.internal.io.ResourceFactory;
 import org.kie.internal.runtime.StatefulKnowledgeSession;
 import org.kie.internal.runtime.manager.context.EmptyContext;
+import org.kie.test.util.db.PoolingDataSourceWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 /**
  * Base test case class that shall be used for jBPM related tests. It provides four sections:
@@ -109,7 +114,7 @@ import static org.junit.Assert.*;
  * * clearHistory - clears history log<br/>
  * * setupPoolingDataSource - sets up data source<br/>
  */
-public abstract class JbpmJUnitBaseTestCase {
+public abstract class JbpmJUnitBaseTestCase extends AbstractBaseTest {
 
     /**
      * Currently supported RuntimeEngine strategies
@@ -127,7 +132,7 @@ public abstract class JbpmJUnitBaseTestCase {
     private String persistenceUnitName;
 
     private EntityManagerFactory emf;
-    private PoolingDataSource ds;
+    private PoolingDataSourceWrapper ds;
 
     private TestWorkItemHandler workItemHandler = new TestWorkItemHandler();
 
@@ -148,6 +153,19 @@ public abstract class JbpmJUnitBaseTestCase {
     protected Map<String, Object> customEnvironmentEntries = new HashMap<String, Object>();
 
     private final Map<String, Object> persistenceProperties = new HashMap<String, Object>();
+
+	public static String[] txStateName = {"ACTIVE",
+	"MARKED_ROLLBACK",
+	"PREPARED",
+	"COMMITTED",
+	"ROLLEDBACK",
+	"UNKNOWN",
+	"NO_TRANSACTION",
+	"PREPARING",
+	"COMMITTING",
+	"ROLLING_BACK"};
+
+	public static String[] processStateName = {"PENDING", "ACTIVE", "COMPLETED", "ABORTED", "SUSPENDED"};
 
     /**
      * The most simple test case configuration:
@@ -199,7 +217,6 @@ public abstract class JbpmJUnitBaseTestCase {
                 this.setupDataSource, this.sessionPersistence, this.persistenceUnitName);
     }
 
-
     @Before
     public void setUp() throws Exception {
 
@@ -218,6 +235,7 @@ public abstract class JbpmJUnitBaseTestCase {
             clearCustomRegistry();
             disposeRuntimeManager();
             clearHistory();
+            TestEventEmitter.clear();
         } finally {
             if (setupDataSource) {
                 try {
@@ -665,49 +683,18 @@ public abstract class JbpmJUnitBaseTestCase {
     }
 
     public void assertNodeActive(long processInstanceId, KieSession ksession, String... name) {
-        List<String> names = new ArrayList<String>();
+        List<String> names = new ArrayList<>();
         for (String n : name) {
             names.add(n);
         }
-        ProcessInstance processInstance = ksession.getProcessInstance(processInstanceId);
-        if (processInstance instanceof WorkflowProcessInstance) {
-            if (sessionPersistence) {
-                List<? extends NodeInstanceLog> logs = logService.findNodeInstances(processInstanceId); // ENTER -> EXIT is correctly ordered
-                if (logs != null) {
-                    List<String> activeNodes = new ArrayList<String>();
-                    for (NodeInstanceLog l : logs) {
-                        String nodeName = l.getNodeName();
-                        if (l.getType() == NodeInstanceLog.TYPE_ENTER && names.contains(nodeName)) {
-                            activeNodes.add(nodeName);
-                        }
-                        if (l.getType() == NodeInstanceLog.TYPE_EXIT && names.contains(nodeName)) {
-                            activeNodes.remove(nodeName);
-                        }
-                    }
-                    names.removeAll(activeNodes);
-                }
-            } else {
-                assertNodeActive((WorkflowProcessInstance) processInstance, names);
-            }
-        }
+        List<String> activeNodes = getActiveNodesInProcessInstance(ksession, processInstanceId);
+        names.removeAll(activeNodes);
         if (!names.isEmpty()) {
             String s = names.get(0);
             for (int i = 1; i < names.size(); i++) {
                 s += ", " + names.get(i);
             }
             fail("Node(s) not active: " + s);
-        }
-    }
-
-    private void assertNodeActive(NodeInstanceContainer container, List<String> names) {
-        for (NodeInstance nodeInstance : container.getNodeInstances()) {
-            String nodeName = nodeInstance.getNodeName();
-            if (names.contains(nodeName)) {
-                names.remove(nodeName);
-            }
-            if (nodeInstance instanceof NodeInstanceContainer) {
-                assertNodeActive((NodeInstanceContainer) nodeInstance, names);
-            }
         }
     }
 
@@ -853,37 +840,6 @@ public abstract class JbpmJUnitBaseTestCase {
         return this.ds;
     }
 
-    protected PoolingDataSource setupPoolingDataSource() {
-        PoolingDataSource pds = new PoolingDataSource();
-        pds.setUniqueName("jdbc/jbpm-ds");
-        pds.setClassName("org.h2.jdbcx.JdbcDataSource");
-        pds.getDriverProperties().put("user", "sa");
-        pds.getDriverProperties().put("password", "");
-        pds.getDriverProperties().put("url", "jdbc:h2:mem:jbpm-db;MVCC=true");
-        pds.getDriverProperties().put("driverClassName", "org.h2.Driver");
-        try {
-            pds.init();
-        } catch (Exception e) {
-            logger.warn("DBPOOL_MGR:Looks like there is an issue with creating db pool because of " + e.getMessage() + " cleaing up...");
-            try {
-                pds.close();
-            } catch (Exception ex) {
-                // ignore
-            }
-            logger.debug("DBPOOL_MGR: attempting to create db pool again...");
-            pds = new PoolingDataSource();
-            pds.setUniqueName("jdbc/jbpm-ds");
-            pds.setClassName("org.h2.jdbcx.JdbcDataSource");
-            pds.getDriverProperties().put("user", "sa");
-            pds.getDriverProperties().put("password", "");
-            pds.getDriverProperties().put("url", "jdbc:h2:mem:jbpm-db;MVCC=true");
-            pds.getDriverProperties().put("driverClassName", "org.h2.Driver");
-            pds.init();         
-            logger.debug("DBPOOL_MGR:Pool created after cleanup of leftover resources");
-        }
-        return pds;
-    }
-
     protected void clearHistory() {
         if (sessionPersistence && logService != null) {
 //        	RuntimeManager manager = createRuntimeManager();
@@ -992,6 +948,46 @@ public abstract class JbpmJUnitBaseTestCase {
             for (String file : jbpmSerFiles) {
 
                 new File(tempDir, file).delete();
+            }
+        }
+    }
+
+    public Collection<ProcessInstance> getActiveProcesses(KieSession ksession) {
+        return ksession.getProcessInstances().stream().filter(e -> e.getState() == ProcessInstance.STATE_ACTIVE).collect(Collectors.toList());
+    }
+
+    public List<String> getActiveNodesInProcessInstance(KieSession ksession, long processInstanceId) {
+        List<String> activeNodes = new ArrayList<String>();
+
+        ProcessInstance processInstance = ksession.getProcessInstance(processInstanceId);
+        if (processInstance instanceof WorkflowProcessInstance) {
+            if (sessionPersistence) {
+                List<? extends NodeInstanceLog> logs = logService.findNodeInstances(processInstanceId); // ENTER -> EXIT is correctly ordered
+                if (logs != null) {
+                    for (NodeInstanceLog l : logs) {
+                        String nodeName = l.getNodeName();
+                        if (l.getType() == NodeInstanceLog.TYPE_ENTER) {
+                            activeNodes.add(nodeName);
+                        }
+                        if (l.getType() == NodeInstanceLog.TYPE_EXIT) {
+                            activeNodes.remove(nodeName);
+                        }
+                    }
+                }
+            } else {
+                addActiveNodesInProcessInstance((WorkflowProcessInstance) processInstance, activeNodes);
+            }
+        }
+        return activeNodes;
+    }
+
+    private void addActiveNodesInProcessInstance(NodeInstanceContainer container, List<String> activeNodes) {
+        for (NodeInstance nodeInstance : container.getNodeInstances()) {
+            String nodeName = nodeInstance.getNodeName();
+            activeNodes.add(nodeName);
+
+            if (nodeInstance instanceof NodeInstanceContainer) {
+                addActiveNodesInProcessInstance((NodeInstanceContainer) nodeInstance, activeNodes);
             }
         }
     }

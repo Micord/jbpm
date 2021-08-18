@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2019 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,13 @@
 package org.jbpm.process.workitem.email;
 
 import org.jbpm.process.workitem.core.AbstractLogOrThrowWorkItemHandler;
+import org.jbpm.process.workitem.core.util.Wid;
+import org.jbpm.process.workitem.core.util.WidMavenDepends;
+import org.jbpm.process.workitem.core.util.WidParameter;
+import org.jbpm.process.workitem.core.util.WidResult;
+import org.jbpm.process.workitem.core.util.service.WidAction;
+import org.jbpm.process.workitem.core.util.service.WidAuth;
+import org.jbpm.process.workitem.core.util.service.WidService;
 import org.kie.api.runtime.process.WorkItem;
 import org.kie.api.runtime.process.WorkItemManager;
 
@@ -34,7 +41,34 @@ import org.kie.api.runtime.process.WorkItemManager;
  * 
  * Sending an email cannot be aborted.
  * 
- */	
+ */
+@Wid(widfile = "EmailDefinitions.wid", name = "Email",
+        displayName = "Email",
+        defaultHandler = "mvel: new org.jbpm.process.workitem.email.EmailWorkItemHandler()",
+        documentation = "${artifactId}/index.html",
+        category = "${artifactId}",
+        icon = "defaultemailicon.png",
+        parameters = {
+                @WidParameter(name = "From"),
+                @WidParameter(name = "To"),
+                @WidParameter(name = "Reply-To"),
+                @WidParameter(name = "Cc"),
+                @WidParameter(name = "Bcc"),
+                @WidParameter(name = "Body"),
+                @WidParameter(name = "Template"),
+                @WidParameter(name = "Subject"),
+                @WidParameter(name = "Attachments"),
+                @WidParameter(name = "Debug")
+        },
+        mavenDepends = {
+                @WidMavenDepends(group = "${groupId}", artifact = "${artifactId}", version = "${version}")
+        },
+        serviceInfo = @WidService(category = "${name}", description = "${description}",
+                keywords = "send,email",
+                action = @WidAction(title = "Send email"),
+                authinfo = @WidAuth(required = true, params = {"host", "port", "username", "password"},
+                paramsdescription = {"Host", "Port", "User Name", "Password"})
+        ))
 public class EmailWorkItemHandler extends AbstractLogOrThrowWorkItemHandler {
 
 	private Connection connection;
@@ -50,6 +84,24 @@ public class EmailWorkItemHandler extends AbstractLogOrThrowWorkItemHandler {
 	public EmailWorkItemHandler(String host, String port, String userName, String password, String startTls) {
 		setConnection(host, port, userName, password, startTls);
 	}
+	
+	public EmailWorkItemHandler(String handlingProcessId,
+                                String handlingStrategy) {
+	    this.handlingProcessId = handlingProcessId;
+        this.handlingStrategy = handlingStrategy;
+    }
+
+    public EmailWorkItemHandler(String host, String port, String userName, String password, String handlingProcessId, String handlingStrategy) {
+        setConnection(host, port, userName, password);
+        this.handlingProcessId = handlingProcessId;
+        this.handlingStrategy = handlingStrategy;
+    }
+
+    public EmailWorkItemHandler(String host, String port, String userName, String password, String startTls, String handlingProcessId, String handlingStrategy) {
+        setConnection(host, port, userName, password, startTls);
+        this.handlingProcessId = handlingProcessId;
+        this.handlingStrategy = handlingStrategy;
+    }
 
 	public void setConnection(String host, String port, String userName, String password) {
 		connection = new Connection();
@@ -90,6 +142,7 @@ public class EmailWorkItemHandler extends AbstractLogOrThrowWorkItemHandler {
         Message message = new Message();
         message.setFrom((String) workItem.getParameter("From"));
         message.setReplyTo( (String) workItem.getParameter("Reply-To"));
+        message.setDisplayName((String) workItem.getParameter("DisplayName"));
 
         // Set recipients
         Recipients recipients = new Recipients();

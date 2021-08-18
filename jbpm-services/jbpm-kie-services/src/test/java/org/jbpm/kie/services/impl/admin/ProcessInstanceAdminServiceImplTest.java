@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,7 +37,6 @@ import org.jbpm.services.api.admin.TimerInstance;
 import org.jbpm.services.api.model.DeploymentUnit;
 import org.jbpm.services.api.model.NodeInstanceDesc;
 import org.jbpm.services.api.model.ProcessInstanceDesc;
-import org.jbpm.shared.services.impl.TransactionalCommandService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,7 +52,11 @@ import org.kie.scanner.KieMavenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.kie.scanner.KieMavenRepository.getKieMavenRepository;
 
 public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBaseTest {
@@ -67,8 +71,6 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
     private KModuleDeploymentUnit deploymentUnit;
     private Long processInstanceId = null;
     
-    protected ProcessInstanceAdminService processAdminService;
-
     @Before
     public void prepare() {
         configureServices();
@@ -79,9 +81,12 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         ReleaseId releaseId = ks.newReleaseId(ADMIN_GROUP_ID, ADMIN_ARTIFACT_ID, ADMIN_VERSION_V1);
         List<String> processes = new ArrayList<String>();
         processes.add("repo/processes/general/humanTask.bpmn");
+        processes.add("repo/processes/general/boundarytimer.bpmn2");
         processes.add("repo/processes/general/BPMN2-IntermediateCatchEventTimerDuration.bpmn2");
+        processes.add("repo/processes/general/BPMN2-UserTaskWithSLAOnTask.bpmn2");
         processes.add("repo/processes/errors/BPMN2-BrokenScriptTask.bpmn2");
         processes.add("repo/processes/errors/BPMN2-UserTaskWithRollback.bpmn2");
+        processes.add("repo/processes/general/AdHocSubProcess.bpmn2");
 
         InternalKieModule kJar1 = createKieJar(ks, releaseId, processes);
         File pom = new File("target/admin", "pom.xml");
@@ -95,12 +100,6 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         }
         KieMavenRepository repository = getKieMavenRepository();
         repository.installArtifact(releaseId, kJar1, pom);
-
-        processAdminService = new ProcessInstanceAdminServiceImpl();
-        ((ProcessInstanceAdminServiceImpl) processAdminService).setProcessService(processService);
-        ((ProcessInstanceAdminServiceImpl) processAdminService).setRuntimeDataService(runtimeDataService);
-        ((ProcessInstanceAdminServiceImpl) processAdminService).setCommandService(new TransactionalCommandService(emf));
-        ((ProcessInstanceAdminServiceImpl) processAdminService).setIdentityProvider(identityProvider);
         
         // now let's deploy to runtime both kjars
         deploymentUnit = new KModuleDeploymentUnit(ADMIN_GROUP_ID, ADMIN_ARTIFACT_ID, ADMIN_VERSION_V1);
@@ -162,7 +161,7 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
     }
     
     @Test
-    public void testCancelAndTriger() {
+    public void testCancelAndTrigger() {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
         assertNotNull(processInstanceId);
         
@@ -197,7 +196,46 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
     }
     
     @Test
-    public void testRetriggerNodeInstance() {
+    public void testTriggerSubProcessNodeInstance() {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "AdHocSubProcess");
+        assertNotNull(processInstanceId);
+
+        Collection<NodeInstanceDesc> activeNodes = processAdminService.getActiveNodeInstances(processInstanceId);
+        assertNotNull(activeNodes);
+        assertEquals(1, activeNodes.size());
+
+        processService.signalProcessInstance(processInstanceId, "Hello1", null);
+
+        activeNodes = processAdminService.getActiveNodeInstances(processInstanceId);
+        assertNotNull(activeNodes);
+        assertEquals(2, activeNodes.size());
+
+        Collection<ProcessNode> processNodes = processAdminService.getProcessNodes(processInstanceId);
+        ProcessNode taskNode = processNodes.stream().filter(p -> p.getNodeName().equals("Hello1")).findFirst().orElse(null);
+        assertNotNull(taskNode);
+
+        processAdminService.triggerNode(processInstanceId, taskNode.getNodeId());
+
+        activeNodes = processAdminService.getActiveNodeInstances(processInstanceId);
+        assertNotNull(activeNodes);
+        assertEquals(3, activeNodes.size());
+
+        Iterator<NodeInstanceDesc> iterator = activeNodes.iterator();
+        NodeInstanceDesc nodeInstanceDesc= iterator.next();
+        assertEquals("DynamicNode",nodeInstanceDesc.getNodeType());
+        assertEquals("Hello",nodeInstanceDesc.getName());
+
+        nodeInstanceDesc= iterator.next();
+        assertEquals("HumanTaskNode",nodeInstanceDesc.getNodeType());
+        assertEquals("Hello1",nodeInstanceDesc.getName());
+
+        nodeInstanceDesc= iterator.next();
+        assertEquals("HumanTaskNode",nodeInstanceDesc.getNodeType());
+        assertEquals("Hello1",nodeInstanceDesc.getName());
+    }
+
+    @Test
+    public void testReTriggerNodeInstance() {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
         assertNotNull(processInstanceId);
         
@@ -211,13 +249,22 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
         assertEquals(1, tasks.size());
         TaskSummary task = tasks.get(0);
-        
+
+        // aborts the current node
         processAdminService.retriggerNodeInstance(processInstanceId, active.getId());
                 
         activeNodes = processAdminService.getActiveNodeInstances(processInstanceId);
         assertNotNull(activeNodes);
         assertEquals(1, activeNodes.size());
-        
+
+        // this does not return aborted node instances
+        Collection<NodeInstanceDesc> completedNodes = runtimeDataService.getProcessInstanceHistoryCompleted(processInstanceId, new QueryFilter());
+        assertNotNull(completedNodes);
+        assertEquals(1, completedNodes.size());
+
+        final List<NodeInstanceDesc> nodeInstances = completedNodes.stream().filter(node -> node.getId().equals(active.getId())).collect(Collectors.toList());
+        assertEquals(0, nodeInstances.size());
+
         NodeInstanceDesc activeRetriggered = activeNodes.iterator().next();        
         assertFalse(active.getId().longValue() == activeRetriggered.getId().longValue());
         
@@ -229,7 +276,7 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
     }
     
     @Test
-    public void testCancelAndTrigerAnotherNode() {
+    public void testCancelAndTriggerAnotherNode() {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
         assertNotNull(processInstanceId);
         
@@ -269,7 +316,7 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
     }
     
     @Test
-    public void testTrigerLastActionNode() {
+    public void testTriggerLastActionNode() {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
         assertNotNull(processInstanceId);
         
@@ -324,12 +371,13 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         assertNotNull(timer.getProcessInstanceId());
         assertNotNull(timer.getSessionId());
         assertNotNull(timer.getTimerId());
+        assertNotNull(timer.getId());
         assertNotNull(timer.getTimerName());
         // thread sleep to test the different in the time timer spent after upgrade
         // not to wait for any job to be done
         Thread.sleep(1000);
         
-        processAdminService.updateTimer(processInstanceId, timer.getTimerId(), 3, 0, 0);
+        processAdminService.updateTimer(processInstanceId, timer.getId(), 3, 0, 0);
         
         CountDownListenerFactory.getExisting("processAdminService").waitTillCompleted();
         long fireTime = System.currentTimeMillis();        
@@ -343,7 +391,45 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         processInstanceId = null;
     }
     
+    @Test(timeout=10000)
+    public void testListSLATimer() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "UserTaskWithSLAOnTask");
+        assertNotNull(processInstanceId);
+        
+        Collection<NodeInstanceDesc> activeNodes = processAdminService.getActiveNodeInstances(processInstanceId);
+        assertNotNull(activeNodes);
+        assertEquals(1, activeNodes.size());
+        
+        Collection<TimerInstance> timers = processAdminService.getTimerInstances(processInstanceId);
+        assertNotNull(timers);
+        assertEquals(1, timers.size());
+        
+        TimerInstance timer = timers.iterator().next();
+        assertNotNull(timer.getActivationTime());
+        assertNotNull(timer.getDelay());
+        assertNotNull(timer.getNextFireTime());
+        assertNotNull(timer.getProcessInstanceId());
+        assertNotNull(timer.getSessionId());
+        assertNotNull(timer.getTimerId());
+        assertNotNull(timer.getId());
+        assertNotNull(timer.getTimerName());
+    }
     
+    @Test(timeout = 10000)
+    public void testTimerName() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.boundarytimer");
+        assertNotNull(processInstanceId);
+
+        Collection<TimerInstance> timers = processAdminService.getTimerInstances(processInstanceId);
+        assertNotNull(timers);
+        assertEquals(1, timers.size());
+
+        TimerInstance timer = timers.iterator().next();
+        assertEquals("usertask-timer", timer.getTimerName());
+    }
+    
+    
+        
     @Test(timeout=10000)
     public void testUpdateTimerRelative() throws Exception {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "IntermediateCatchEvent");
@@ -367,13 +453,14 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         assertNotNull(timer.getNextFireTime());
         assertNotNull(timer.getProcessInstanceId());
         assertNotNull(timer.getSessionId());
+        assertNotNull(timer.getId());
         assertNotNull(timer.getTimerId());
         assertNotNull(timer.getTimerName());
         // thread sleep to test the different in the time timer spent after upgrade
         // not to wait for any job to be done
         Thread.sleep(1000);
         
-        processAdminService.updateTimerRelative(processInstanceId, timer.getTimerId(), 3, 0, 0);
+        processAdminService.updateTimerRelative(processInstanceId, timer.getId(), 3, 0, 0);
         
         CountDownListenerFactory.getExisting("processAdminService").waitTillCompleted();
         long fireTime = System.currentTimeMillis();
@@ -415,6 +502,33 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         assertTrue(error.isAcknowledged());
     }
 
+    @Test
+    public void testErrorByDeploymentId() {
+
+        try {
+            processService.startProcess(deploymentUnit.getIdentifier(), "BrokenScriptTask");
+        } catch (Exception e) {
+            // expected as this is broken script process
+        }
+
+        List<ExecutionError> errors = processAdminService.getErrors(true, new QueryContext());
+        assertNotNull(errors);
+        assertEquals(1, errors.size());
+
+        ExecutionError error = errors.get(0);
+        assertNotNull(error);
+
+        // try non empty deploymentId
+        String deploymentId = error.getDeploymentId();
+        errors = processAdminService.getErrorsByDeploymentId(deploymentId, true, new QueryContext());
+        assertNotNull(errors);
+        assertEquals(1, errors.size());
+
+        // try empty deploymentId
+        errors = processAdminService.getErrorsByDeploymentId("empty-deployment-id", true, new QueryContext());
+        assertNotNull(errors);
+        assertEquals(0, errors.size());
+    }
     /*
      * Helper methods 
      */

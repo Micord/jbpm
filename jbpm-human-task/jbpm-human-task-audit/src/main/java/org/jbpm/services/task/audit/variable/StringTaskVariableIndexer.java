@@ -43,7 +43,7 @@ public class StringTaskVariableIndexer implements TaskVariableIndexer {
         
         TaskVariableImpl taskVariable = new TaskVariableImpl();
         taskVariable.setName(name);
-        taskVariable.setValue(variable.toString());
+        taskVariable.setValue(variable == null ? "" : variable.toString());
         
         indexed.add(taskVariable);
         

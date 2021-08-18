@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm</artifactId>
-    <version>7.11.0-SNAPSHOT</version>
+    <version>7.59.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>jbpm-runtime-manager</artifactId>
@@ -14,14 +14,6 @@
   
   <properties>
     <java.module.name>org.jbpm.runtime.manager</java.module.name>
-
-    <maven.hibernate.dialect>org.hibernate.dialect.H2Dialect</maven.hibernate.dialect>
-    <maven.datasource.classname>org.h2.jdbcx.JdbcDataSource</maven.datasource.classname>
-    <maven.jdbc.driver.class>org.h2.Driver</maven.jdbc.driver.class>
-    <maven.jdbc.db.name/>
-    <maven.jdbc.db.port/>
-    <maven.jdbc.db.server/> 
-    <maven.jdbc.url>jdbc:h2:mem:jbpm-db;MVCC=true</maven.jdbc.url>
   </properties>
 
   <dependencies>
@@ -36,6 +28,10 @@
     <dependency>
       <groupId>org.drools</groupId>
       <artifactId>drools-compiler</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.drools</groupId>
+      <artifactId>drools-ecj</artifactId>
     </dependency>
     <dependency>
       <groupId>org.drools</groupId>
@@ -87,17 +83,6 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
     
-    <dependency>
-      <groupId>com.sun.xml.bind</groupId>
-      <artifactId>jaxb-impl</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.xml.bind</groupId>
-      <artifactId>jaxb-core</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
     <!-- cdi -->
     <dependency>
       <groupId>org.jboss.spec.javax.el</groupId>
@@ -189,12 +174,6 @@
 
     <!--  Test: persistence -->
     <dependency>
-      <groupId>org.jbpm</groupId>
-      <artifactId>jbpm-persistence-jpa</artifactId>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.hibernate</groupId>
       <artifactId>hibernate-entitymanager</artifactId>
       <scope>test</scope>
@@ -203,6 +182,12 @@
       <groupId>org.hibernate</groupId>
       <artifactId>hibernate-core</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+           <groupId>javax.activation</groupId>
+           <artifactId>javax.activation-api</artifactId> 
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
@@ -251,14 +236,15 @@
     </testResources>
     <plugins>
       <plugin>
-        <!-- we need to fork always as we have mixture of both arquillian tests and regular
-      and to avoid clashing between them as both need to setup data source and bound it to JNDI -->
+        <!-- We need to fork always as we have tests which are configured by system properties when a JVM starts -->
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <forkMode>always</forkMode>
+          <reuseForks>false</reuseForks>
           <!-- Properties for Byteman which allows it to run on IBM Java as well -->
           <argLine>
             -javaagent:${project.build.directory}/agents/byteman.jar=port:9091,boot:${project.build.directory}/agents/byteman.jar
+            -Dfile.encoding=${project.build.sourceEncoding}
+            ${jacoco.agent.line}
           </argLine>
           <systemPropertyVariables>
             <org.jboss.byteman.contrib.bmunit.agent.inhibit>true</org.jboss.byteman.contrib.bmunit.agent.inhibit>
@@ -312,6 +298,7 @@
               javax.xml.bind,
               javax.xml.bind.annotation,
               javax.xml.validation,
+              org.apache.commons.lang3,
               org.drools.compiler.kie.builder.impl,
               org.drools.compiler.kie.util,
               org.drools.core.builder.conf.impl,
@@ -379,6 +366,7 @@
               org.kie.internal.runtime.manager,
               org.kie.internal.runtime.manager.cdi.qualifier,
               org.kie.internal.runtime.manager.context,
+              org.kie.internal.runtime.manager.deploy,
               org.kie.internal.task.api,
               org.kie.internal.task.api.model,
               org.kie.internal.task.query,

@@ -66,12 +66,14 @@ public class GlobalJpaTimerJobInstance extends JpaTimerJobInstance {
         boolean success = false;
         try { 
             JDKCallableJobCommand command = new JDKCallableJobCommand( this );
-            if (scheduler == null) {
+
+            if (scheduler == null || ((GlobalTimerService) scheduler).getRuntimeManager().isClosed()) {
                 scheduler = (InternalSchedulerService) TimerServiceRegistry.getInstance().get(timerServiceId);
             }
             if (scheduler == null) {
             	throw new RuntimeException("No scheduler found for " + timerServiceId);
             }
+
             jtaTm = startTxIfNeeded(((GlobalTimerService) scheduler).getRuntimeManager().getEnvironment().getEnvironment());
 
 			runner = ((GlobalTimerService) scheduler).getRunner( getJobContext() );
@@ -97,6 +99,7 @@ public class GlobalJpaTimerJobInstance extends JpaTimerJobInstance {
         }
     }
     
+
     @Override
 	public String toString() {
 		return "GlobalJpaTimerJobInstance [timerServiceId=" + timerServiceId

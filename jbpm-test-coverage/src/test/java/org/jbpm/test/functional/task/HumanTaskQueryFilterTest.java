@@ -30,7 +30,6 @@ import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.api.task.model.TaskSummary;
 import org.kie.internal.query.QueryFilter;
 import org.kie.internal.task.api.InternalTaskService;
-import qa.tools.ikeeper.annotation.BZ;
 
 public class HumanTaskQueryFilterTest extends JbpmTestCase {
 
@@ -124,27 +123,12 @@ public class HumanTaskQueryFilterTest extends JbpmTestCase {
     }
 
     @Test
-    @BZ("1132145")
-    public void testSingleResult() {
-        startHumanTaskProcess(4, "john's task", "john");
-
-        List<TaskSummary> taskList = taskService.getTasksAssignedAsPotentialOwner("john", null, null,
-                new QueryFilter(0, 0));
-        logger.debug("### Potential owner task list: " + taskList);
-        Assertions.assertThat(taskList).hasSize(1);
-
-        abortHumanTaskProcess(4);
-    }
-
-    /**
-     * TODO - Need to pass in parameters which do make sense.
-     */
-    @Test
-    @BZ("1132157")
     public void testFilterParams() {
         startHumanTaskProcess(10, "john's task", "john");
-
-        QueryFilter queryFilter = new QueryFilter("x=1,y=2", null, "t.name", true);
+        Map<String, Object> parameters = new HashMap<String, Object>();
+        parameters.put("id", 1L);
+        parameters.put("priority", 0);
+        QueryFilter queryFilter = new QueryFilter("t.id=:id AND t.priority=:priority", parameters, "t.name", true);
 
         List<TaskSummary> taskList = taskService.getTasksAssignedAsPotentialOwner("john", null, null, queryFilter);
         logger.debug("### Potential owner task list: " + taskList);

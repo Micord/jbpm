@@ -16,6 +16,7 @@
 
 package org.jbpm.services.cdi.test;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -24,19 +25,20 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ArchivePaths;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.jbpm.kie.services.test.TestIdentityProvider;
 import org.jbpm.kie.services.test.UserTaskServiceImplTest;
 import org.jbpm.services.api.DefinitionService;
 import org.jbpm.services.api.DeploymentService;
 import org.jbpm.services.api.ProcessService;
 import org.jbpm.services.api.RuntimeDataService;
 import org.jbpm.services.api.UserTaskService;
+import org.jbpm.services.task.audit.TaskAuditServiceFactory;
+import org.jbpm.services.task.audit.service.TaskAuditService;
 import org.jbpm.shared.services.impl.TransactionalCommandService;
 import org.jbpm.shared.services.impl.commands.UpdateStringCommand;
+import org.jbpm.test.services.TestIdentityProvider;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.runner.RunWith;
-import org.kie.internal.identity.IdentityProvider;
+import org.kie.api.task.TaskService;
 
 @RunWith(Arquillian.class)
 public class UserTaskServiceCDIImplTest extends UserTaskServiceImplTest {
@@ -108,13 +110,18 @@ public class UserTaskServiceCDIImplTest extends UserTaskServiceImplTest {
                 .addPackage("org.jbpm.services.cdi.test") // Identity Provider Test Impl here
                 .addClass("org.jbpm.services.cdi.test.util.CDITestHelperNoTaskService")
                 .addClass("org.jbpm.services.cdi.test.util.CountDownDeploymentListenerCDIImpl")
-                .addClass("org.jbpm.kie.services.test.objects.CoundDownDeploymentListener")
+                .addClass("org.jbpm.kie.services.test.objects.CountDownDeploymentListener")
                 .addAsResource("jndi.properties", "jndi.properties")
                 .addAsManifestResource("META-INF/persistence.xml", ArchivePaths.create("persistence.xml"))
                 .addAsManifestResource("META-INF/beans.xml", ArchivePaths.create("beans.xml"));
 
     }
 	
+    @PostConstruct
+    public void setup() {
+        this.configureServices();
+    }
+
 	@Inject 
     private TransactionalCommandService commandService;
     
@@ -126,6 +133,15 @@ public class UserTaskServiceCDIImplTest extends UserTaskServiceImplTest {
 	@Override
 	protected void configureServices() {
 		// do nothing here and let CDI configure services 
+	}
+
+	// Needed for correct initialization of the TaskAuditService
+	@Inject
+	private TaskService taskService;
+
+	@Override
+	protected TaskAuditService getTaskAuditService() {
+		return TaskAuditServiceFactory.newTaskAuditServiceConfigurator().setTaskService(taskService).getTaskAuditService();
 	}
 
 	@Inject	

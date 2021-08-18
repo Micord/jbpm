@@ -16,18 +16,16 @@
 
 package org.jbpm.process.audit.query;
 
-import static org.kie.internal.query.QueryParameterIdentifiers.EXTERNAL_ID_LIST;
-
 import org.jbpm.process.audit.JPAAuditLogService;
 import org.jbpm.process.audit.VariableInstanceLog;
 import org.kie.api.runtime.CommandExecutor;
 import org.kie.internal.runtime.manager.audit.query.VariableInstanceLogDeleteBuilder;
 
+import static org.kie.internal.query.QueryParameterIdentifiers.EXTERNAL_ID_LIST;
+
 public class VarInstanceLogDeleteBuilderImpl extends AbstractAuditDeleteBuilderImpl<VariableInstanceLogDeleteBuilder> implements VariableInstanceLogDeleteBuilder {
 
-    private static String VARIABLE_INSTANCE_LOG_DELETE = 
-            "DELETE\n"
-            + "FROM VariableInstanceLog l\n";
+    private static final String VARIABLE_INSTANCE_LOG_DELETE = "VariableInstanceLog";
     
     
     public VarInstanceLogDeleteBuilderImpl(CommandExecutor cmdExecutor ) {
@@ -55,13 +53,13 @@ public class VarInstanceLogDeleteBuilderImpl extends AbstractAuditDeleteBuilderI
     }
 
     @Override
-    protected String getQueryBase() {
+    protected String getQueryTable() {
         return VARIABLE_INSTANCE_LOG_DELETE;
     }
-    
+
     @Override
-    protected String getSubQuery() {
-        return ONLY_COMPLETED_PROCESS_INSTANCES;
+    protected boolean isSubquerySupported() {
+        return true;
     }
 
 }

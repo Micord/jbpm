@@ -19,23 +19,18 @@ package org.jbpm.services.task.audit.impl.model;
 import java.io.Serializable;
 import java.util.Date;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.persistence.Transient;
+import javax.persistence.*;
 
 import org.kie.internal.task.api.TaskVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Entity
+@Table(name = "TaskVariableImpl", indexes = {
+        @Index(name = "IDX_TaskVariableImpl_taskId", columnList = "taskId"),
+        @Index(name = "IDX_TaskVariableImpl_pInstId", columnList = "processInstanceId"),
+        @Index(name = "IDX_TaskVariableImpl_processId", columnList = "processId")
+})
 @SequenceGenerator(name = "taskVarIdSeq", sequenceName = "TASK_VAR_ID_SEQ", allocationSize = 1)
 public class TaskVariableImpl implements TaskVariable, Serializable {
 
@@ -44,7 +39,6 @@ public class TaskVariableImpl implements TaskVariable, Serializable {
     
     @Transient
     private final int VARIABLE_LOG_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.task.var.log.length", "4000"));
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator = "taskVarIdSeq")
@@ -141,10 +135,77 @@ public class TaskVariableImpl implements TaskVariable, Serializable {
         this.type = type;
     }
 
+    
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((id == null) ? 0 : id.hashCode());
+        result = prime * result + ((modificationDate == null) ? 0 : modificationDate.hashCode());
+        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + ((processId == null) ? 0 : processId.hashCode());
+        result = prime * result + ((processInstanceId == null) ? 0 : processInstanceId.hashCode());
+        result = prime * result + ((taskId == null) ? 0 : taskId.hashCode());
+        result = prime * result + ((type == null) ? 0 : type.hashCode());
+        result = prime * result + ((value == null) ? 0 : value.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        TaskVariableImpl other = (TaskVariableImpl) obj;
+        if (id == null) {
+            if (other.id != null)
+                return false;
+        } else if (!id.equals(other.id))
+            return false;
+        if (modificationDate == null) {
+            if (other.modificationDate != null)
+                return false;
+        } else if (!modificationDate.equals(other.modificationDate))
+            return false;
+        if (name == null) {
+            if (other.name != null)
+                return false;
+        } else if (!name.equals(other.name))
+            return false;
+        if (processId == null) {
+            if (other.processId != null)
+                return false;
+        } else if (!processId.equals(other.processId))
+            return false;
+        if (processInstanceId == null) {
+            if (other.processInstanceId != null)
+                return false;
+        } else if (!processInstanceId.equals(other.processInstanceId))
+            return false;
+        if (taskId == null) {
+            if (other.taskId != null)
+                return false;
+        } else if (!taskId.equals(other.taskId))
+            return false;
+        if (type != other.type)
+            return false;
+        if (value == null) {
+            if (other.value != null)
+                return false;
+        } else if (!value.equals(other.value))
+            return false;
+        return true;
+    }
+
     @Override
     public String toString() {
-        return "TaskVariableImpl [taskId=" + taskId + ", name='" + name + "', value='" + value + "', type=" + type
-                + " (processInstanceId=" + processInstanceId + ", processId=" + processId + ")]";
+        return "TaskVariableImpl [id=" + id + ", taskId=" + taskId + ", processInstanceId=" + processInstanceId +
+               ", processId=" + processId + ", name=" + name + ", value=" + value + ", type=" + type +
+               ", modificationDate=" + modificationDate + "]";
     }
+
 
 }

@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm-human-task</artifactId>
-    <version>7.11.0-SNAPSHOT</version>
+    <version>7.59.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>jbpm-human-task-audit</artifactId>
@@ -43,6 +43,21 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
+    
+    <!-- jms handling of task audit logs -->
+    <dependency>
+      <groupId>org.jboss.spec.javax.jms</groupId>
+      <artifactId>jboss-jms-api_2.0_spec</artifactId>
+      <scope>provided</scope>
+    </dependency>
+     <dependency>
+      <groupId>com.thoughtworks.xstream</groupId>
+      <artifactId>xstream</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.kie.soup</groupId>
+      <artifactId>kie-soup-commons</artifactId>
+    </dependency>
 
     <dependency>
       <!--  only needed for metadata generation -->
@@ -50,6 +65,23 @@
       <artifactId>hibernate-jpamodelgen</artifactId>
       <optional>true</optional>
       <scope>provided</scope>
+      <exclusions>
+        <!-- collides with javax.activation:javax.activation-api:jar:1.2.0:compile  -->
+        <exclusion>
+          <groupId>jakarta.activation</groupId>
+          <artifactId>jakarta.activation-api</artifactId>
+        </exclusion>
+        <!-- collides with  javax.xml.bind:jaxb-api:jar:2.3.1:compile -->
+        <exclusion>
+          <groupId>jakarta.xml.bind</groupId>
+          <artifactId>jakarta.xml.bind-api</artifactId>
+        </exclusion>
+        <!-- collides with  org.jboss.spec.javax.xml.bind:jboss-jaxb-api_2.3_spec:jar:1.0.1.Final:compile -->
+        <exclusion>
+          <groupId>javax.xml.bind</groupId>
+          <artifactId>jaxb-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- TEST -->
@@ -62,6 +94,13 @@
       <groupId>org.jboss.weld.se</groupId>
       <artifactId>weld-se-core</artifactId>
       <scope>test</scope>
+      <exclusions>
+         <!-- collides with javax.enterprise:cdi-api:jar:2.0.SP1:compile -->
+         <exclusion>
+           <groupId>jakarta.enterprise</groupId>
+           <artifactId>jakarta.enterprise.cdi-api</artifactId>
+         </exclusion>
+      </exclusions>
     </dependency>
 
     <!--  Test: persistence -->
@@ -79,6 +118,12 @@
       <groupId>org.hibernate</groupId>
       <artifactId>hibernate-core</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+           <groupId>javax.activation</groupId>
+           <artifactId>javax.activation-api</artifactId> 
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
@@ -151,12 +196,6 @@
     </dependency>
     <dependency>
       <groupId>org.jbpm</groupId>
-      <artifactId>jbpm-persistence-jpa</artifactId>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jbpm</groupId>
       <artifactId>jbpm-audit</artifactId>
     </dependency>
     <dependency>
@@ -165,12 +204,23 @@
     </dependency>
     <dependency>
       <groupId>org.jboss.spec.javax.xml.bind</groupId>
-      <artifactId>jboss-jaxb-api_2.2_spec</artifactId>
+      <artifactId>jboss-jaxb-api_2.3_spec</artifactId>
       <scope>provided</scope>
     </dependency>
   </dependencies>
 
   <build>
+    <testResources>
+      <testResource>
+        <directory>src/test/resources</directory>
+        <filtering>false</filtering>
+      </testResource>
+      <testResource>
+        <directory>src/test/filtered-resources</directory>
+        <filtering>true</filtering>
+      </testResource>
+    </testResources>
+
     <plugins>
       <plugin>
         <groupId>org.apache.felix</groupId>

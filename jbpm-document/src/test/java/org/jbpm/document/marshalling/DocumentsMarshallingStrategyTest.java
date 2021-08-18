@@ -16,11 +16,12 @@
 
 package org.jbpm.document.marshalling;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -28,13 +29,16 @@ import org.jbpm.document.Document;
 import org.jbpm.document.Documents;
 import org.jbpm.document.service.impl.CustomDocumentStorageServiceImpl;
 import org.jbpm.document.service.impl.DocumentImpl;
+import org.jbpm.document.service.impl.DocumentStorageServiceImpl;
 import org.junit.Test;
 
 
 
 public class DocumentsMarshallingStrategyTest {
+
+	private static final String STORAGE_PATH_TEST = "target/docs";
 	
-	private DocumentsMarshallingStrategy docsMarshallingStrategy = new DocumentsMarshallingStrategy(new DocumentMarshallingStrategy());
+	private DocumentsMarshallingStrategy docsMarshallingStrategy = new DocumentsMarshallingStrategy(createSingleDocMarshallingStrategy());
 	
 	@Test
 	public void testMarshallUnmarshall() throws IOException, ClassNotFoundException {
@@ -61,7 +65,7 @@ public class DocumentsMarshallingStrategyTest {
 	
 	@Test
 	public void testSingleDocMarshallUnmarshall() throws IOException, ClassNotFoundException {
-		DocumentMarshallingStrategy docMarshallingStrategy = new DocumentMarshallingStrategy();
+		DocumentMarshallingStrategy docMarshallingStrategy = createSingleDocMarshallingStrategy();
 		Document document = getDocument("docOne");
 		byte[] marshalledDocument = docMarshallingStrategy.marshal(null, null, document);
 		Document unmarshalledDocument = (Document) docMarshallingStrategy.unmarshal(null, null, marshalledDocument, this.getClass().getClassLoader());
@@ -109,6 +113,18 @@ public class DocumentsMarshallingStrategyTest {
         assertEquals(2, counter.get());
     }
 	
+	@Test
+    public void testSingleDocMarshallUnmarshallNoAttribtues() throws IOException, ClassNotFoundException {
+        DocumentMarshallingStrategy docMarshallingStrategy = createSingleDocMarshallingStrategy();
+        Document document = getDocument("docOne-noattr");
+        document.setAttributes(new HashMap<>());
+        byte[] marshalledDocument = docMarshallingStrategy.marshal(null, null, document);
+        Document unmarshalledDocument = (Document) docMarshallingStrategy.unmarshal(null, null, marshalledDocument, this.getClass().getClassLoader());
+    
+        assertEquals(document.getName(), unmarshalledDocument.getName());
+        assertEquals(document.getLink(), unmarshalledDocument.getLink());
+    }
+	
 	private Document getDocument(String documentName) {
 		Document documentOne = new DocumentImpl();
 		documentOne.setIdentifier(documentName);
@@ -130,4 +146,7 @@ public class DocumentsMarshallingStrategyTest {
 		return documents;
 	}
 
+	private DocumentMarshallingStrategy createSingleDocMarshallingStrategy() {
+		return new DocumentMarshallingStrategy(new DocumentStorageServiceImpl(STORAGE_PATH_TEST));
+	}
 }

@@ -16,6 +16,8 @@
 
 package org.jbpm.services.ejb.impl;
 
+import java.util.function.Function;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
@@ -35,8 +37,6 @@ import org.jbpm.kie.services.impl.FormManagerService;
 import org.jbpm.kie.services.impl.KModuleDeploymentService;
 import org.jbpm.kie.services.impl.KModuleDeploymentUnit;
 import org.jbpm.runtime.manager.impl.RuntimeManagerFactoryImpl;
-import org.jbpm.runtime.manager.impl.deploy.DeploymentDescriptorImpl;
-import org.jbpm.runtime.manager.impl.deploy.TransientNamedObjectModel;
 import org.jbpm.services.api.DefinitionService;
 import org.jbpm.services.api.DeploymentEventListener;
 import org.jbpm.services.api.DeploymentService;
@@ -53,6 +53,8 @@ import org.jbpm.services.ejb.impl.identity.EJBContextIdentityProvider;
 import org.kie.api.executor.ExecutorService;
 import org.kie.internal.identity.IdentityProvider;
 import org.kie.internal.runtime.conf.DeploymentDescriptor;
+import org.kie.internal.runtime.manager.deploy.DeploymentDescriptorImpl;
+import org.kie.internal.runtime.manager.deploy.TransientNamedObjectModel;
 
 @Singleton
 @ConcurrencyManagement(ConcurrencyManagementType.CONTAINER)
@@ -172,7 +174,15 @@ public class DeploymentServiceEJBImpl extends KModuleDeploymentService implement
 			super.undeploy(deployed.getDeploymentUnit());
 		}
 	}
-	
+
+	@Override
+	public void undeploy(String deploymentId, Function<DeploymentUnit, Boolean> beforeUndeploy) {
+		DeployedUnit deployed = getDeployedUnit(deploymentId);
+		if (deployed != null) {
+			super.undeploy(deployed.getDeploymentUnit(), beforeUndeploy);
+		}
+	}
+
 	protected void addAsyncHandler(KModuleDeploymentUnit unit) {
 		// add async only when the executor component is not disabled
 		if (isExecutorAvailable) {

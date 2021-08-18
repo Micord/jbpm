@@ -1,7 +1,7 @@
 jBPM in container tests
 =====================
 
-**This test suite tests the jBPM engine inside various containers, namely WildFly 11, EAP 7, Tomcat 9,
+**This test suite tests the jBPM engine inside various containers, namely WildFly, EAP 7, Tomcat 9,
 Oracle WebLogic 12 and IBM WebSphere 9, using Maven Cargo and Arquillian.** Tests are focused on various aspects of jBPM engine 
 such as transactions, EJB APIs, tasks, REST and WebServices integration.
 
@@ -15,14 +15,14 @@ Tests are run very easily using the command
 ```mvn clean install -Dcontainer.profile=<container-profile> <container-specific-params>```
 
 where `<container-profile>` is simply a particular container. Another container-specific parameters may also be configured (see the table below).
-WildFly11, EAP 7 and Tomcat 9 do not have to be pre-installed, they will be downloaded automatically (in case of EAP 7, download URL has to be provided).
+WildFly, EAP 7 and Tomcat 9 do not have to be pre-installed, they will be downloaded automatically (in case of EAP 7, download URL has to be provided).
 Oracle WebLogic 12 and IBM WebSphere 9 have to be pre-installed and the installation path has to be provided using a Maven property `weblogic.home` or `websphere.home` respectively.
 
 The following table lists all currently supported combinations of parameters:
 
 | Container to run    | \<container-profile\> | \<container-specific params\>                                                   |
 | -----------------   | --------------------- | ------------------------------------------------------------------------------- |
-|     WildFly11       | wildfly11             | *none*                                                                          |
+|     WildFly         | wildfly               | *none*                                                                          |
 |     EAP 7           | eap7                  | eap7.download.url                                                               |
 |     Tomcat 9        | tomcat9               | *none*                                                                          |
 | Oracle WebLogic 12  | oracle-wls-12         | weblogic.home                                                                   |
@@ -37,7 +37,7 @@ By default, the tests are run with the H2 database. If you want to change the da
 
 ## WebSphere and Arquillian adapter
 Currently, Arquillian adapter for WebSphere is not publicly available in Central Maven Repository. Instead, you have to build your own adapter and add it as a dependency to the profile **was9** in the **jbpm-container-test-suite/pom.xml** file.
-This adapter's source code is available on [GitHub](https://github.com/arquillian/arquillian-container-was/tree/master/was-remote-9) as well.
+This adapter's source code is available on [GitHub](https://github.com/arquillian/arquillian-container-was/tree/main/was-remote-9) as well.
 
 ## Running a single test
 If you want to run a single test, just specify it via an additional parameter ```-Dit.test=<test-name>``` and add ```-DfailIfNoTests=false```.

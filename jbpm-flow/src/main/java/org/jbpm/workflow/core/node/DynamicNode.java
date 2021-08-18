@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import org.jbpm.workflow.core.WorkflowProcess;
 import org.kie.api.definition.process.Node;
+import org.kie.api.definition.process.NodeType;
 
 
 public class DynamicNode extends CompositeContextNode {
@@ -32,15 +33,23 @@ public class DynamicNode extends CompositeContextNode {
 	private String activationExpression;
 	private String completionExpression;
 	private String language;
-			
+
+    public DynamicNode() {
+	    super (NodeType.AD_HOC_SUBPROCESS);
+	}
+
     @Override
-    public boolean acceptsEvent(String type, Object event, Function<String, String> resolver) {
+    public boolean acceptsEvent(String type, Object event, Function<String, Object> resolver) {
         if (type.equals(getActivationEventName())) {
             return true;
         }
 
         for (Node node : getNodes()) {
-            if (resolver.apply(node.getName()).contains(type) && node.getIncomingConnections().isEmpty()) {
+            if (node.getName() == null) {
+                continue;
+            }
+            Object var = resolver.apply(node.getName());
+            if(var != null && var.toString().contains(type) && node.getIncomingConnections().isEmpty()) {
                 return true;
             }
         }

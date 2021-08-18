@@ -17,20 +17,29 @@
 package org.jbpm.bpmn2.xml;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.drools.core.xml.BaseAbstractHandler;
 import org.drools.core.xml.ExtensibleXmlParser;
 import org.drools.core.xml.Handler;
 import org.jbpm.bpmn2.core.Association;
+import org.jbpm.bpmn2.core.Collaboration;
+import org.jbpm.bpmn2.core.CorrelationKey;
+import org.jbpm.bpmn2.core.CorrelationProperty;
+import org.jbpm.bpmn2.core.CorrelationSubscription;
 import org.jbpm.bpmn2.core.DataStore;
 import org.jbpm.bpmn2.core.Definitions;
 import org.jbpm.bpmn2.core.Error;
 import org.jbpm.bpmn2.core.Escalation;
+import org.jbpm.bpmn2.core.Expression;
 import org.jbpm.bpmn2.core.Interface;
 import org.jbpm.bpmn2.core.IntermediateLink;
 import org.jbpm.bpmn2.core.ItemDefinition;
@@ -45,10 +54,13 @@ import org.jbpm.process.core.context.exception.CompensationHandler;
 import org.jbpm.process.core.context.exception.CompensationScope;
 import org.jbpm.process.core.context.exception.ExceptionScope;
 import org.jbpm.process.core.context.swimlane.Swimlane;
+import org.jbpm.process.core.correlation.CorrelationManager;
 import org.jbpm.process.core.event.EventFilter;
 import org.jbpm.process.core.event.EventTypeFilter;
+import org.jbpm.process.core.event.MVELMessageExpressionEvaluator;
 import org.jbpm.process.core.timer.Timer;
 import org.jbpm.process.instance.impl.CancelNodeInstanceAction;
+import org.jbpm.process.instance.impl.SignalNodeInstanceAction;
 import org.jbpm.ruleflow.core.RuleFlowProcess;
 import org.jbpm.ruleflow.core.validation.RuleFlowProcessValidator;
 import org.jbpm.workflow.core.Connection;
@@ -81,10 +93,12 @@ import org.jbpm.workflow.core.node.Trigger;
 import org.jbpm.workflow.core.node.WorkItemNode;
 import org.kie.api.definition.process.Node;
 import org.kie.api.definition.process.NodeContainer;
+import org.kie.api.definition.process.Process;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
+
 
 public class ProcessHandler extends BaseAbstractHandler implements Handler {
 	
@@ -168,7 +182,8 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
 		
 		// for unique id's of nodes, start with one to avoid returning wrong nodes for dynamic nodes
 		parser.getMetaData().put("idGen", new AtomicInteger(1));
-		
+		parser.getMetaData().put("CurrentProcessDefinition", process);
+		process.getCorrelationManager().setClassLoader(parser.getClassLoader());
 		return process;
 	}
 
@@ -195,68 +210,131 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
             process.getMetaData(LaneHandler.LANES);
         assignLanes(process, lanes);
         postProcessNodes(process, process);
+        postProcessCollaborations(process, parser);
 		return process;
 	}
 	
-	 public static void linkIntermediateLinks(NodeContainer process,
-	            List<IntermediateLink> links) {
 
-	        if (null != links) {
+    private void postProcessCollaborations(RuleFlowProcess process, ExtensibleXmlParser parser) {
+        // now we wire correlation process subscriptions
+        CorrelationManager correlationManager = process.getCorrelationManager();
+        for(Message message : HandlerUtil.messages(parser).values()) {
+            correlationManager.newMessage(message.getId(), message.getName(), message.getType());
+        }
 
-	            // Search throw links
-	            ArrayList<IntermediateLink> throwLinks = new ArrayList<IntermediateLink>();
-	            for (IntermediateLink aLinks : links) {
-	                if (aLinks.isThrowLink()) {
-	                    throwLinks.add(aLinks);
-	                }
-	            }
 
-	            // Look for catch links for a throw link
-	            for (IntermediateLink throwLink : throwLinks) {
+        // only the ones this process is member of
+        List<Collaboration> collaborations = HandlerUtil.collaborations(parser).values().stream().filter(c -> c.getProcessesRef().contains(process.getId())).collect(Collectors.toList());
+        for(Collaboration collaboration: collaborations) {
+            for(CorrelationKey key : collaboration.getCorrelationKeys()) {
+                
+                correlationManager.newCorrelation(key.getId(), key.getName());
+                List<CorrelationProperty> properties = key.getPropertiesRef().stream().map(k -> HandlerUtil.correlationProperties(parser).get(k)).collect(Collectors.toList());
+                for(CorrelationProperty correlationProperty : properties) {
+                    correlationProperty.getMessageRefs().forEach(messageRef -> {
 
-	                ArrayList<IntermediateLink> linksWithSharedNames = new ArrayList<IntermediateLink>();
-	                for (IntermediateLink aLink : links) {
-	                    if (throwLink.getName().equals(aLink.getName())) {
-	                        linksWithSharedNames.add(aLink);
-	                    }
-	                }
+                        // for now only MVEL expressions
+                        MVELMessageExpressionEvaluator evaluator = new MVELMessageExpressionEvaluator(correlationProperty.getRetrievalExpression(messageRef).getScript());
+                        correlationManager.addMessagePropertyExpression(key.getId(), messageRef, correlationProperty.getId(), evaluator);
+                    });
+                }
+            }
+        }
 
-	                if (linksWithSharedNames.size() < 2) {
-	                    throw new IllegalArgumentException(
-	                            "There should be at least 2 link events to make a connection");
-	                }
+        // we create the correlations
+        for(CorrelationSubscription subscription : HandlerUtil.correlationSuscription(process).values()) {
+            correlationManager.subscribeTo(subscription.getCorrelationKeyRef());
+            for(Map.Entry<String, Expression> binding : subscription.getPropertyExpressions().entrySet()) {
+                MVELMessageExpressionEvaluator evaluator = new MVELMessageExpressionEvaluator(binding.getValue().getScript());
+                correlationManager.addProcessSubscriptionPropertyExpression(subscription.getCorrelationKeyRef(), binding.getKey(), evaluator);
+            }
+        }
+    }
 
-	                linksWithSharedNames.remove(throwLink);
+    public static void linkIntermediateLinks(NodeContainer process,List<IntermediateLink> links) {
+        if (links == null) { 
+            return;
+        }
+        Map<String,IntermediateLink> catchLinks = new HashMap<>();
+        Map<String,Collection<IntermediateLink>> throwLinks = new HashMap<>();
+        Collection<IntermediateLink> noNameLinks = new ArrayList<>();
+        Collection<IntermediateLink> duplicatedTarget = new LinkedHashSet<>();
+        Collection<IntermediateLink> unconnectedTarget = new ArrayList<>();
+        
+        // collect errors and nodes in first loop
+        for (IntermediateLink link : links) {
+            if (link.getName() == null || link.getName().isEmpty()) {
+                noNameLinks.add(link);
+            }
+            else if (link.isThrowLink()) {
+                throwLinks.computeIfAbsent(link.getName(), s -> new ArrayList<>()).add(link);
+            }
+            else {
+                IntermediateLink duplicateLink = catchLinks.putIfAbsent(link.getName(),link);
+                if (duplicateLink != null) {
+                    duplicatedTarget.add(duplicateLink);
+                    duplicatedTarget.add(link);
+                }
+            }
+        }
 
-	                // Make the connections
-	                Node t = findNodeByIdOrUniqueIdInMetadata(process,
-	                        throwLink.getUniqueId());
-
-	                // connect throw to catch
-	                for (IntermediateLink catchLink : linksWithSharedNames) {
-
-	                    Node c = findNodeByIdOrUniqueIdInMetadata(process,
-	                            catchLink.getUniqueId());
-	                    if (t != null && c != null) {
-	                        Connection result = new ConnectionImpl(t,
-	                                NodeImpl.CONNECTION_DEFAULT_TYPE, c,
-	                                NodeImpl.CONNECTION_DEFAULT_TYPE);
-	                        result.setMetaData("linkNodeHidden", "yes");
-	                    }
-	                }
-
-	                // Remove processed links
-	                links.remove(throwLink);
-	                links.removeAll(linksWithSharedNames);
-	            }
-
-	            if (links.size() > 0) {
-	                throw new IllegalArgumentException(links.size()
-	                        + " links were not processed");
-	            }
-
-	        }
-	 }
+        // second loop for connection
+        for (IntermediateLink catchLink : catchLinks.values()) {
+            Collection<IntermediateLink> associatedLinks = throwLinks.remove(catchLink.getName());
+            if (associatedLinks != null) {
+                // connect throw to catch
+                Node catchNode = findNodeByIdOrUniqueIdInMetadata(process,catchLink.getUniqueId());
+                if (catchNode != null) {
+                    for (IntermediateLink throwLink : associatedLinks) {
+                        Node throwNode = findNodeByIdOrUniqueIdInMetadata(process,
+                            throwLink.getUniqueId());
+                        if (throwNode != null) {
+                            Connection result = new ConnectionImpl(throwNode,
+                                NodeImpl.CONNECTION_DEFAULT_TYPE, catchNode,
+                                NodeImpl.CONNECTION_DEFAULT_TYPE);
+                            result.setMetaData("linkNodeHidden", "yes");
+                        }
+                    }
+                }
+            }
+            else {
+                unconnectedTarget.add(catchLink);
+            }
+        }
+        
+        // throw exception if any error (this is done at the end of the process to show the user as much errors as possible) 
+        StringBuilder errors = new StringBuilder();
+        if (!noNameLinks.isEmpty()) {
+            formatError(errors,"These nodes do not have a name ",noNameLinks.stream(), process);
+        }
+        if (!duplicatedTarget.isEmpty()) {
+            formatError(errors,"\nThere are multiple catch nodes with the same name ",duplicatedTarget.stream(), process);
+        }
+        if (!unconnectedTarget.isEmpty()) {
+            formatError(errors,"\nThere is not connection from any throw link to these catch links ",unconnectedTarget.stream(), process);
+        }
+        if (!throwLinks.isEmpty()) {
+            formatError(errors,"\nThere is not connection from any catch link to these throw links ",throwLinks
+                                               .values()
+                                               .stream()
+                                               .flatMap(Collection::stream), process);
+        }
+        if (errors.length() > 0) {
+            throw new IllegalArgumentException (errors.toString());
+        }
+        
+    }
+    
+    private static void formatError (StringBuilder errors, String message, Stream<IntermediateLink> stream, NodeContainer container) {
+        errors.append(message).append(stream.map(IntermediateLink::getUniqueId).collect(Collectors.joining(", ","{","}")));
+        if (container instanceof Process) {
+            errors.append(" for process ").append(((Process) container).getId());
+        }
+        else if (container instanceof Node) {
+            errors.append(" for subprocess ").append(((Node) container).getId());
+        }
+    }
+   
 
 	 private static Object findNodeOrDataStoreByUniqueId(Definitions definitions, NodeContainer nodeContainer, final String nodeRef, String errorMsg) { 
 	     if( definitions !=  null ) { 
@@ -329,7 +407,7 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
 					NodeImpl nodeImpl = (NodeImpl) source;
 					Constraint constraint = buildConstraint(connection, nodeImpl);
 					if (constraint != null) {
-						nodeImpl.addConstraint(new ConnectionRef(target.getId(), NodeImpl.CONNECTION_DEFAULT_TYPE),
+						nodeImpl.addConstraint(new ConnectionRef(connection.getId(), target.getId(), NodeImpl.CONNECTION_DEFAULT_TYPE),
 								constraint);
 					}
 					
@@ -337,7 +415,7 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
 					Split split = (Split) source;
 					Constraint constraint = buildConstraint(connection, split);
 					split.addConstraint(
-						new ConnectionRef(target.getId(), NodeImpl.CONNECTION_DEFAULT_TYPE),
+						new ConnectionRef(connection.getId(), target.getId(), NodeImpl.CONNECTION_DEFAULT_TYPE),
 						constraint);
 				}
 			}
@@ -406,14 +484,14 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
         }
         
         if (cancelActivity) {
-            List<DroolsAction> actions = ((EventNode)node).getActions(EndNode.EVENT_NODE_EXIT);
+            List<DroolsAction> actions = ((EventNode)node).getActions(EndNode.EVENT_NODE_BOUNDARY);
             if (actions == null) {
                 actions = new ArrayList<DroolsAction>();
             }
             DroolsConsequenceAction cancelAction =  new DroolsConsequenceAction("java", null);
             cancelAction.setMetaData("Action", new CancelNodeInstanceAction(attachedTo));
             actions.add(cancelAction);
-            ((EventNode)node).setActions(EndNode.EVENT_NODE_EXIT, actions);
+            ((EventNode)node).setActions(EndNode.EVENT_NODE_BOUNDARY, actions);
         }   
     }
     
@@ -443,14 +521,27 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
         	exceptionScope.setExceptionHandler(errorStructureRef, exceptionHandler);
         }
 
-        List<DroolsAction> actions = ((EventNode)node).getActions(EndNode.EVENT_NODE_EXIT);
+
+        List<DroolsAction> actions = ((EventNode) node).getActions(EndNode.EVENT_NODE_BOUNDARY);
         if (actions == null) {
             actions = new ArrayList<DroolsAction>();
         }
         DroolsConsequenceAction cancelAction =  new DroolsConsequenceAction("java", null);
         cancelAction.setMetaData("Action", new CancelNodeInstanceAction(attachedTo));
         actions.add(cancelAction);
-        ((EventNode)node).setActions(EndNode.EVENT_NODE_EXIT, actions);
+        
+        ((EventNode)node).setActions(EndNode.EVENT_NODE_BOUNDARY, actions);
+        
+    }
+    
+    private static String concatName(String prefix, String suffix) {
+        if (prefix == null) {
+            return suffix;
+        } else if (suffix == null) {
+            return prefix;
+        } else {
+            return prefix.concat('-' + suffix);
+        }
     }
     
     private static void linkBoundaryTimerEvent(NodeContainer nodeContainer, Node node, String attachedTo, Node attachedNode) {
@@ -460,11 +551,13 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
         String timeCycle = (String) node.getMetaData().get("TimeCycle");
         String timeDate = (String) node.getMetaData().get("TimeDate");
         Timer timer = new Timer();
+        timer.setName(concatName(compositeNode.getName(), node.getName()));
         if (timeDuration != null) {
             timer.setDelay(timeDuration);
             timer.setTimeType(Timer.TIME_DURATION);
-            compositeNode.addTimer(timer, new DroolsConsequenceAction("java",
-                PROCESS_INSTANCE_SIGNAL_EVENT + "Timer-" + attachedTo + "-" + timeDuration + "-" + node.getId() +"\", kcontext.getNodeInstance().getId());"));
+            DroolsConsequenceAction action = new DroolsConsequenceAction("java", null);
+            action.setMetaData("Action", new SignalNodeInstanceAction("Timer-" + attachedTo + "-" + timeDuration + "-" + node.getId()));
+            compositeNode.addTimer(timer, action);
         } else if (timeCycle != null) {
             int index = timeCycle.indexOf("###");
             if (index != -1) {
@@ -474,24 +567,26 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
             }
             timer.setDelay(timeCycle);
             timer.setTimeType(Timer.TIME_CYCLE);
-            compositeNode.addTimer(timer, new DroolsConsequenceAction("java",
-                PROCESS_INSTANCE_SIGNAL_EVENT + "Timer-" + attachedTo + "-" + timeCycle + (timer.getPeriod() == null ? "" : "###" + timer.getPeriod()) + "-" + node.getId() + "\", kcontext.getNodeInstance().getId());"));
+            DroolsConsequenceAction action = new DroolsConsequenceAction("java", null);
+            action.setMetaData("Action", new SignalNodeInstanceAction("Timer-" + attachedTo + "-" + timeCycle + (timer.getPeriod() == null ? "" : "###" + timer.getPeriod()) + "-" + node.getId()));
+            compositeNode.addTimer(timer, action);
         } else if (timeDate != null) {
             timer.setDate(timeDate);
             timer.setTimeType(Timer.TIME_DATE);
-            compositeNode.addTimer(timer, new DroolsConsequenceAction("java", 
-                PROCESS_INSTANCE_SIGNAL_EVENT + "Timer-" + attachedTo + "-" + timeDate + "-" + node.getId() + "\", kcontext.getNodeInstance().getId());"));
+            DroolsConsequenceAction action = new DroolsConsequenceAction("java", null);
+            action.setMetaData("Action", new SignalNodeInstanceAction("Timer-" + attachedTo + "-" + timeDate + "-" + node.getId()));
+            compositeNode.addTimer(timer, action);
         }
         
         if (cancelActivity) {
-            List<DroolsAction> actions = ((EventNode)node).getActions(EndNode.EVENT_NODE_EXIT);
+            List<DroolsAction> actions = ((EventNode)node).getActions(EndNode.EVENT_NODE_BOUNDARY);
             if (actions == null) {
                 actions = new ArrayList<DroolsAction>();
             }
             DroolsConsequenceAction cancelAction =  new DroolsConsequenceAction("java", null);
             cancelAction.setMetaData("Action", new CancelNodeInstanceAction(attachedTo));
             actions.add(cancelAction);
-            ((EventNode)node).setActions(EndNode.EVENT_NODE_EXIT, actions);
+            ((EventNode)node).setActions(EndNode.EVENT_NODE_BOUNDARY, actions);
         }
     }
     
@@ -517,14 +612,14 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
     private static void linkBoundarySignalEvent(NodeContainer nodeContainer, Node node, String attachedTo, Node attachedNode) {
         boolean cancelActivity = (Boolean) node.getMetaData().get("CancelActivity");
         if (cancelActivity) {
-            List<DroolsAction> actions = ((EventNode)node).getActions(EndNode.EVENT_NODE_EXIT);
+            List<DroolsAction> actions = ((EventNode)node).getActions(EndNode.EVENT_NODE_BOUNDARY);
             if (actions == null) {
                 actions = new ArrayList<DroolsAction>();
             }
             DroolsConsequenceAction action =  new DroolsConsequenceAction("java", null);
             action.setMetaData("Action", new CancelNodeInstanceAction(attachedTo));
             actions.add(action);
-            ((EventNode)node).setActions(EndNode.EVENT_NODE_EXIT, actions);
+            ((EventNode)node).setActions(EndNode.EVENT_NODE_BOUNDARY, actions);
         }
     }
     
@@ -534,14 +629,14 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
         ((EventTypeFilter) ((EventNode) node).getEventFilters().get(0)).setType(eventType);
         boolean cancelActivity = (Boolean) node.getMetaData().get("CancelActivity");
         if (cancelActivity) {
-            List<DroolsAction> actions = ((EventNode)node).getActions(EndNode.EVENT_NODE_EXIT);
+            List<DroolsAction> actions = ((EventNode)node).getActions(EndNode.EVENT_NODE_BOUNDARY);
             if (actions == null) {
                 actions = new ArrayList<DroolsAction>();
             }
             DroolsConsequenceAction action =  new DroolsConsequenceAction("java", null);
             action.setMetaData("Action", new CancelNodeInstanceAction(attachedTo));
             actions.add(action);
-            ((EventNode)node).setActions(EndNode.EVENT_NODE_EXIT, actions);
+            ((EventNode)node).setActions(EndNode.EVENT_NODE_BOUNDARY, actions);
         }
     }
     
@@ -752,7 +847,6 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
     private void postProcessNodes(RuleFlowProcess process, NodeContainer container) {
         List<String> eventSubProcessHandlers = new ArrayList<String>();
         for (Node node: container.getNodes()) {
-            
             if (node instanceof StateNode) {
                 StateNode stateNode = (StateNode) node;
                 String condition = (String) stateNode.getMetaData("Condition");
@@ -815,27 +909,29 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
                                             	exceptionScope.setExceptionHandler(faultCode, exceptionHandler);
                                             }
                                         } else if( type.equals("Compensation") ) { 
-                                            // 1. Find the parent sub-process to this event sub-process
-                                            NodeContainer parentSubProcess;  
+                                            // Find the parent sub-process to this event sub-process
+                                            NodeContainer parent = null;
                                             NodeContainer subProcess = eventSubProcessNode.getNodeContainer();
                                             Object isForCompensationObj = eventSubProcessNode.getMetaData("isForCompensation");
                                             if( isForCompensationObj == null ) { 
                                                 eventSubProcessNode.setMetaData("isForCompensation", true );
                                                 logger.warn( "Overriding empty or false value of \"isForCompensation\" attribute on Event Sub-Process [" 
                                                         + eventSubProcessNode.getMetaData("UniqueId") + "] and setting it to true.");
-                                            } 
-                                            if( subProcess instanceof RuleFlowProcess ) { 
-                                                // If jBPM deletes the process (instance) as soon as the process completes.. 
-                                                // ..how do you expect to signal compensation on the completed process (instance)?!?
-                                                throw new IllegalArgumentException("Compensation Event Sub-Processes at the process level are not supported.");
                                             }
-                                            parentSubProcess = ((Node) subProcess).getNodeContainer();
 
-                                            // 2. The event filter (never fires, purely for dumping purposes) has already been added
+                                            String compensationHandlerId = "";
 
-                                            // 3. Add compensation scope
-                                            String compensationHandlerId = (String) ((CompositeNode) subProcess).getMetaData("UniqueId");
-                                            addCompensationScope(process, eventSubProcessNode, parentSubProcess, compensationHandlerId);
+                                            if( subProcess instanceof RuleFlowProcess ) {
+                                                parent = subProcess;
+                                                compensationHandlerId = ((RuleFlowProcess) subProcess).getId();
+                                            }
+
+                                            if(subProcess instanceof  Node) {
+                                                parent = ((Node) subProcess).getNodeContainer();
+                                                compensationHandlerId = (String) ((CompositeNode) subProcess).getMetaData("UniqueId");
+                                            }
+
+                                            addCompensationScope(process, eventSubProcessNode, parent, compensationHandlerId);
                                         }
                                     }
                                 }
@@ -964,7 +1060,7 @@ public class ProcessHandler extends BaseAbstractHandler implements Handler {
     }
     
     protected void handleIntermediateOrEndThrowCompensationEvent(ExtendedNodeImpl throwEventNode ) { 
-        if( throwEventNode.getMetaData("compensation-activityRef") != null ) { 
+        if( throwEventNode.getMetaData("compensation-activityRef") != null ) {
             String activityRef = (String) throwEventNode.getMetaData().remove("compensation-activityRef");
 
             NodeContainer nodeParent = (NodeContainer) throwEventNode.getNodeContainer();

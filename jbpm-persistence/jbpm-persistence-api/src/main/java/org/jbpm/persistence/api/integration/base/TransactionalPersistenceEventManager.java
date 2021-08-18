@@ -54,7 +54,13 @@ public class TransactionalPersistenceEventManager implements PersistenceEventMan
             logger.debug("EventEmitter {} was found and is going to be used", emitter);
         }
     }
-    
+
+    @Override
+    public void setEventEmitter(EventEmitter eventEmitter) {
+        logger.info("Registering EventEmitter {}", eventEmitter);
+        emitter = eventEmitter;
+    }
+
     @Override
     public void create(InstanceView<?> item) {
         if (!isActive()) {
@@ -147,5 +153,6 @@ public class TransactionalPersistenceEventManager implements PersistenceEventMan
         }
         
         this.emitter.close();
+        emitter = null;
     }
 }

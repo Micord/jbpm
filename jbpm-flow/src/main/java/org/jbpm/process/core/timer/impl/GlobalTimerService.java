@@ -15,6 +15,13 @@
  */
 package org.jbpm.process.core.timer.impl;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import org.drools.core.command.SingleSessionCommandService;
 import org.drools.core.command.impl.CommandBasedStatefulKnowledgeSession;
 import org.drools.core.common.InternalKnowledgeRuntime;
@@ -33,6 +40,7 @@ import org.drools.core.time.impl.TimerJobInstance;
 import org.jbpm.process.core.timer.GlobalSchedulerService;
 import org.jbpm.process.core.timer.NamedJobContext;
 import org.jbpm.process.instance.timer.TimerManager.ProcessJobContext;
+import org.jbpm.process.instance.timer.TimerManager.StartProcessJobContext;
 import org.kie.api.runtime.Environment;
 import org.kie.api.runtime.Executable;
 import org.kie.api.runtime.ExecutableRunner;
@@ -44,21 +52,16 @@ import org.kie.internal.runtime.manager.context.ProcessInstanceIdContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 
 public class GlobalTimerService implements TimerService, InternalSchedulerService {
 	
 	private static final Logger logger = LoggerFactory.getLogger(GlobalTimerService.class);
     
     protected TimerJobFactoryManager jobFactoryManager;
-    protected GlobalSchedulerService schedulerService;
-    protected RuntimeManager manager;
-    protected ConcurrentHashMap<Long, List<GlobalJobHandle>> timerJobsPerSession = new ConcurrentHashMap<Long, List<GlobalJobHandle>>();
+    protected final GlobalSchedulerService schedulerService;
+    protected final RuntimeManager manager;
+    protected final ConcurrentHashMap<Long, List<GlobalJobHandle>> timerJobsPerSession = new ConcurrentHashMap<Long, List<GlobalJobHandle>>();
+    protected final ConcurrentSkipListSet<GlobalJobHandle> startTimerJobs = new ConcurrentSkipListSet<>((o1, o2) -> ((Long) o1.getId()).compareTo(o2.getId()));
  
     private String timerServiceId;
     
@@ -66,16 +69,32 @@ public class GlobalTimerService implements TimerService, InternalSchedulerServic
         this.manager = manager;
         this.schedulerService = schedulerService;
         this.schedulerService.initScheduler(this);
+        jobFactoryManager = initJobFactoryManager();
+    }
+
+    private TimerJobFactoryManager initJobFactoryManager() {
         try {
-            this.jobFactoryManager = (TimerJobFactoryManager) Class.forName("org.jbpm.persistence.timer.GlobalJPATimerJobFactoryManager").newInstance();
+            return (TimerJobFactoryManager ) Class.forName("org.jbpm.persistence.timer.GlobalJPATimerJobFactoryManager").newInstance();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return null;
+    }
+
+    public boolean isTransactional() {
+        return this.schedulerService.isTransactional();
     }
 
     @Override
     public JobHandle scheduleJob(Job job, JobContext ctx, Trigger trigger) {
-        if (ctx instanceof ProcessJobContext) {
+        if (ctx instanceof StartProcessJobContext) {
+            // no session for start process job context
+            GlobalJobHandle jobHandle = (GlobalJobHandle) this.schedulerService.scheduleJob(job, ctx, trigger);
+            if (jobHandle != null) {
+                startTimerJobs.add(jobHandle);
+            }
+            return jobHandle;
+        } else if (ctx instanceof ProcessJobContext) {
             ProcessJobContext processCtx = (ProcessJobContext) ctx; 
  
             List<GlobalJobHandle> jobHandles = timerJobsPerSession.get(processCtx.getSessionId());
@@ -108,7 +127,12 @@ public class GlobalTimerService implements TimerService, InternalSchedulerServic
         if (jobHandle == null) {
             return false;
         }
-        
+
+        if (startTimerJobs.contains(jobHandle)) {
+            logger.debug("Start Job timer handle found {} removed", jobHandle.getId());
+            return this.schedulerService.removeJob(jobHandle);
+        }
+
         long sessionId = ((GlobalJobHandle) jobHandle).getSessionId();
         List<GlobalJobHandle> handles = timerJobsPerSession.get(sessionId);
         if (handles == null) {
@@ -135,6 +159,14 @@ public class GlobalTimerService implements TimerService, InternalSchedulerServic
     }
 
     @Override
+    public void reset() {
+        schedulerService.initScheduler(this);
+        timerJobsPerSession.clear();
+        startTimerJobs.clear();
+        jobFactoryManager = initJobFactoryManager();
+    }
+
+    @Override
     public void shutdown() {
         //do nothing, this timer service is always active
 
@@ -147,6 +179,8 @@ public class GlobalTimerService implements TimerService, InternalSchedulerServic
                 this.schedulerService.removeJob(handle);
             }
         }
+
+        startTimerJobs.stream().forEach(handle -> this.schedulerService.removeJob(handle));
     }
 
     @Override
@@ -166,16 +200,16 @@ public class GlobalTimerService implements TimerService, InternalSchedulerServic
                 }
             }
         }   
-        logger.debug("Returning  timers {} for session {}", timers, id);
+        logger.debug("Returning timers {} per session registered for KieSessionId {}", timers, id);
         return timers;
     }
     
     public void clearTimerJobInstances(long id) {
         synchronized (timerJobsPerSession) {            
             List<GlobalJobHandle> jobs = timerJobsPerSession.remove(id); 
-            logger.debug("Removed {} jobs for session {}", jobs, id);
-            
-            logger.debug("Size of timer jobs per session is {}", timerJobsPerSession.size());
+
+            logger.debug(" KieSessionId {} jobs removed: {}. Current size of timerJobsPerSession is {}", id, (jobs == null) ? "none" : jobs,  timerJobsPerSession.size());
+
             if (jobs != null) {
                 for (GlobalJobHandle handle : jobs) {
                     jobFactoryManager.removeTimerJobInstance(handle.getTimerJobInstance());

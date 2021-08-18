@@ -21,12 +21,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.jbpm.process.audit.JPAAuditLogService;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.manager.Context;
-import org.kie.api.runtime.manager.RuntimeEngine;
 import org.kie.api.runtime.manager.RuntimeManager;
 import org.kie.api.runtime.manager.audit.AuditService;
 import org.kie.api.task.TaskService;
 import org.kie.internal.runtime.manager.Disposable;
 import org.kie.internal.runtime.manager.DisposeListener;
+import org.kie.internal.runtime.manager.InternalRuntimeEngine;
 import org.kie.internal.runtime.manager.InternalRuntimeManager;
 
 /**
@@ -35,22 +35,28 @@ import org.kie.internal.runtime.manager.InternalRuntimeManager;
  * and work item handlers might be interested in receiving notification when the runtime engine is disposed of,
  * in order deactivate themselves too and not receive any other events.
  */
-public class RuntimeEngineImpl implements RuntimeEngine, Disposable {
+public class RuntimeEngineImpl implements InternalRuntimeEngine, Disposable {
 
 	private RuntimeEngineInitlializer initializer;
 	private Context<?> context;
 
     private KieSession ksession;
-    private Long kieSessionId;
+    private Long kieSessionId = null;
     private TaskService taskService;
     private AuditService auditService;
     
-    private RuntimeManager manager;
+    protected RuntimeManager manager;
     
     private boolean disposed = false;
     private boolean afterCompletion = false;
     
     private List<DisposeListener> listeners = new CopyOnWriteArrayList<DisposeListener>();
+
+
+    public RuntimeEngineImpl(Context<?> context, TaskService taskService) {
+        this.context = context;
+        this.taskService = taskService;
+    }
     
     public RuntimeEngineImpl(KieSession ksession, TaskService taskService) {
         this.ksession = ksession;
@@ -65,16 +71,11 @@ public class RuntimeEngineImpl implements RuntimeEngine, Disposable {
     
     @Override
     public KieSession getKieSession() {
-        if (this.disposed) {
-            throw new IllegalStateException("This runtime is already diposed");
-        }
-        if (ksession == null && initializer != null) {
-        	ksession = initializer.initKieSession(context, (InternalRuntimeManager) manager, this);
-        	this.kieSessionId = ksession.getIdentifier();
-        }
+        internalGetKieSession();
+        ((AbstractRuntimeManager) manager).checkPermission();
         return this.ksession;
     }
-
+    
     @Override
     public TaskService getTaskService() {
         if (this.disposed) {
@@ -83,6 +84,12 @@ public class RuntimeEngineImpl implements RuntimeEngine, Disposable {
         if (taskService == null) {
         	if (initializer != null) {
         		taskService = initializer.initTaskService(context, (InternalRuntimeManager) manager, this);
+        		// init ksession in case there is security manager configured
+        		if (((InternalRuntimeManager) manager).hasSecurityManager() && ksession == null && initializer != null) {
+                    
+                    ksession = initializer.initKieSession(context, (InternalRuntimeManager) manager, this);
+                    this.kieSessionId = ksession.getIdentifier();
+                }
         	}
         	if (taskService == null) {
         		throw new UnsupportedOperationException("TaskService was not configured");
@@ -148,7 +155,15 @@ public class RuntimeEngineImpl implements RuntimeEngine, Disposable {
 	}
 	
 	public KieSession internalGetKieSession() {
-		return ksession;
+        if (this.disposed) {
+            throw new IllegalStateException("This runtime is already diposed");
+        }
+        if (ksession == null && initializer != null) {
+            
+            ksession = initializer.initKieSession(context, (InternalRuntimeManager) manager, this);
+            this.kieSessionId = ksession.getIdentifier();
+        }
+        return this.ksession;
 	}
 
 	public void internalSetKieSession(KieSession ksession) {
@@ -171,8 +186,18 @@ public class RuntimeEngineImpl implements RuntimeEngine, Disposable {
     public void setContext(Context<?> context) {
         this.context = context;
     }
+
     
+    public Long getLazyKieSessionId() {
+        return (initializer != null && initializer.getKieSessionId() != null) ? initializer.getKieSessionId() : this.kieSessionId;
+    }
+
     public Long getKieSessionId() {
         return kieSessionId;
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + "(KieSessionId=" + getLazyKieSessionId() + ")";
     }
 }

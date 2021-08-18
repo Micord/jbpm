@@ -16,27 +16,74 @@
 
 package org.jbpm.process.audit.query;
 
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.jbpm.process.audit.JPAAuditLogService;
+import org.jbpm.process.audit.QueryHelper;
 import org.jbpm.process.audit.command.AuditCommand;
 import org.jbpm.query.jpa.builder.impl.AbstractDeleteBuilderImpl;
 import org.jbpm.query.jpa.data.QueryWhere;
+import org.jbpm.query.jpa.impl.QueryAndParameterAppender;
 import org.kie.api.runtime.CommandExecutor;
 import org.kie.api.runtime.Context;
 import org.kie.internal.query.ParametrizedUpdate;
+import org.kie.internal.query.QueryParameterIdentifiers;
 import org.kie.internal.runtime.manager.audit.query.AuditDeleteBuilder;
 
-import java.sql.Timestamp;
-import java.util.Date;
-
-import static org.kie.internal.query.QueryParameterIdentifiers.*;
+import static org.kie.internal.query.QueryParameterIdentifiers.DATE_LIST;
+import static org.kie.internal.query.QueryParameterIdentifiers.PROCESS_ID_LIST;
+import static org.kie.internal.query.QueryParameterIdentifiers.PROCESS_INSTANCE_ID_LIST;
 
 public abstract class AbstractAuditDeleteBuilderImpl<T> extends AbstractDeleteBuilderImpl<T> implements AuditDeleteBuilder<T> {
 
-    protected static String ONLY_COMPLETED_PROCESS_INSTANCES = 
-            " l.processInstanceId in (select spl.processInstanceId \n"
-            + "FROM ProcessInstanceLog spl \n"
-            + "WHERE spl.status in (2, 3))";
-    
+    protected Integer[] statuses = new Integer[]{2, 3};
+    protected String deploymentId;
+    protected int recordsPerTransaction;
+
+
+    protected static class Subquery {
+
+        private String field;
+        private String queryBase;
+        private int queryParamId;
+        private QueryWhere where;
+
+        private QueryAndParameterAppender queryAndParameterAppender;
+
+        public Subquery(String field, String queryBase, int queryParamId) {
+            this.field = field;
+            this.queryBase = queryBase;
+            this.queryParamId = queryParamId;
+            this.where = new QueryWhere();
+        }
+
+        public Subquery parameter(String listId, Object... values) {
+            if (values == null || values.length == 0 || values[0] == null) {
+                return this;
+            }
+            where.setToIntersection();
+            where.addParameter(listId, values);
+            return this;
+        }
+
+        Map<String, Object> getQueryParams() {
+            if (queryAndParameterAppender != null) {
+                return queryAndParameterAppender.getQueryParams();
+            }
+            return null;
+        }
+        public String build() {
+            if (queryAndParameterAppender == null) {
+                queryAndParameterAppender = QueryHelper.createQuery(queryBase, where, new HashMap<>(), queryParamId);
+            }
+            return field + " in (" + queryAndParameterAppender.toSQL() + ")";
+        }
+
+    }
+
     protected final CommandExecutor executor; 
     protected final JPAAuditLogService jpaAuditService; 
     
@@ -103,6 +150,13 @@ public abstract class AbstractAuditDeleteBuilderImpl<T> extends AbstractDeleteBu
 
     @Override
     @SuppressWarnings("unchecked")
+    public T recordsPerTransaction(int numRecords) {
+        this.recordsPerTransaction = numRecords;
+        return (T) this;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
     public T processInstanceId(long... processInstanceId) {
         if (checkIfNull(processInstanceId)) {
             return (T) this;
@@ -121,8 +175,28 @@ public abstract class AbstractAuditDeleteBuilderImpl<T> extends AbstractDeleteBu
         return (T) this;
     }
 
-    
-    protected <T> boolean checkIfNull(T...parameter) {
+    @Override
+    @SuppressWarnings("unchecked")
+    public T logBelongsToProcessInStatus(Integer... statuses) {
+        if (checkIfNull(statuses)) {
+            return (T) this;
+        }
+        this.statuses = statuses;
+        return (T) this;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public T logBelongsToProcessInDeployment(String deploymentId) {
+        if (checkIfNull(deploymentId)) {
+            return (T) this;
+        }
+        this.deploymentId = deploymentId;
+        return (T) this;
+    }
+
+
+    protected <P> boolean checkIfNull(P... parameter) {
     	if( parameter == null ) { 
             return true;
         }
@@ -148,21 +222,39 @@ public abstract class AbstractAuditDeleteBuilderImpl<T> extends AbstractDeleteBu
 		return validated;
     }
  
-    abstract protected Class getQueryType();
+    abstract protected Class<?> getQueryType();
     
-    abstract protected String getQueryBase();
+    protected abstract String getQueryTable();
     
-    protected String getSubQuery() {
-        return null;
+    protected boolean isSubquerySupported() {
+        return false;
     }
-    
+
+    protected Subquery getSubQuery() {
+        return new Subquery("l.processInstanceId", "SELECT spl.processInstanceId FROM ProcessInstanceLog spl", 1);
+    }
+
+    protected Subquery applyParameters(Subquery subquery) {
+        return subquery.parameter(QueryParameterIdentifiers.SUBQUERY_STATUS, statuses)
+                       .parameter(QueryParameterIdentifiers.SUBQUERY_DEPLOYMENT, deploymentId);
+    }
+
     public ParametrizedUpdate build() {
         return new ParametrizedUpdate() {
             private QueryWhere queryWhere = new QueryWhere(getQueryWhere());
             @Override
             public int execute() {
-                int result = getJpaAuditLogService().doDelete(getQueryBase(), queryWhere, getQueryType(), getSubQuery());
-                return result;
+                Map<String, Object> params = new HashMap<>();
+                String subquerySQL = null;
+                if (isSubquerySupported()) {
+                    Subquery subquery = applyParameters(getSubQuery());
+                    subquerySQL = subquery.build();
+                    params.putAll(subquery.getQueryParams());
+                }
+                return recordsPerTransaction <= 0 ? getJpaAuditLogService().doDelete(getQueryTable(), queryWhere,
+                        subquerySQL, params) : getJpaAuditLogService().doPartialDelete(getQueryTable(), queryWhere,
+                                subquerySQL, params, recordsPerTransaction);
+
             }
         };
     }

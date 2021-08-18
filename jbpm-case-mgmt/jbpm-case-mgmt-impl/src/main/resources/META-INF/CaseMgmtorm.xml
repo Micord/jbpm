@@ -10,7 +10,7 @@
     <query>
       select
       new org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl(
-        log.correlationKey, <!-- case id -->
+        log.correlationKey as CorrelationKey, <!-- case id -->
         log.processInstanceDescription, <!-- case description -->            
         log.processId, <!--case definition  -->
         log.status, <!-- case status -->
@@ -21,10 +21,12 @@
         log.processInstanceId, <!-- case top level process instance id -->
         log.outcome,
         log.slaDueDate,
-        log.slaCompliance   
+        log.slaCompliance,
+        parent.correlationKey
       )
       from
         ProcessInstanceLog log
+      left join ProcessInstanceLog parent on log.parentProcessInstanceId = parent.processInstanceId
       where 
         log.processType = 2
         and log.status in (:statuses)
@@ -34,12 +36,12 @@
     <!-- hint name="org.hibernate.timeout" value="200"/ -->
   </named-query>
   
-  <named-query name="getCaseInstancesByDeployment">
-
+    <!-- case instance queries -->
+  <named-query name="getSubCaseInstancesByParentCaseIds">
     <query>
       select
       new org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl(
-        log.correlationKey, <!-- case id -->
+        log.correlationKey as CorrelationKey, <!-- case id -->
         log.processInstanceDescription, <!-- case description -->            
         log.processId, <!--case definition  -->
         log.status, <!-- case status -->
@@ -50,10 +52,44 @@
         log.processInstanceId, <!-- case top level process instance id -->
         log.outcome,
         log.slaDueDate,
-        log.slaCompliance   
+        log.slaCompliance,
+        trim(parent.correlationKey) <!-- case parent id -->
+      )
+      from
+        ProcessInstanceLog log, ProcessInstanceLog parent
+      where 
+        log.processType = 2
+        and log.status in (:statuses)
+        and log.parentProcessInstanceId = parent.processInstanceId
+        and trim(parent.correlationKey) in (:parentCaseId)
+      ORDER BY
+        log.correlationKey, log.start
+    </query>
+    <!-- hint name="org.hibernate.timeout" value="200"/ -->
+  </named-query>
+
+  <named-query name="getCaseInstancesByDeployment">
+
+    <query>
+      select
+      new org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl(
+        log.correlationKey as CorrelationKey, <!-- case id -->
+        log.processInstanceDescription, <!-- case description -->            
+        log.processId, <!--case definition  -->
+        log.status, <!-- case status -->
+        log.externalId, <!-- deployment id -->
+        (select r.entityId from CaseRoleAssignmentLog r where r.processInstanceId = log.processInstanceId and r.roleName = 'owner' and r.type = 1), <!-- case owner -->
+        log.start, <!-- case start date  -->
+        log.end, <!-- case end date  -->
+        log.processInstanceId, <!-- case top level process instance id -->
+        log.outcome,
+        log.slaDueDate,
+        log.slaCompliance,
+        parent.correlationKey <!-- case parent id -->
       )
       from
         ProcessInstanceLog log
+      left join ProcessInstanceLog parent on log.parentProcessInstanceId = parent.processInstanceId
       where 
         log.processType = 2
         and log.externalId =:deploymentId
@@ -70,7 +106,7 @@
     <query>
       select
       new org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl(
-        log.correlationKey, <!-- case id -->
+        log.correlationKey as CorrelationKey, <!-- case id -->
         log.processInstanceDescription, <!-- case description -->            
         log.processId, <!--case definition  -->
         log.status, <!-- case status -->
@@ -81,10 +117,12 @@
         log.processInstanceId, <!-- case top level process instance id -->
         log.outcome,
         log.slaDueDate,
-        log.slaCompliance
+        log.slaCompliance,
+        parent.correlationKey
       )
       from
         ProcessInstanceLog log
+      left join ProcessInstanceLog parent on log.parentProcessInstanceId = parent.processInstanceId
       where 
         log.processType = 2
         and log.processId =:definitionId
@@ -101,7 +139,7 @@
     <query>
       select
       new org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl(
-        log.correlationKey, <!-- case id -->
+        log.correlationKey as CorrelationKey, <!-- case id -->
         log.processInstanceDescription, <!-- case description -->            
         log.processId, <!--case definition  -->
         log.status, <!-- case status -->
@@ -112,10 +150,12 @@
         log.processInstanceId, <!-- case top level process instance id -->
         log.outcome,
         log.slaDueDate,
-        log.slaCompliance
+        log.slaCompliance,
+        parent.correlationKey
       )
       from
         ProcessInstanceLog log
+      left join ProcessInstanceLog parent on log.parentProcessInstanceId = parent.processInstanceId
       where 
         log.processType = 2
         and log.processInstanceId in (select r.processInstanceId from CaseRoleAssignmentLog r where r.roleName = 'owner' and r.type = 1 and r.entityId = :owner)
@@ -131,7 +171,7 @@
     <query>
       select
       new org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl(
-        log.correlationKey, <!-- case id -->
+        log.correlationKey as CorrelationKey, <!-- case id -->
         log.processInstanceDescription, <!-- case description -->            
         log.processId, <!--case definition  -->
         log.status, <!-- case status -->
@@ -142,10 +182,12 @@
         log.processInstanceId, <!-- case top level process instance id -->
         log.outcome,
         log.slaDueDate,
-        log.slaCompliance
+        log.slaCompliance,
+        parent.correlationKey
       )
       from
-        ProcessInstanceLog log        
+        ProcessInstanceLog log       
+      left join ProcessInstanceLog parent on log.parentProcessInstanceId = parent.processInstanceId
       where         
         log.processType = 2
         and log.status in (:statuses)
@@ -161,7 +203,7 @@
     <query>
       select
       new org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl(
-        log.correlationKey, <!-- case id -->
+        log.correlationKey as CorrelationKey, <!-- case id -->
         log.processInstanceDescription, <!-- case description -->            
         log.processId, <!--case definition  -->
         log.status, <!-- case status -->
@@ -172,10 +214,12 @@
         log.processInstanceId, <!-- case top level process instance id -->
         log.outcome,
         log.slaDueDate,
-        log.slaCompliance
+        log.slaCompliance,
+        parent.correlationKey
       )
       from
         ProcessInstanceLog log        
+      left join ProcessInstanceLog parent on log.parentProcessInstanceId = parent.processInstanceId
       where         
         log.processType = 2
         and log.status in (:statuses)
@@ -191,7 +235,7 @@
     <query>
      select
       new org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl(
-        log.correlationKey, <!-- case id -->
+        log.correlationKey as CorrelationKey, <!-- case id -->
         log.processInstanceDescription, <!-- case description -->            
         log.processId, <!--case definition  -->
         log.status, <!-- case status -->
@@ -202,10 +246,12 @@
         log.processInstanceId, <!-- case top level process instance id -->
         log.outcome,
         log.slaDueDate,
-        log.slaCompliance
+        log.slaCompliance,
+        parent.correlationKey
       )
       from
-        ProcessInstanceLog log
+      ProcessInstanceLog log
+      left join ProcessInstanceLog parent on log.parentProcessInstanceId = parent.processInstanceId
       where
         log.correlationKey = :correlationKey
         order by log.processInstanceId desc
@@ -398,12 +444,13 @@
                 t.taskData.processInstanceId,
                 t.taskData.parentId,
                 t.taskData.deploymentId,
-                t.taskData.skipable              )
+                t.taskData.skipable, plog.correlationKey, plog.processType)
             from
             TaskImpl t
+            inner join ProcessInstanceLog plog ON t.taskData.processInstanceId = plog.processInstanceId
             join t.peopleAssignments.businessAdministrators businessAdministrators
             where
-            t.taskData.processInstanceId in (select log.processInstanceId from ProcessInstanceLog log where log.correlationKey like :caseId) and 
+            plog.correlationKey like :caseId and 
             t.archived = 0 and
             ( businessAdministrators.id = :userId or businessAdministrators.id in (:groupIds) ) and 
             t.taskData.status in (:status) 
@@ -432,13 +479,14 @@
                 t.taskData.processInstanceId,
                 t.taskData.parentId,
                 t.taskData.deploymentId,
-                t.taskData.skipable              )
+                t.taskData.skipable, plog.correlationKey, plog.processType)
             from
             TaskImpl t
+            inner join ProcessInstanceLog plog ON t.taskData.processInstanceId = plog.processInstanceId
             join t.peopleAssignments.potentialOwners potentialOwners
             left join t.peopleAssignments.excludedOwners as excludedOwners
             where
-            t.taskData.processInstanceId in (select log.processInstanceId from ProcessInstanceLog log where log.correlationKey like :caseId) and
+            plog.correlationKey like :caseId and
             t.archived = 0 and            
             (t.taskData.actualOwner.id = :userId or t.taskData.actualOwner is null) and 
             t.taskData.status in (:status) and 
@@ -468,12 +516,13 @@
                 t.taskData.processInstanceId,
                 t.taskData.parentId,
                 t.taskData.deploymentId,
-                t.taskData.skipable              )
+                t.taskData.skipable, plog.correlationKey, plog.processType)
             from
             TaskImpl t
+            inner join ProcessInstanceLog plog ON t.taskData.processInstanceId = plog.processInstanceId
             join t.peopleAssignments.taskStakeholders taskStakeholders
             where
-            t.taskData.processInstanceId in (select log.processInstanceId from ProcessInstanceLog log where log.correlationKey like :caseId) and
+            plog.correlationKey like :caseId and
             t.archived = 0 and                        
             t.taskData.status in (:status) and 
             ( taskStakeholders.id = :userId or taskStakeholders.id in (:groupIds) )
@@ -556,7 +605,7 @@
     <query>
       select
       new org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl(
-        log.correlationKey, <!-- case id -->
+        log.correlationKey as CorrelationKey, <!-- case id -->
         log.processInstanceDescription, <!-- case description -->            
         log.processId, <!--case definition  -->
         log.status, <!-- case status -->
@@ -567,10 +616,12 @@
         log.processInstanceId, <!-- case top level process instance id -->
         log.outcome,
         log.slaDueDate,
-        log.slaCompliance    
+        log.slaCompliance,
+        parent.correlationKey
       )
       from
         ProcessInstanceLog log
+      left join ProcessInstanceLog parent on log.parentProcessInstanceId = parent.processInstanceId
       where 
         log.processType = 2
         and log.status in (:statuses)
@@ -587,7 +638,7 @@
     <query>
       select
       new org.jbpm.casemgmt.impl.model.instance.CaseInstanceImpl(
-        log.correlationKey, <!-- case id -->
+        log.correlationKey as CorrelationKey, <!-- case id -->
         log.processInstanceDescription, <!-- case description -->            
         log.processId, <!--case definition  -->
         log.status, <!-- case status -->
@@ -598,10 +649,12 @@
         log.processInstanceId, <!-- case top level process instance id -->
         log.outcome,
         log.slaDueDate,
-        log.slaCompliance
+        log.slaCompliance,
+        parent.correlationKey
       )
       from
         ProcessInstanceLog log
+      left join ProcessInstanceLog parent on log.parentProcessInstanceId = parent.processInstanceId
       where 
         log.processType = 2
         and log.status in (:statuses)        

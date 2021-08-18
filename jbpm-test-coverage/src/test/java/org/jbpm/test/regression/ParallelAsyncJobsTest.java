@@ -18,27 +18,25 @@ package org.jbpm.test.regression;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.assertj.core.api.Assertions;
 import org.jbpm.executor.AsynchronousJobEvent;
 import org.jbpm.executor.impl.ExecutorServiceImpl;
 import org.jbpm.executor.impl.wih.AsyncWorkItemHandler;
-import org.jbpm.executor.test.CountDownAsyncJobListener;
-import org.jbpm.persistence.util.PersistenceUtil;
 import org.jbpm.test.JbpmAsyncJobTestCase;
-import org.jbpm.test.util.PoolingDataSource;
+import org.jbpm.test.listener.CountDownAsyncJobListener;
+import org.jbpm.test.persistence.util.PersistenceUtil;
 import org.junit.Test;
 import org.kie.api.executor.ExecutorService;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.api.runtime.query.QueryContext;
-
-import qa.tools.ikeeper.annotation.BZ;
+import org.kie.test.util.db.PoolingDataSourceWrapper;
 
 public class ParallelAsyncJobsTest extends JbpmAsyncJobTestCase {
 
@@ -62,16 +60,15 @@ public class ParallelAsyncJobsTest extends JbpmAsyncJobTestCase {
      * the 4 seconds so pending task count should not be lower than 3 if parallelism does not work.
      */
     @Test(timeout=30000)
-    @BZ("1146829")
-    public void testRunBasicAsync() throws Exception {
+    public void testRunBasicAsync() {
         ExecutorService executorService = getExecutorService();
-        final Set<String> threadExeuctingJobs = new HashSet<>();
+        final Set<String> threadExecutingJobs = new CopyOnWriteArraySet<>();
         CountDownAsyncJobListener countDownListener = new CountDownAsyncJobListener(4) {
 
             @Override
             public void afterJobExecuted(AsynchronousJobEvent event) {
+                threadExecutingJobs.add(Thread.currentThread().getName());
                 super.afterJobExecuted(event);
-                threadExeuctingJobs.add(Thread.currentThread().getName());
             }
             
         };
@@ -82,7 +79,7 @@ public class ParallelAsyncJobsTest extends JbpmAsyncJobTestCase {
                 "org.jbpm.test.command.LongRunningCommand"));
 
         List<String> exceptions = new ArrayList<String>();
-        exceptions.add("ADRESS_EXCEPTION");
+        exceptions.add("ADDRESS_EXCEPTION");
         exceptions.add("ID_EXCEPTION");
         exceptions.add("PHONE_EXCEPTION");
 
@@ -99,24 +96,17 @@ public class ParallelAsyncJobsTest extends JbpmAsyncJobTestCase {
         // assert that all jobs have where completed.
         Assertions.assertThat(executorService.getCompletedRequests(new QueryContext()))
                 .as("All async jobs should have been executed").hasSize(4);
-        Assertions.assertThat(threadExeuctingJobs)
+        Assertions.assertThat(threadExecutingJobs)
         .as("There should be 4 distinct threads as jobs where executed in parallel").hasSize(4);
     }
     
     @Override
-    protected PoolingDataSource setupPoolingDataSource() {        
-        
+    protected PoolingDataSourceWrapper setupPoolingDataSource() {
         Properties dsProps = PersistenceUtil.getDatasourceProperties();
-        String jdbcUrl = dsProps.getProperty("url");
-        String driverClass = dsProps.getProperty("driverClassName");        
+        dsProps.setProperty("POOL_CONNECTIONS", "false");
 
         // Setup the datasource
-        PoolingDataSource ds1 = PersistenceUtil.setupPoolingDataSource(dsProps, "jdbc/jbpm-ds", false);
-        if (driverClass.startsWith("org.h2")) {
-            ds1.getDriverProperties().setProperty("url", jdbcUrl);
-        }
-        ds1.getDriverProperties().setProperty("POOL_CONNECTIONS", "false");
-        ds1.init();
+        PoolingDataSourceWrapper ds1 = PersistenceUtil.setupPoolingDataSource(dsProps, "jdbc/jbpm-ds");
         return ds1;
     }
 

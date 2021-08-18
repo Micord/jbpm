@@ -6,14 +6,15 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm</artifactId>
-    <version>7.11.0-SNAPSHOT</version>
+    <version>7.59.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>jbpm-workitems</artifactId>
-  <name>jBPM :: WorkItems</name>
+  <name>WorkItems</name>
   <packaging>pom</packaging>
 
   <modules>
+    <module>jbpm-workitems-template-resources</module>
     <module>jbpm-workitems-core</module>
     <module>jbpm-workitems-bpmn2</module>
     <module>jbpm-workitems-email</module>
@@ -21,6 +22,7 @@
     <module>jbpm-workitems-rest</module>
     <module>jbpm-workitems-webservice</module>
     <module>jbpm-workitems-archetype</module>
+    <module>jbpm-workitems-repository-archetype</module>
   </modules>
 
   <dependencies>
@@ -87,13 +89,14 @@
 
     <dependency>
       <groupId>org.jbpm</groupId>
-      <artifactId>jbpm-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jbpm</groupId>
       <artifactId>jbpm-test-util</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>javax.activation</groupId>
+          <artifactId>javax.activation-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 

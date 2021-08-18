@@ -16,14 +16,14 @@
 
 package org.jbpm.workflow.core.impl;
 
-import org.kie.api.definition.process.Node;
-import org.kie.api.definition.process.NodeContainer;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jbpm.process.core.correlation.CorrelationManager;
 import org.jbpm.process.core.impl.ProcessImpl;
 import org.jbpm.workflow.core.WorkflowProcess;
+import org.kie.api.definition.process.Node;
+import org.kie.api.definition.process.NodeContainer;
 
 /**
  * Default implementation of a RuleFlow process.
@@ -36,7 +36,13 @@ public class WorkflowProcessImpl extends ProcessImpl implements WorkflowProcess,
     private boolean autoComplete = false;
     private boolean dynamic = false;
     private org.jbpm.workflow.core.NodeContainer nodeContainer;
-    
+
+    private CorrelationManager correlationManager = new CorrelationManager();
+
+    public CorrelationManager getCorrelationManager() {
+        return correlationManager;
+    }
+
     public WorkflowProcessImpl() {
         nodeContainer = (org.jbpm.workflow.core.NodeContainer) createNodeContainer();
     }
@@ -53,6 +59,10 @@ public class WorkflowProcessImpl extends ProcessImpl implements WorkflowProcess,
         return nodeContainer.getNode(id);
     }
     
+    public Node getNodeByUniqueId(String nodeId) {
+        return nodeContainer.getNodeByUniqueId(nodeId);
+    }
+
     public Node internalGetNode(long id) {
     	try {
     		return getNode(id);
@@ -116,4 +126,22 @@ public class WorkflowProcessImpl extends ProcessImpl implements WorkflowProcess,
             }
         }
     }
+
+    protected Node getContainerNode(Node currentNode, org.jbpm.workflow.core.NodeContainer nodeContainer, long nodeId) {
+        for (Node node : nodeContainer.getNodes()) {
+            if (nodeId == node.getId()) {
+                return currentNode;
+            } else {
+                if (node instanceof org.jbpm.workflow.core.NodeContainer) {
+                    return getContainerNode(node, (org.jbpm.workflow.core.NodeContainer) node, nodeId);
+                }
+            }
+        }
+        return null;
+    }
+
+    public Node getParentNode(long nodeId) {
+        return getContainerNode(null, nodeContainer, nodeId);
+    }
+
 }

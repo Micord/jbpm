@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.kie.api.task.model.Status.InProgress;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.naming.InitialContext;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import javax.persistence.Query;
 import javax.transaction.UserTransaction;
 
 import org.jbpm.bpmn2.handler.SendTaskHandler;
@@ -44,7 +46,7 @@ import org.jbpm.services.task.events.DefaultTaskEventListener;
 import org.jbpm.services.task.identity.JBossUserGroupCallbackImpl;
 import org.jbpm.test.listener.process.NodeLeftCountDownProcessEventListener;
 import org.jbpm.test.util.AbstractBaseTest;
-import org.jbpm.test.util.PoolingDataSource;
+import org.kie.test.util.db.PoolingDataSourceWrapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,13 +77,14 @@ import org.kie.internal.process.CorrelationAwareProcessRuntime;
 import org.kie.internal.process.CorrelationKey;
 import org.kie.internal.process.CorrelationKeyFactory;
 import org.kie.internal.runtime.manager.InternalRuntimeManager;
+import org.kie.internal.runtime.manager.SessionNotFoundException;
 import org.kie.internal.runtime.manager.TaskServiceFactory;
 import org.kie.internal.runtime.manager.context.CorrelationKeyContext;
 import org.kie.internal.runtime.manager.context.EmptyContext;
 import org.kie.internal.runtime.manager.context.ProcessInstanceIdContext;
 
 public class PerProcessInstanceRuntimeManagerTest extends AbstractBaseTest {
-    private PoolingDataSource pds;
+    private PoolingDataSourceWrapper pds;
     private UserGroupCallback userGroupCallback;
     private RuntimeManager manager;
     private EntityManagerFactory emf;
@@ -1521,4 +1524,110 @@ public class PerProcessInstanceRuntimeManagerTest extends AbstractBaseTest {
 
         manager.close();
     }
+    
+    @Test
+    public void testExceptionWhenCompleteTaskAfterEngineDisposal() throws Exception {
+        RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()
+                .newDefaultBuilder()
+                .userGroupCallback(userGroupCallback)
+                .addAsset(ResourceFactory.newClassPathResource("BPMN2-UserTask.bpmn2"), ResourceType.BPMN2)
+                .get();
+
+        manager = RuntimeManagerFactory.Factory.get().newPerProcessInstanceRuntimeManager(environment);
+        RuntimeEngine runtime = manager.getRuntimeEngine(EmptyContext.get());
+        KieSession ksession = runtime.getKieSession();
+
+        ProcessInstance processInstance = ksession.startProcess("UserTask");
+
+        TaskService taskService = runtime.getTaskService();
+        List<Long> taskIds = taskService.getTasksByProcessInstanceId(processInstance.getId());
+        Long taskId = taskIds.get(0);
+        taskService.start(taskId, "john");
+        
+        manager.disposeRuntimeEngine(runtime);
+        manager.close();
+        
+        Map<String, Object> params = new HashMap<>();
+        try {
+            taskService.complete(taskId, "john", params);
+            fail("should throw RuntimeException");
+        } catch (RuntimeException e) {
+        }
+        
+        // Check that status keeps on InProgress at Task table
+        assertEquals(InProgress, taskService.getTaskById(taskId).getTaskData().getStatus());
+        
+        // Same at AuditTaskImpl
+        String auditPu = ((InternalRuntimeManager) manager).getDeploymentDescriptor().getAuditPersistenceUnit();
+        EntityManagerFactory emf = EntityManagerFactoryManager.get().getOrCreate(auditPu);
+        Query auditTaskLogQuery = emf.createEntityManager()
+                                     .createQuery("select status from AuditTaskImpl where taskId = :taskId")
+                                     .setParameter("taskId", taskId);
+        assertEquals(InProgress.name(), auditTaskLogQuery.getResultList().get(0));
+        emf.close();
+    }
+
+    @Test(timeout=15000)
+    public void testIndependentSubprocessAbortLocking() throws InterruptedException {
+        // independent = true
+        RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()
+                .newDefaultBuilder()
+                .userGroupCallback(userGroupCallback)
+                .addAsset(ResourceFactory.newClassPathResource("BPMN2-CallActivity.bpmn2"), ResourceType.BPMN2)
+                .addAsset(ResourceFactory.newClassPathResource("BPMN2-CallActivitySubProcess.bpmn2"), ResourceType.BPMN2)
+                .get();
+
+        manager = RuntimeManagerFactory.Factory.get().newPerProcessInstanceRuntimeManager(environment);
+        assertNotNull(manager);
+        // since there is no process instance yet we need to get new session
+        RuntimeEngine runtime = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
+        KieSession ksession = runtime.getKieSession();
+
+        assertNotNull(ksession);
+        long ksession1Id = ksession.getIdentifier();
+        assertTrue(ksession1Id == 2);
+
+        ProcessInstance pi1 = ksession.startProcess("ParentProcess");
+
+        assertEquals(ProcessInstance.STATE_ACTIVE, pi1.getState());
+
+        // Aborting the parent process
+        ksession.abortProcessInstance(pi1.getId());
+
+        AuditService logService = runtime.getAuditService();
+
+        List<? extends ProcessInstanceLog> logs = logService.findActiveProcessInstances("SubProcess");
+        assertNotNull(logs);
+        assertEquals(1, logs.size());
+        long childId = logs.get(0).getProcessInstanceId();
+
+        manager.disposeRuntimeEngine(runtime);
+        runtime = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
+        ksession = runtime.getKieSession();
+
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>> Completing task");
+        TaskService taskService = runtime.getTaskService();
+        List<Long> taskIds = taskService.getTasksByProcessInstanceId(childId);
+        Long taskId = taskIds.get(0);
+        taskService.start(taskId, "john");
+        taskService.complete(taskId, "john", new HashMap<String, Object>());
+        
+        manager.disposeRuntimeEngine(runtime);
+
+        Runnable run = new Runnable() {
+            public void run() {
+                try {
+                    RuntimeEngine runtime = manager.getRuntimeEngine(ProcessInstanceIdContext.get(pi1.getId()));
+                    runtime.getKieSession();
+                } catch (SessionNotFoundException e) {
+                    // do nothing
+                }
+            };
+        };
+
+        Thread executor = new Thread(run);
+        executor.start();
+        executor.join();
+    }
+
 }

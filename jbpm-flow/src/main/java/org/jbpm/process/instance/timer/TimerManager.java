@@ -16,16 +16,23 @@
 
 package org.jbpm.process.instance.timer;
 
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.drools.core.common.InternalKnowledgeRuntime;
 import org.drools.core.common.InternalWorkingMemory;
 import org.drools.core.marshalling.impl.MarshallerReaderContext;
 import org.drools.core.marshalling.impl.MarshallerWriteContext;
-import org.drools.core.marshalling.impl.ProtobufInputMarshaller;
-import org.drools.core.marshalling.impl.ProtobufMessages;
-import org.drools.core.marshalling.impl.ProtobufMessages.Timers.Timer;
-import org.drools.core.marshalling.impl.ProtobufOutputMarshaller;
-import org.drools.core.marshalling.impl.TimersInputMarshaller;
-import org.drools.core.marshalling.impl.TimersOutputMarshaller;
+import org.drools.serialization.protobuf.ProtobufInputMarshaller;
+import org.drools.serialization.protobuf.ProtobufMessages;
+import org.drools.serialization.protobuf.ProtobufMessages.Timers.Timer;
+import org.drools.serialization.protobuf.ProtobufOutputMarshaller;
+import org.drools.serialization.protobuf.TimersInputMarshaller;
+import org.drools.serialization.protobuf.TimersOutputMarshaller;
 import org.drools.core.time.Job;
 import org.drools.core.time.JobContext;
 import org.drools.core.time.JobHandle;
@@ -44,13 +51,6 @@ import org.kie.api.time.SessionClock;
 import org.kie.internal.runtime.StatefulKnowledgeSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 
@@ -237,10 +237,10 @@ public class TimerManager {
 
     public static class ProcessTimerInputMarshaller implements TimersInputMarshaller {
 
-        public void deserialize(MarshallerReaderContext inCtx, Timer timer) throws ClassNotFoundException {
+        public void deserialize(MarshallerReaderContext inCtx, Timer timer) {
             JBPMMessages.ProcessTimer ptimer = timer.getExtension(JBPMMessages.procTimer);
 
-            TimerService ts = inCtx.wm.getTimerService();
+            TimerService ts = inCtx.getWorkingMemory().getTimerService();
 
             long processInstanceId = ptimer.getTimer().getProcessInstanceId();
 
@@ -248,12 +248,12 @@ public class TimerManager {
 
             TimerInstance timerInstance = ProtobufProcessMarshaller.readTimer(inCtx, ptimer.getTimer());
 
-            TimerManager tm = ((InternalProcessRuntime) inCtx.wm.getProcessRuntime()).getTimerManager();
+            TimerManager tm = ((InternalProcessRuntime) inCtx.getWorkingMemory().getProcessRuntime()).getTimerManager();
 
             // check if the timer instance is not already registered to avoid duplicated timers
             if (!tm.getTimerMap().containsKey(timerInstance.getId())) {
                 ProcessJobContext pctx = new ProcessJobContext(timerInstance, trigger, processInstanceId,
-                        inCtx.wm.getKnowledgeRuntime(), false);
+                        inCtx.getWorkingMemory().getKnowledgeRuntime(), false);
                 Date date = trigger.hasNextFireTime();
 
                 if (date != null) {
@@ -261,9 +261,10 @@ public class TimerManager {
                     long now = pctx.getKnowledgeRuntime().getSessionClock().getCurrentTime();
                     // overdue timer                    
                     if (then < now) {
-                        trigger = new OverdueTrigger(trigger, pctx.getKnowledgeRuntime());
+                        trigger = new OverdueTrigger(trigger);
                     }
                 }
+                trigger.initialize(pctx.getKnowledgeRuntime());
                 JobHandle jobHandle = ts.scheduleJob(processJob, pctx, trigger);
                 timerInstance.setJobHandle(jobHandle);
                 pctx.setJobHandle(jobHandle);
@@ -485,10 +486,14 @@ public class TimerManager {
         public static final long OVERDUE_DELAY = Long.parseLong(System.getProperty("jbpm.overdue.timer.delay", "2000"));
 
         private Trigger orig;
-        private InternalKnowledgeRuntime kruntime;
+        private transient InternalKnowledgeRuntime kruntime;
 
-        public OverdueTrigger(Trigger orig, InternalKnowledgeRuntime kruntime) {
+        public OverdueTrigger(Trigger orig) {
             this.orig = orig;
+        }
+
+        @Override
+        public void initialize(InternalKnowledgeRuntime kruntime) {
             this.kruntime = kruntime;
         }
 
@@ -498,6 +503,11 @@ public class TimerManager {
                 return null;
             }
             long then = date.getTime();
+            if(kruntime == null) {
+                // it means there was an error about session so kruntime could not be calculated
+                // we need to return null in this case to repeat the same trigger.
+                return null;
+            }
             long now = kruntime.getSessionClock().getCurrentTime();
             // overdue timer
             if (then < now) {

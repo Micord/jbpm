@@ -16,11 +16,6 @@
 
 package org.jbpm.casemgmt.impl;
 
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static org.jbpm.kie.services.impl.CommonUtils.getAuthenticatedUserRoles;
-import static org.kie.internal.query.QueryParameterIdentifiers.FILTER;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +30,7 @@ import java.util.stream.Collectors;
 
 import org.jbpm.casemgmt.api.CaseNotFoundException;
 import org.jbpm.casemgmt.api.CaseRuntimeDataService;
+import org.jbpm.casemgmt.api.CaseService;
 import org.jbpm.casemgmt.api.auth.AuthorizationManager;
 import org.jbpm.casemgmt.api.generator.CaseIdGenerator;
 import org.jbpm.casemgmt.api.model.AdHocFragment;
@@ -61,6 +57,7 @@ import org.jbpm.kie.services.impl.model.NodeInstanceDesc;
 import org.jbpm.kie.services.impl.model.ProcessAssetDesc;
 import org.jbpm.kie.services.impl.security.DeploymentRolesManager;
 import org.jbpm.runtime.manager.impl.AbstractRuntimeManager;
+import org.jbpm.runtime.manager.impl.identity.UserDataServiceProvider;
 import org.jbpm.services.api.DeploymentEvent;
 import org.jbpm.services.api.DeploymentEventListener;
 import org.jbpm.services.api.RuntimeDataService;
@@ -82,12 +79,19 @@ import org.kie.api.definition.process.NodeContainer;
 import org.kie.api.definition.process.Process;
 import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.api.runtime.query.QueryContext;
+import org.kie.api.task.UserGroupCallback;
 import org.kie.api.task.model.Status;
 import org.kie.api.task.model.TaskSummary;
 import org.kie.internal.KieInternalServices;
 import org.kie.internal.identity.IdentityProvider;
 import org.kie.internal.process.CorrelationKey;
 import org.kie.internal.process.CorrelationKeyFactory;
+
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static org.jbpm.kie.services.impl.CommonUtils.getAuthenticatedUserRoles;
+import static org.jbpm.kie.services.impl.CommonUtils.getCallbackUserRoles;
+import static org.kie.internal.query.QueryParameterIdentifiers.FILTER;
 
 
 public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, DeploymentEventListener {
@@ -101,8 +105,10 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
     
     private RuntimeDataService runtimeDataService;
     private TransactionalCommandService commandService;
+    private CaseService caseService;
 
     private IdentityProvider identityProvider;
+    private UserGroupCallback userGroupCallback = UserDataServiceProvider.getUserGroupCallback();
     private DeploymentRolesManager deploymentRolesManager = new DeploymentRolesManager();
     
     // default statuses set to active only
@@ -134,6 +140,10 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
     
     public void setRuntimeDataService(RuntimeDataService runtimeDataService) {
         this.runtimeDataService = runtimeDataService;
+    }
+    
+    public void setCaseService (CaseService caseService) {
+        this.caseService = caseService;
     }
     
     public void setCommandService(TransactionalCommandService commandService) {
@@ -170,9 +180,8 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
                 Map<String, List<String>> dataAccessRestrictions = collectDataAccessRestrictions(process);
                 
                 CaseDefinitionImpl caseDef = new CaseDefinitionImpl((ProcessAssetDesc) mapProcessById.get(process.getId()), caseIdPrefix, caseStages, caseMilestones, caseRoles, adHocFragments, dataAccessRestrictions);
-                
+                caseDef.setIdentifierPrefixSequence(collectCaseIdPrefixIsSequence(process));
                 availableCases.add(caseDef);
-                caseIdGenerator.register(caseIdPrefix);
             }
         }
         
@@ -211,8 +220,8 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
                 .collect(toList());
         
         availableProcesses.removeAll(undeployedProcesses);
-        
-        undeployed.forEach(caseDef -> caseIdGenerator.unregister(caseDef.getIdentifierPrefix()));
+
+        availableCases.forEach(e -> e.getResolvedIdentifierPrefixes().forEach(casePrefix -> caseIdGenerator.unregister(casePrefix)));
         deploymentRolesManager.removeRolesForDeployment(event.getDeploymentId());
 
     }
@@ -340,44 +349,47 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
 
     @Override
     public Collection<CaseMilestoneInstance> getCaseInstanceMilestones(String caseId, boolean achievedOnly, QueryContext queryContext) {
-        ProcessInstanceDesc pi = runtimeDataService.getProcessInstanceByCorrelationKey(correlationKeyFactory.newCorrelationKey(caseId));        
+        ProcessInstanceDesc pi = runtimeDataService.getProcessInstanceByCorrelationKey(correlationKeyFactory.newCorrelationKey(caseId));
         if (pi == null || !pi.getState().equals(ProcessInstance.STATE_ACTIVE)) {
             throw new CaseNotFoundException("No case instance found with id " + caseId + " or it's not active anymore");
         }
         CorrelationKey correlationKey = correlationKeyFactory.newCorrelationKey(caseId);
-        
-        Collection<org.jbpm.services.api.model.NodeInstanceDesc> nodes = runtimeDataService.getNodeInstancesByCorrelationKeyNodeType(correlationKey, 
-                                                                                                Arrays.asList(ProcessInstance.STATE_ACTIVE), 
-                                                                                                Arrays.asList("MilestoneNode"), 
-                                                                                                queryContext);
-        
-        Collection<Long> completedNodes = nodes.stream().filter(n -> ((NodeInstanceDesc)n).getType() == 1).map(n -> n.getId()).collect(toList());
-        Predicate<org.jbpm.services.api.model.NodeInstanceDesc> filterNodes = null;
-        if (achievedOnly) {            
-            filterNodes = n -> ((NodeInstanceDesc)n).getType() == 1;             
-        } else {
-            filterNodes = n -> ((NodeInstanceDesc)n).getType() == 0;
-        }
-        List<String> foundMilestones = new ArrayList<>();
-        
-        List<CaseMilestoneInstance> milestones = nodes.stream()
-        .filter(filterNodes)
-        .map(n -> {
-            foundMilestones.add(n.getName());
-            return new CaseMilestoneInstanceImpl(String.valueOf(n.getId()), n.getName(), completedNodes.contains(n.getId()), n.getDataTimeStamp());        
-        })
-        .collect(toList());
-        
+
+        Collection<org.jbpm.services.api.model.NodeInstanceDesc> nodes = runtimeDataService.getNodeInstancesByCorrelationKeyNodeType(correlationKey,
+                                                                                                                                     Arrays.asList(ProcessInstance.STATE_ACTIVE, ProcessInstance.STATE_ABORTED),
+                                                                                                                                     Arrays.asList("MilestoneNode"),
+                                                                                                                                     queryContext);
+
+        // achieved milestones
+        Map<String, List<CaseMilestoneInstance>> milestonesGroup = nodes.stream()
+                                                                        .map(n -> (NodeInstanceDesc) n)
+                                                                        .filter(n -> n.getType() == 1)
+                                                                        .map(n -> new CaseMilestoneInstanceImpl(String.valueOf(n.getId()), n.getName(), true, n.getDataTimeStamp()))
+                                                                        .collect(Collectors.groupingBy(CaseMilestoneInstance::getName));
+
+        List<CaseMilestoneInstance> milestones = milestonesGroup.values().stream().map(e -> e.stream().min(this::compareMilestones).get()).collect(toList());
+        List<String> foundMilestones = milestones.stream().map(CaseMilestoneInstance::getName).collect(toList());
+
         if (!achievedOnly) {
             // add other milestones that are present in the definition
             CaseDefinition caseDef = getCase(pi.getDeploymentId(), pi.getProcessId());
             caseDef.getCaseMilestones().stream()
-            .filter(cm -> !foundMilestones.contains(cm.getName()))
-            .map(cm -> new CaseMilestoneInstanceImpl(cm.getId(), cm.getName(), false, null))
-            .forEach(cmi -> milestones.add(cmi));
+                   .filter(cm -> !foundMilestones.contains(cm.getName()))
+                   .map(cm -> new CaseMilestoneInstanceImpl(cm.getId(), cm.getName(), false, null))
+                   .forEach(cmi -> milestones.add(cmi));
         }
-        
-        return applyPagination(milestones, queryContext);
+
+        List<CaseMilestoneInstance> sortedMilestones = milestones.stream().sorted(this::compareMilestones).collect(toList());
+        return applyPagination(sortedMilestones, queryContext);
+    }
+
+    private int compareMilestones(CaseMilestoneInstance o1, CaseMilestoneInstance o2) {
+        if (o1.getAchievedAt() == null) {
+            return -1;
+        } else if (o2.getAchievedAt() == null) {
+            return 1;
+        }
+        return o1.getAchievedAt().compareTo(o2.getAchievedAt());
     }
 
     @Override
@@ -421,65 +433,111 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
 
     @Override
     public Collection<CaseInstance> getCaseInstances(QueryContext queryContext) {
-
         return getCaseInstances(statuses, queryContext);
+    }
+
+    @Override
+    public Collection<CaseInstance> getCaseInstances(boolean withData, QueryContext queryContext) {
+        return getCaseInstances(statuses, withData, queryContext);
+    }
+
+    @Override
+    public Collection<CaseInstance> getCaseInstances(List<CaseStatus> statuses, QueryContext queryContext) {
+        return getCaseInstances (statuses, false, queryContext);
     }
     
     @Override
-    public Collection<CaseInstance> getCaseInstances(List<CaseStatus> statuses, QueryContext queryContext) {
+    public Collection<CaseInstance> getCaseInstances(List<CaseStatus> statuses, boolean withData, QueryContext queryContext) {
         
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("statuses", resolveCaseStatuses(statuses));
         applyQueryContext(params, queryContext);
         applyDeploymentFilter(params);
-        List<CaseInstance> processInstances =  commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstances", params));
-
-        return processInstances;
+        return fillCaseFiles(commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstances", params)),withData);
     }
 
+    @Override
+    public Collection<CaseInstance> getSubCaseInstancesByParentCaseId(String parentCaseId, List<CaseStatus> statuses, QueryContext queryContext) {
+        return getSubCases(Arrays.asList(parentCaseId), statuses, queryContext);
+    }
+
+    @Override
+    public Collection<CaseInstance> getAllDescendantSubCaseInstancesByParentCaseId(String parentCaseId, List<CaseStatus> statuses) {
+        // this will iterate foreach level. It will do as much queries as levels in the hierarchy
+        List<CaseInstance> cases = new ArrayList<>();
+        List<String> ids = Arrays.asList(parentCaseId);
+        do {
+            Collection<CaseInstance> processInstances = getSubCases(ids, statuses, null);
+            cases.addAll(processInstances);
+            ids = processInstances.stream().map(CaseInstance::getCaseId).collect(Collectors.toList());
+        } while (!ids.isEmpty()); // empty means there are not more leves to go
+
+        return cases;
+    }
+
+    private Collection<CaseInstance> getSubCases(List<String> parentCaseId, List<CaseStatus> statuses, QueryContext queryContext) {
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("parentCaseId", parentCaseId);
+        params.put("statuses", resolveCaseStatuses(statuses));
+        applyQueryContext(params, queryContext);
+        applyDeploymentFilter(params);
+        return commandService.execute(new QueryNameCommand<List<CaseInstance>>("getSubCaseInstancesByParentCaseIds", params));
+    }
 
     @Override
     public Collection<CaseInstance> getCaseInstancesByDeployment(String deploymentId, List<CaseStatus> statuses, QueryContext queryContext) {
+        return getCaseInstancesByDeployment(deploymentId, statuses, false, queryContext);
+    }
+
+    @Override
+    public Collection<CaseInstance> getCaseInstancesByDeployment(String deploymentId, List<CaseStatus> statuses, boolean withData, QueryContext queryContext) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("deploymentId", deploymentId);
         params.put("statuses", resolveCaseStatuses(statuses));
         params.put("entities", collectUserAuthInfo());
         applyQueryContext(params, queryContext);
         applyDeploymentFilter(params);
-        List<CaseInstance> processInstances =  commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesByDeployment", params));
-
-        return processInstances;
+        return fillCaseFiles(commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesByDeployment", params)),withData);
     }
-
 
     @Override
     public Collection<CaseInstance> getCaseInstancesByDefinition(String definitionId, List<CaseStatus> statuses, QueryContext queryContext) {
+        return getCaseInstancesByDefinition(definitionId, statuses, false, queryContext);
+    }
+
+    @Override
+    public Collection<CaseInstance> getCaseInstancesByDefinition(String definitionId, List<CaseStatus> statuses, boolean withData, QueryContext queryContext) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("definitionId", definitionId);
         params.put("statuses", resolveCaseStatuses(statuses));
         params.put("entities", collectUserAuthInfo());
         applyQueryContext(params, queryContext);
         applyDeploymentFilter(params);
-        List<CaseInstance> processInstances =  commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesByDefinition", params));
-
-        return processInstances;
+        return fillCaseFiles(commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesByDefinition", params)),withData);
     }
-
 
     @Override
     public Collection<CaseInstance> getCaseInstancesOwnedBy(String owner, List<CaseStatus> statuses, QueryContext queryContext) {
+        return getCaseInstancesOwnedBy(owner,statuses, false, queryContext);
+    }
+
+    @Override
+    public Collection<CaseInstance> getCaseInstancesOwnedBy(String owner, List<CaseStatus> statuses, boolean withData, QueryContext queryContext) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("owner", owner);
         params.put("statuses", resolveCaseStatuses(statuses));
         applyQueryContext(params, queryContext);
         applyDeploymentFilter(params);
-        List<CaseInstance> processInstances =  commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesOwnedBy", params));
-
-        return processInstances;
+        return fillCaseFiles(commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesOwnedBy", params)),withData);
     }
     
     @Override
     public Collection<CaseInstance> getCaseInstancesByRole(String roleName, List<CaseStatus> statuses, QueryContext queryContext) {
+        return getCaseInstancesByRole(roleName, statuses, false, queryContext);
+    }
+    
+    @Override
+    public Collection<CaseInstance> getCaseInstancesByRole(String roleName, List<CaseStatus> statuses, boolean withData, QueryContext queryContext) {
    
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("roleName", roleName);
@@ -487,40 +545,47 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
         params.put("statuses", resolveCaseStatuses(statuses));
         applyQueryContext(params, queryContext);
         applyDeploymentFilter(params);
-        List<CaseInstance> processInstances =  commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesByRole", params));
-
-        return processInstances;
+        return fillCaseFiles(commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesByRole", params)),withData);
     }
     
     @Override
     public Collection<CaseInstance> getCaseInstancesAnyRole(List<CaseStatus> statuses, QueryContext queryContext) {
+        return getCaseInstancesAnyRole(statuses, false, queryContext);
+    }
+    
+    @Override
+    public Collection<CaseInstance> getCaseInstancesAnyRole(List<CaseStatus> statuses, boolean withData, QueryContext queryContext) {
 
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("entities", collectUserAuthInfo());
         params.put("statuses", resolveCaseStatuses(statuses));
         applyQueryContext(params, queryContext);
         applyDeploymentFilter(params);
-        List<CaseInstance> processInstances =  commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesAnyRole", params));
-
-        return processInstances;
+        return fillCaseFiles(commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesAnyRole", params)),withData);
     }
-    
+
     @Override
     public Collection<CaseInstance> getCaseInstancesByDataItem(String dataItemName, List<CaseStatus> statuses, QueryContext queryContext) {
+        return getCaseInstancesByDataItem(dataItemName, statuses, false, queryContext);
+    }
+
+    @Override
+    public Collection<CaseInstance> getCaseInstancesByDataItem(String dataItemName, List<CaseStatus> statuses, boolean withData, QueryContext queryContext) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("itemName", dataItemName);
         params.put("entities", collectUserAuthInfo());
         params.put("statuses", resolveCaseStatuses(statuses));
         applyQueryContext(params, queryContext);
         applyDeploymentFilter(params);
-        List<CaseInstance> processInstances =  commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesByVariableName", params));
-
-        return processInstances;
+        return fillCaseFiles(commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesByVariableName", params)),withData);
     }
-
 
     @Override
     public Collection<CaseInstance> getCaseInstancesByDataItemAndValue(String dataItemName, String dataItemValue, List<CaseStatus> statuses, QueryContext queryContext) {
+        return getCaseInstancesByDataItemAndValue(dataItemName, dataItemValue, statuses, false, queryContext);
+    }
+    @Override
+    public Collection<CaseInstance> getCaseInstancesByDataItemAndValue(String dataItemName, String dataItemValue, List<CaseStatus> statuses, boolean withData, QueryContext queryContext) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("itemName", dataItemName);
         params.put("itemValue", dataItemValue);
@@ -528,9 +593,7 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
         params.put("statuses", resolveCaseStatuses(statuses));
         applyQueryContext(params, queryContext);
         applyDeploymentFilter(params);
-        List<CaseInstance> processInstances =  commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesByVariableNameAndValue", params));
-
-        return processInstances;
+        return fillCaseFiles(commandService.execute(new QueryNameCommand<List<CaseInstance>>("getCaseInstancesByVariableNameAndValue", params)),withData);
     }
     
     @Override
@@ -575,7 +638,7 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
         params.put("caseId", caseId + "%");
         params.put("userId", userId);
         params.put("status", adoptList(status, allActiveStatus));
-        params.put("groupIds", getAuthenticatedUserRoles(identityProvider));
+        params.put("groupIds", getCallbackUserRoles(userGroupCallback, userId));
         applyQueryContext(params, queryContext);
         List<TaskSummary> tasks =  commandService.execute(new QueryNameCommand<List<TaskSummary>>("getCaseTasksAsPotentialOwner", params));
         return tasks;
@@ -588,7 +651,7 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
         params.put("caseId", caseId + "%");
         params.put("userId", userId);
         params.put("status", adoptList(status, allActiveStatus));
-        params.put("groupIds", getAuthenticatedUserRoles(identityProvider));
+        params.put("groupIds", getCallbackUserRoles(userGroupCallback, userId));
         applyQueryContext(params, queryContext);
         List<TaskSummary> tasks =  commandService.execute(new QueryNameCommand<List<TaskSummary>>("getCaseTasksAsBusinessAdmin", params));
         return tasks;
@@ -600,7 +663,7 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
         params.put("caseId", caseId + "%");
         params.put("userId", userId);
         params.put("status", adoptList(status, allActiveStatus));
-        params.put("groupIds", getAuthenticatedUserRoles(identityProvider));
+        params.put("groupIds", getCallbackUserRoles(userGroupCallback, userId));
         applyQueryContext(params, queryContext);
         List<TaskSummary> tasks =  commandService.execute(new QueryNameCommand<List<TaskSummary>>("getCaseTasksAsStakeholder", params));
         return tasks;
@@ -696,6 +759,13 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
         }
         
         return caseIdPrefix;
+    }
+
+    private boolean collectCaseIdPrefixIsSequence(Process process) {
+        if (!process.getMetaData().containsKey("customCaseIdPrefixIsSequence")) {
+            return true;
+        }
+        return Boolean.parseBoolean((String) process.getMetaData().get("customCaseIdPrefixIsSequence"));
     }
 
     private Collection<CaseMilestone> collectMilestoness(Process process) {
@@ -885,5 +955,13 @@ public class CaseRuntimeDataServiceImpl implements CaseRuntimeDataService, Deplo
 
         return caseFileItems;
     }
-
+    
+    private Collection<CaseInstance> fillCaseFiles (Collection<CaseInstance> caseInstances, boolean withData) {
+        if (withData) {
+            for (CaseInstance caseInstance : caseInstances) {
+                caseInstance.setCaseFile(caseService.getCaseFileInstance(caseInstance.getCaseId()));
+            }
+        }
+        return caseInstances;
+    }
 }

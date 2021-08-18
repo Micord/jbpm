@@ -16,6 +16,9 @@
 
 package org.jbpm.kie.services.impl.admin.commands;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.jbpm.services.task.commands.TaskContext;
 import org.jbpm.services.task.commands.UserGroupCallbackTaskCommand;
 import org.jbpm.services.task.events.TaskEventSupport;
@@ -26,19 +29,18 @@ import org.kie.api.task.model.OrganizationalEntity;
 import org.kie.api.task.model.Task;
 import org.kie.internal.task.api.model.InternalPeopleAssignments;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static org.jbpm.kie.services.impl.admin.UserTaskAdminServiceImpl.*;
+import static org.jbpm.kie.services.impl.admin.UserTaskAdminServiceImpl.ADMIN;
+import static org.jbpm.kie.services.impl.admin.UserTaskAdminServiceImpl.EXCL_OWNER;
+import static org.jbpm.kie.services.impl.admin.UserTaskAdminServiceImpl.POT_OWNER;
 
 
 public class RemovePeopleAssignmentsCommand extends UserGroupCallbackTaskCommand<Void> {
 
     private static final long serialVersionUID = -1856489382099976731L;
 
-    
     private int type;
     private OrganizationalEntity[] entities;
+
 
     public RemovePeopleAssignmentsCommand(String userId, long taskId, int type, OrganizationalEntity[] entities) {
         super();
@@ -82,6 +84,7 @@ public class RemovePeopleAssignmentsCommand extends UserGroupCallbackTaskCommand
             default:
                 break;
         }
+        context.getPersistenceContext().updateTask(task);
         taskEventSupport.fireAfterTaskAssignmentsRemovedEvent(task, context, assignmentType, entityList);
         return null;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2019 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ import org.jbpm.services.task.impl.TaskDeadlinesServiceImpl;
 import org.jbpm.services.task.impl.factories.TaskFactory;
 import org.jbpm.services.task.lifecycle.listeners.BAMTaskEventListener;
 import org.jbpm.test.listener.task.CountDownTaskEventListener;
-import org.jbpm.test.util.PoolingDataSource;
+import org.kie.test.util.db.PoolingDataSourceWrapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,7 +53,7 @@ import org.kie.internal.task.api.model.InternalTask;
 
 public class LocalTaskAuditWithDeadlineTest extends HumanTaskServicesBaseTest {
 
-	private PoolingDataSource pds;
+	private PoolingDataSourceWrapper pds;
 	private EntityManagerFactory emf;
 	
 	protected TaskAuditService taskAuditService;
@@ -87,7 +87,7 @@ public class LocalTaskAuditWithDeadlineTest extends HumanTaskServicesBaseTest {
     @Test(timeout=10000)
     public void testDelayedReassignmentOnDeadline() throws Exception {
         CountDownTaskEventListener countDownListener = new CountDownTaskEventListener(1, true, false);
-        addCountDownListner(countDownListener);
+        addCountDownListener(countDownListener);
         Map<String, Object> vars = new HashMap<String, Object>();
         vars.put("now", new Date());
     
@@ -139,5 +139,62 @@ public class LocalTaskAuditWithDeadlineTest extends HumanTaskServicesBaseTest {
         assertEquals(Status.Ready.toString(), auditTask.getStatus());
         assertEquals("", auditTask.getActualOwner());
     
+    }
+
+    @Test(timeout=10000)
+    public void testDelayedReassignmentOnDeadlineISOFormat() throws Exception {
+        CountDownTaskEventListener countDownListener = new CountDownTaskEventListener(1, true, false);
+        addCountDownListener(countDownListener);
+        Map<String, Object> vars = new HashMap<String, Object>();
+        vars.put("now", new Date());
+
+        Reader reader = new InputStreamReader(getClass().getResourceAsStream(MvelFilePath.DeadlineWithReassignment));
+        Task task = (InternalTask) TaskFactory.evalTask(reader, vars);
+
+        Map<String, Object> inputVars = new HashMap<String, Object>();
+        inputVars.put("NotCompletedReassign", "[users:Tony Stark,Bobba Fet,Jabba Hutt|groups:]@[PT500MS]");
+        taskService.addTask(task, inputVars);
+        long taskId = task.getId();
+
+        taskService.claim(taskId, "Tony Stark");
+
+        task = taskService.getTaskById(taskId);
+        List<OrganizationalEntity> potentialOwners = (List<OrganizationalEntity>) task.getPeopleAssignments().getPotentialOwners();
+        List<String> ids = new ArrayList<String>(potentialOwners.size());
+        for (OrganizationalEntity entity : potentialOwners) {
+            ids.add(entity.getId());
+        }
+        assertTrue(ids.contains("Tony Stark"));
+        assertTrue(ids.contains("Luke Cage"));
+
+        List<AuditTask> tasks = taskAuditService.getAllAuditTasks(new QueryFilter());
+        assertEquals(1, tasks.size());
+
+        AuditTask auditTask = tasks.get(0);
+        assertEquals(Status.Reserved.toString(), auditTask.getStatus());
+        assertEquals("Tony Stark", auditTask.getActualOwner());
+
+        // should have re-assigned by now
+        countDownListener.waitTillCompleted();
+
+        task = taskService.getTaskById(taskId);
+        assertNull(task.getTaskData().getActualOwner());
+        assertEquals(Status.Ready, task.getTaskData().getStatus());
+        potentialOwners = (List<OrganizationalEntity>) task.getPeopleAssignments().getPotentialOwners();
+
+        ids = new ArrayList<String>(potentialOwners.size());
+        for (OrganizationalEntity entity : potentialOwners) {
+            ids.add(entity.getId());
+        }
+        assertTrue(ids.contains("Bobba Fet"));
+        assertTrue(ids.contains("Jabba Hutt"));
+
+        tasks = taskAuditService.getAllAuditTasks(new QueryFilter());
+        assertEquals(1, tasks.size());
+
+        auditTask = tasks.get(0);
+        assertEquals(Status.Ready.toString(), auditTask.getStatus());
+        assertEquals("", auditTask.getActualOwner());
+
     }
 }

@@ -16,9 +16,17 @@
 
 package org.jbpm.process.workitem.bpmn2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+
 import javax.xml.ws.Endpoint;
 
 import org.drools.compiler.compiler.ProcessBuilderFactory;
@@ -29,7 +37,6 @@ import org.jbpm.bpmn2.handler.WorkItemHandlerRuntimeException;
 import org.jbpm.process.builder.ProcessBuilderFactoryServiceImpl;
 import org.jbpm.process.instance.ProcessRuntimeFactoryServiceImpl;
 import org.jbpm.process.workitem.webservice.WebServiceWorkItemHandler;
-import org.jbpm.test.AbstractBaseTest;
 import org.jbpm.test.listener.process.NodeLeftCountDownProcessEventListener;
 import org.junit.After;
 import org.junit.Before;
@@ -46,9 +53,7 @@ import org.kie.internal.io.ResourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.*;
-
-public class JaxWSServiceTaskTest extends AbstractBaseTest {
+public class JaxWSServiceTaskTest {
 
     private static final Logger logger = LoggerFactory.getLogger(JaxWSServiceTaskTest.class);
 
@@ -260,6 +265,65 @@ public class JaxWSServiceTaskTest extends AbstractBaseTest {
                      processInstance.getState());
     }
 
+    @Test
+    public void testTimeoutViaSystemProperty() throws Exception {
+        System.setProperty("org.jbpm.cxf.client.connectionTimeout", "10");
+        System.setProperty("org.jbpm.cxf.client.receiveTimeout", "10");
+        try {
+            KieBase kbase = readKnowledgeBase();
+            KieSession ksession = createSession(kbase);
+            ksession.getWorkItemManager().registerWorkItemHandler("Service Task",
+                                                                  new WebServiceWorkItemHandler(ksession));
+            Map<String, Object> params = new HashMap<String, Object>();
+            params.put("s",
+                       "john");
+            params.put("mode",
+                       "sync");
+
+            WorkflowProcessInstance processInstance = (WorkflowProcessInstance) ksession.startProcess("org.jboss.qa.jbpm.CallWS",
+                                                                                                      params);
+            fail("should throw Read Timeout error");
+        } catch (Exception e) {
+            assertTrue(isCausedBySocketTimeoutException(e));
+        } finally {
+            System.clearProperty("org.jbpm.cxf.client.connectionTimeout");
+            System.clearProperty("org.jbpm.cxf.client.receiveTimeout");
+        }
+    }
+
+
+    @Test
+    public void testTimeoutViaParameters() throws Exception {
+        try {
+            KieBase kbase = readKnowledgeBase();
+            KieSession ksession = createSession(kbase);
+            ksession.getWorkItemManager().registerWorkItemHandler("Service Task",
+                                                                  new WebServiceWorkItemHandler(ksession));
+            Map<String, Object> params = new HashMap<String, Object>();
+            params.put("s",
+                       "john");
+            params.put("mode",
+                       "sync");
+
+            WorkflowProcessInstance processInstance = (WorkflowProcessInstance) ksession.startProcess("org.jboss.qa.jbpm.CallWS2",
+                                                                                                      params);
+            fail("should throw Read Timeout error");
+        } catch (Exception e) {
+            assertTrue(isCausedBySocketTimeoutException(e));
+        }
+    }
+
+    private boolean isCausedBySocketTimeoutException(Exception e) {
+        while (e.getCause() != null) {
+            Exception cause = (Exception)e.getCause();
+            if (cause instanceof SocketTimeoutException) {
+                return true;
+            }
+            e = cause;
+        }
+        return false;
+    }
+
     private void startWebService() {
         this.service = new SimpleService();
         this.endpoint = Endpoint.publish("http://127.0.0.1:9876/HelloService/greeting",
@@ -286,6 +350,8 @@ public class JaxWSServiceTaskTest extends AbstractBaseTest {
         kbuilder.add(ResourceFactory.newClassPathResource("BPMN2-MultipleParamsWebService.bpmn"),
                      ResourceType.BPMN2);
         kbuilder.add(ResourceFactory.newClassPathResource("BPMN2-MultipleIntParamsWebService.bpmn"),
+                     ResourceType.BPMN2);
+        kbuilder.add(ResourceFactory.newClassPathResource("BPMN2-TwoWebServiceImportsWithTimeout.bpmn"),
                      ResourceType.BPMN2);
         return kbuilder.newKieBase();
     }

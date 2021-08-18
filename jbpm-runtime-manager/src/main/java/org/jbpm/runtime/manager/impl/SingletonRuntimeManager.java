@@ -22,17 +22,20 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import org.drools.core.command.impl.RegistryContext;
+import org.apache.commons.lang3.SystemUtils;
 import org.drools.core.common.InternalKnowledgeRuntime;
 import org.drools.core.runtime.process.InternalProcessRuntime;
 import org.drools.persistence.api.TransactionManager;
+import org.jbpm.process.core.timer.GlobalSchedulerService;
 import org.jbpm.process.instance.ProcessRuntimeImpl;
+import org.jbpm.runtime.manager.api.SchedulerProvider;
 import org.jbpm.services.task.impl.TaskContentRegistry;
 import org.kie.api.command.ExecutableCommand;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.manager.Context;
 import org.kie.api.runtime.manager.RuntimeEngine;
 import org.kie.api.runtime.manager.RuntimeEnvironment;
+import org.kie.internal.command.RegistryContext;
 import org.kie.internal.runtime.manager.Disposable;
 import org.kie.internal.runtime.manager.SessionFactory;
 import org.kie.internal.runtime.manager.TaskServiceFactory;
@@ -80,10 +83,23 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
         this.factory = factory;
         this.taskServiceFactory = taskServiceFactory;
         this.identifier = identifier;
+
+        if (environment instanceof SchedulerProvider) {
+            GlobalSchedulerService schedulerService = ((SchedulerProvider) environment).getSchedulerService();
+            Class<?> clazz;
+            try {
+                clazz = Class.forName("org.jbpm.services.ejb.timer.EjbSchedulerService");
+                if (schedulerService != null && schedulerService.getClass().equals(clazz)) {
+                    logger.warn("Singleton with EJB Timer Service is not recommended as it's not stable under load");
+                }
+            } catch (ClassNotFoundException e) {
+                // ignore
+            }
+        }
     }
     
     public void init() {
-        
+        super.init();
         // TODO should we proxy/wrap the ksession so we capture dispose.destroy method calls?
         String location = getLocation();
         Long knownSessionId = getPersistedSessionId(location, identifier);
@@ -98,7 +114,7 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
         try {
             if (knownSessionId > 0) {
                 try {
-                    this.singleton = new SynchronizedRuntimeImpl(factory.findKieSessionById(knownSessionId), internalTaskService);
+                    this.singleton = new SynchronizedRuntimeImpl(this, factory.findKieSessionById(knownSessionId), internalTaskService);
                 } catch (RuntimeException e) {
                     // in case session with known id was found
                 }
@@ -106,7 +122,7 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
             
             if (this.singleton == null) {
                 
-                this.singleton = new SynchronizedRuntimeImpl(factory.newKieSession(), internalTaskService);            
+                this.singleton = new SynchronizedRuntimeImpl(this, factory.newKieSession(), internalTaskService);            
                 persistSessionId(location, identifier, singleton.getKieSession().getIdentifier());
             }
             ((RuntimeEngineImpl) singleton).setManager(this);
@@ -174,7 +190,7 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
     	if (isClosed()) {
     		throw new IllegalStateException("Runtime manager " + identifier + " is already closed");
     	}
-    	checkPermission();
+    	
         // always return the same instance
         return this.singleton;
     }
@@ -184,7 +200,7 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
         if (isClosed()) {
             throw new IllegalStateException("Runtime manager " + identifier + " is already closed");
         }
-        checkPermission();
+        
         this.singleton.getKieSession().signalEvent(type, event);
     }
 
@@ -193,7 +209,7 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
     	if (isClosed()) {
     		throw new IllegalStateException("Runtime manager " + identifier + " is already closed");
     	}
-        if (this.singleton != null && this.singleton.getKieSession().getIdentifier() != ksession.getIdentifier()) {
+        if (this.singleton != null && ((RuntimeEngineImpl)this.singleton).getKieSessionId() != ksession.getIdentifier()) {
             throw new IllegalStateException("Invalid session was used for this context " + context);
         }
     }
@@ -222,6 +238,11 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
         this.singleton = null;   
     }
     
+    private File getPersistedFile(String location, String identifier) {
+        // if windows, replace ':' by '_'
+        return new File(location + File.separatorChar +
+                        (SystemUtils.IS_OS_WINDOWS ? identifier.replace(':', '_') : identifier) + "-jbpmSessionId.ser");
+    }
     /**
      * Retrieves session id from serialized file named jbpmSessionId.ser from given location.
      * @param location directory where jbpmSessionId.ser file should be
@@ -229,7 +250,7 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
      * @return sessionId if file was found otherwise 0
      */
     protected Long getPersistedSessionId(String location, String identifier) {
-        File sessionIdStore = new File(location + File.separator + identifier+ "-jbpmSessionId.ser");
+        File sessionIdStore = getPersistedFile(location, identifier);
         if (sessionIdStore.exists()) {
         	Long knownSessionId = null; 
             FileInputStream fis = null;
@@ -269,6 +290,7 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
         }
     }
     
+
     /**
      * Stores gives ksessionId in a serialized file in given location under jbpmSessionId.ser file name
      * @param location directory where serialized file should be stored
@@ -282,7 +304,7 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
         FileOutputStream fos = null;
         ObjectOutputStream out = null;
         try {
-            fos = new FileOutputStream(location + File.separator + identifier + "-jbpmSessionId.ser");
+            fos = new FileOutputStream(getPersistedFile(location, identifier));
             out = new ObjectOutputStream(fos);
             out.writeObject(Long.valueOf(ksessionId));
             out.close();

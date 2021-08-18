@@ -21,12 +21,16 @@ import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+
 import javax.persistence.EntityManagerFactory;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
@@ -34,21 +38,21 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-
 import org.apache.commons.codec.binary.Base64;
+import org.appformer.maven.support.DependencyFilter;
+import org.drools.compiler.kie.builder.impl.ClasspathKieProject;
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.drools.compiler.kie.builder.impl.KieContainerImpl;
-import org.appformer.maven.support.DependencyFilter;
-import org.drools.core.common.ProjectClassLoader;
+import org.drools.compiler.kie.builder.impl.KieModuleKieProject;
 import org.drools.core.marshalling.impl.ClassObjectMarshallingStrategyAcceptor;
+import org.drools.core.marshalling.impl.JavaSerializableResolverStrategy;
 import org.drools.core.marshalling.impl.SerializablePlaceholderResolverStrategy;
 import org.drools.core.util.StringUtils;
+import org.drools.reflective.classloader.ProjectClassLoader;
 import org.jbpm.kie.services.impl.bpmn2.ProcessDescriptor;
 import org.jbpm.kie.services.impl.model.ProcessAssetDesc;
 import org.jbpm.process.audit.event.AuditEventBuilder;
 import org.jbpm.runtime.manager.impl.KModuleRegisterableItemsFactory;
-import org.jbpm.runtime.manager.impl.deploy.DeploymentDescriptorImpl;
-import org.jbpm.runtime.manager.impl.deploy.DeploymentDescriptorManager;
 import org.jbpm.runtime.manager.impl.deploy.DeploymentDescriptorMerger;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
 import org.jbpm.services.api.DefinitionService;
@@ -76,6 +80,8 @@ import org.kie.internal.runtime.conf.ObjectModelResolver;
 import org.kie.internal.runtime.conf.ObjectModelResolverProvider;
 import org.kie.internal.runtime.conf.PersistenceMode;
 import org.kie.internal.runtime.manager.InternalRuntimeManager;
+import org.kie.internal.runtime.manager.deploy.DeploymentDescriptorImpl;
+import org.kie.internal.runtime.manager.deploy.DeploymentDescriptorManager;
 import org.kie.scanner.KieMavenRepository;
 import org.reflections.Reflections;
 import org.reflections.util.ConfigurationBuilder;
@@ -83,6 +89,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;
 
+import static org.jbpm.runtime.manager.impl.deploy.DeploymentDescriptorManagerUtil.getDeploymentDescriptor;
 import static org.kie.scanner.KieMavenRepository.getKieMavenRepository;
 
 
@@ -183,7 +190,13 @@ public class KModuleDeploymentService extends AbstractDeploymentService {
     	        	processResources(depModule, files, kieContainer, kmoduleUnit, deployedUnit, depModule.getReleaseId(), processDescriptors);
     	        }
             }
-            Collection<ReleaseId> dependencies = module.getJarDependencies(new DependencyFilter.ExcludeScopeFilter("test", "provided"));
+            Collection<ReleaseId> dependencies = null;
+            if(kieContainer instanceof KieContainerImpl && ((KieContainerImpl) kieContainer).getKieProject() instanceof ClasspathKieProject) {
+                // dependencies are already computed by class loader.
+                dependencies = Collections.emptyList();
+            } else {
+                dependencies = module.getJarDependencies(new DependencyFilter.ExcludeScopeFilter("test", "provided"));
+            }
 
             // process deployment dependencies
             if (dependencies != null && !dependencies.isEmpty()) {
@@ -217,12 +230,12 @@ public class KModuleDeploymentService extends AbstractDeploymentService {
     }
 
     @Override
-	public void undeploy(DeploymentUnit unit) {
+	public void undeploy(DeploymentUnit unit, Function<DeploymentUnit, Boolean> beforeUndeploy) {
     	if (!(unit instanceof KModuleDeploymentUnit)) {
             throw new IllegalArgumentException("Invalid deployment unit provided - " + unit.getClass().getName());
         }
         KModuleDeploymentUnit kmoduleUnit = (KModuleDeploymentUnit) unit;
-		super.undeploy(unit);
+		super.undeploy(unit, beforeUndeploy);
 
         formManagerService.unRegisterForms( unit.getIdentifier() );
 
@@ -248,17 +261,12 @@ public class KModuleDeploymentService extends AbstractDeploymentService {
     	DeploymentDescriptor descriptor = deploymentUnit.getDeploymentDescriptor();
     	if (descriptor == null || ((DeploymentDescriptorImpl)descriptor).isEmpty()) { // skip empty descriptors as its default can override settings
 	    	DeploymentDescriptorManager descriptorManager = new DeploymentDescriptorManager("org.jbpm.domain");
-	    	List<DeploymentDescriptor> descriptorHierarchy = descriptorManager.getDeploymentDescriptorHierarchy(kieContainer);
-
-			descriptor = merger.merge(descriptorHierarchy, mode);
-			deploymentUnit.setDeploymentDescriptor(descriptor);
-    	} else if (descriptor != null && !deploymentUnit.isDeployed()) {
+	    	descriptor = getDeploymentDescriptor(descriptorManager, kieContainer, mode);
+	        deploymentUnit.setDeploymentDescriptor(descriptor);
+    	} else if (!deploymentUnit.isDeployed()) {
     		DeploymentDescriptorManager descriptorManager = new DeploymentDescriptorManager("org.jbpm.domain");
-	    	List<DeploymentDescriptor> descriptorHierarchy = descriptorManager.getDeploymentDescriptorHierarchy(kieContainer);
-
-	    	descriptorHierarchy.add(0, descriptor);
-	    	descriptor = merger.merge(descriptorHierarchy, mode);
-			deploymentUnit.setDeploymentDescriptor(descriptor);
+    		descriptor = getDeploymentDescriptor(descriptorManager, kieContainer, mode, deploymentUnit.getDeploymentDescriptor());
+            deploymentUnit.setDeploymentDescriptor(descriptor);
     	}
 
 		// first set on unit the strategy
@@ -275,29 +283,26 @@ public class KModuleDeploymentService extends AbstractDeploymentService {
 		EntityManagerFactory emf = EntityManagerFactoryManager.get().getOrCreate(descriptor.getPersistenceUnit());
 		builder.entityManagerFactory(emf);
 
-		Map<String, Object> contaxtParams = new HashMap<String, Object>();
-		contaxtParams.put("entityManagerFactory", emf);
-		contaxtParams.put("classLoader", kieContainer.getClassLoader());
+		Map<String, Object> contextParams = buildContextParameters(kieContainer);
 		// process object models that are globally configured (environment entries, session configuration)
 		for (NamedObjectModel model : descriptor.getEnvironmentEntries()) {
-			Object entry = getInstanceFromModel(model, kieContainer, contaxtParams);
+			Object entry = getInstanceFromModel(model, kieContainer, contextParams);
 			builder.addEnvironmentEntry(model.getName(), entry);
 		}
 
 		for (NamedObjectModel model : descriptor.getConfiguration()) {
-			Object entry = getInstanceFromModel(model, kieContainer, contaxtParams);
+			Object entry = getInstanceFromModel(model, kieContainer, contextParams);
 			builder.addConfiguration(model.getName(), (String) entry);
 		}
-		ObjectMarshallingStrategy[] mStrategies = new ObjectMarshallingStrategy[descriptor.getMarshallingStrategies().size() + 1];
-		int index = 0;
+		List<ObjectMarshallingStrategy> mStrategies = new ArrayList<>();
 		for (ObjectModel model : descriptor.getMarshallingStrategies()) {
-			Object strategy = getInstanceFromModel(model, kieContainer, contaxtParams);
-			mStrategies[index] = (ObjectMarshallingStrategy)strategy;
-			index++;
+			Object strategy = getInstanceFromModel(model, kieContainer, contextParams);
+			mStrategies.add((ObjectMarshallingStrategy)strategy);
 		}
 		// lastly add the main default strategy
-		mStrategies[index] = new SerializablePlaceholderResolverStrategy(ClassObjectMarshallingStrategyAcceptor.DEFAULT);
-		builder.addEnvironmentEntry(EnvironmentName.OBJECT_MARSHALLING_STRATEGIES, mStrategies);
+		mStrategies.add(new SerializablePlaceholderResolverStrategy(ClassObjectMarshallingStrategyAcceptor.DEFAULT));
+		mStrategies.add(new JavaSerializableResolverStrategy(ClassObjectMarshallingStrategyAcceptor.DEFAULT));
+		builder.addEnvironmentEntry(EnvironmentName.OBJECT_MARSHALLING_STRATEGIES, mStrategies.toArray(new ObjectMarshallingStrategy[0]));
 
 		builder.addEnvironmentEntry("KieDeploymentDescriptor", descriptor);
 		builder.addEnvironmentEntry("KieContainer", kieContainer);
@@ -337,6 +342,13 @@ public class KModuleDeploymentService extends AbstractDeploymentService {
     	return builder;
     }
 
+    protected Map<String, Object> buildContextParameters(KieContainer kieContainer) {
+        Map<String, Object> contextParams = new HashMap<>();
+        contextParams.put("entityManagerFactory", emf);
+        contextParams.put("classLoader", kieContainer.getClassLoader());
+        contextParams.put("identityProvider", identityProvider);
+        return contextParams;
+    }
 
     protected Object getInstanceFromModel(ObjectModel model, KieContainer kieContainer, Map<String, Object> contaxtParams) {
     	ObjectModelResolver resolver = ObjectModelResolverProvider.get(model.getResolver());
@@ -360,8 +372,9 @@ public class KModuleDeploymentService extends AbstractDeploymentService {
      */
 	protected void processResources(InternalKieModule module, Collection<String> files,
     		KieContainer kieContainer, DeploymentUnit unit, DeployedUnitImpl deployedUnit, ReleaseId releaseId, Map<String, ProcessDescriptor> processes) {
-        for (String fileName : files) {
-            if(fileName.matches(".+bpmn[2]?$")) {
+        boolean processClasses = (((KieContainerImpl) kieContainer).getKieProject() instanceof KieModuleKieProject);
+	    for (String fileName : files) {
+            if(isProcessFile(fileName)) {
                 ProcessAssetDesc process;
                 try {
                     String processString = new String(module.getBytes(fileName), "UTF-8");
@@ -389,7 +402,7 @@ public class KModuleDeploymentService extends AbstractDeploymentService {
                 } catch (UnsupportedEncodingException e) {
                 	throw new IllegalArgumentException("Unsupported encoding while processing form " + fileName);
                 }
-            } else if( fileName.matches(".+class$")) {
+            } else if( processClasses && fileName.matches(".+class$")) {
                 // Classes 1: classes from deployment added
                 String className = fileName.replaceAll("/", ".");
                 className = className.substring(0, fileName.length() - ".class".length());
@@ -429,7 +442,7 @@ public class KModuleDeploymentService extends AbstractDeploymentService {
 	protected void addClassToDeployedUnit(Class deploymentClass, DeployedUnitImpl deployedUnit) {
         if( deploymentClass != null ) {
             DeploymentUnit unit = deployedUnit.getDeploymentUnit();
-            Boolean limitClasses = false;
+            Boolean limitClasses = true;
             if( unit != null ) {
                 DeploymentDescriptor depDesc = ((KModuleDeploymentUnit) unit).getDeploymentDescriptor();
                 if( depDesc != null ) {
@@ -452,7 +465,7 @@ public class KModuleDeploymentService extends AbstractDeploymentService {
 	 * @param deployedUnit The {@link DeployedUnitImpl}, used to store the classes loaded
 	 */
 	protected void processClassloader(KieContainer kieContainer, DeployedUnitImpl deployedUnit) {
-		if (kieContainer.getClassLoader() instanceof ProjectClassLoader) {
+	    if (((KieContainerImpl) kieContainer).getKieProject() instanceof KieModuleKieProject && kieContainer.getClassLoader() instanceof ProjectClassLoader ) {
 			ClassLoader parentCl = kieContainer.getClassLoader().getParent();
 			if (parentCl instanceof URLClassLoader) {
 				URL[] urls = ((URLClassLoader) parentCl).getURLs();
@@ -600,6 +613,10 @@ public class KModuleDeploymentService extends AbstractDeploymentService {
             logger.error("Unable to find case id from case source due to {}", e.getMessage());
             return null;
         }
+    }
+
+    static boolean isProcessFile(final String fileName) {
+        return fileName.matches(".+bpmn(2|-cm)?$");
     }
 
 }

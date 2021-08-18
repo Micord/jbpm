@@ -25,20 +25,29 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.Version;
 
 import org.jbpm.persistence.api.PersistentCorrelationKey;
 import org.kie.internal.jaxb.CorrelationKeyXmlAdapter;
-import org.kie.internal.process.CorrelationKey;
 import org.kie.internal.process.CorrelationProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Entity
 @SequenceGenerator(name="correlationKeyInfoIdSeq", sequenceName="CORRELATION_KEY_ID_SEQ")
+@Table(indexes = @Index(name = "IDX_CorrelationKeyInfo_name", unique = true, columnList = "name"))
 public class CorrelationKeyInfo implements PersistentCorrelationKey, Serializable {
 
 	private static final long serialVersionUID = 4469298702447675428L;
+	private static final Logger logger = LoggerFactory.getLogger(CorrelationKeyInfo.class);
+	
+	@Transient
+    private final int CORRELATION_KEY_LOG_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.correlationkey.length", "255"));
 
 	@Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="correlationKeyInfoIdSeq")
@@ -51,6 +60,7 @@ public class CorrelationKeyInfo implements PersistentCorrelationKey, Serializabl
     
     private long processInstanceId;
     
+
     private String name;
     
     @OneToMany(mappedBy="correlationKey", cascade=CascadeType.ALL)
@@ -75,7 +85,10 @@ public class CorrelationKeyInfo implements PersistentCorrelationKey, Serializabl
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.name = trimString(name);
+        if (this.name != null && this.name.length() < name.length()) {
+            logger.warn("CorrelationKey content was trimmed as it was too long (more than {} characters)", CORRELATION_KEY_LOG_LENGTH);
+        }
     }
     
     public void addProperty(CorrelationPropertyInfo property) {
@@ -138,9 +151,17 @@ public class CorrelationKeyInfo implements PersistentCorrelationKey, Serializabl
         return id;
     }
 
+    private String trimString(String name) {
+        String trimmed = name;
+        if (trimmed != null && trimmed.length() > CORRELATION_KEY_LOG_LENGTH) {
+            trimmed = trimmed.substring(0, CORRELATION_KEY_LOG_LENGTH);
+        }
+        return trimmed;
+    }
+
 	@Override
 	public String toExternalForm() {
-		return CorrelationKeyXmlAdapter.marshalCorrelationKey(this);
+        return trimString(CorrelationKeyXmlAdapter.marshalCorrelationKey(this));
 	}
 
 }

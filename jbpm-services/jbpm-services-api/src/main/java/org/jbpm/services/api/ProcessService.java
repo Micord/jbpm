@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2019 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,8 @@ public interface ProcessService {
 	 * @param processId The process's identifier 
 	 * @return process instance identifier
 	 * @throws RuntimeException in case of encountered errors
-	 * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist or is not active
+	 * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist
+	 * @throws DeploymentNotActiveException in case deployment with given deployment id is not active
 	 */
 	Long startProcess(String deploymentId, String processId);
 
@@ -47,9 +48,21 @@ public interface ProcessService {
 	 * @param params process variables
 	 * @return process instance identifier
 	 * @throws RuntimeException in case of encountered errors
-	 * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist or is not active
+	 * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist
+	 * @throws DeploymentNotActiveException in case deployment with given deployment id is not active
 	 */
     Long startProcess(String deploymentId, String processId, Map<String, Object> params);
+    
+
+    /**
+     * compute the process outcome for those process designed to start and finish in the same transaction. This functionality allows
+     * to retrieve the outcome of process variables
+     * @param deploymentId deployment information for the process's kjar
+     * @param processId the process identifier
+     * @param params process variables
+     * @return last modification of process variables.
+     */
+    Map<String, Object> computeProcessOutcome(String deploymentId, String processId, Map<String, Object> params);
     
 	/**
 	 * Starts a process with no variables
@@ -59,7 +72,8 @@ public interface ProcessService {
 	 * @param correlationKey correlation key to be assigned to process instance - must be unique
 	 * @return process instance identifier
 	 * @throws RuntimeException in case of encountered errors
-	 * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist or is not active
+	 * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist
+     * @throws DeploymentNotActiveException in case deployment with given deployment id is not active
 	 */
 	Long startProcess(String deploymentId, String processId, CorrelationKey correlationKey);
 
@@ -72,17 +86,47 @@ public interface ProcessService {
 	 * @param params process variables
 	 * @return process instance identifier
 	 * @throws RuntimeException in case of encountered errors
-	 * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist or is not active
+	 * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist
+     * @throws DeploymentNotActiveException in case deployment with given deployment id is not active
 	 */
     Long startProcess(String deploymentId, String processId, CorrelationKey correlationKey, Map<String, Object> params);
 
     /**
-	 * Aborts the specified process
-	 * 
-	 * @param processInstanceId process instance's unique identifier
-	 * @throws DeploymentNotFoundException in case deployment unit was not found
-	 * @throws ProcessInstanceNotFoundException in case process instance with given id was not found
-	 */
+     * Starts a process with the values supplied from the current nodes
+     * 
+     * @param deploymentId deployment information for the process's kjar
+     * @param processId The process's identifier
+     * @param params process variables
+     * @param nodeIds list of bpmn node id list where the process is going to start
+     * @return process instance identifier
+     * @throws RuntimeException in case of encountered errors
+     * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist
+     * @throws DeploymentNotActiveException in case deployment with given deployment id is not active
+     */
+    Long startProcessFromNodeIds(String deploymentId, String processId, Map<String, Object> params, String... nodeIds);
+
+    /**
+     * Starts a process with the values supplied from the current nodes
+     * 
+     * @param deploymentId deployment information for the process's kjar
+     * @param processId The process's identifier
+     * @param key correlation key (must be unique)
+     * @param params process variables
+     * @param nodeIds list of bpmn node id list where the process is going to start.
+     * @return process instance identifier
+     * @throws RuntimeException in case of encountered errors
+     * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist
+     * @throws DeploymentNotActiveException in case deployment with given deployment id is not active
+     */
+    Long startProcessFromNodeIds(String deploymentId, String processId, CorrelationKey key, Map<String, Object> params, String... nodeIds);
+
+    /**
+     * Aborts the specified process
+     * 
+     * @param processInstanceId process instance's unique identifier
+     * @throws DeploymentNotFoundException in case deployment unit was not found
+     * @throws ProcessInstanceNotFoundException in case process instance with given id was not found
+     */
     void abortProcessInstance(Long processInstanceId);
     
     /**
@@ -147,7 +191,7 @@ public interface ProcessService {
 	 * @throws ProcessInstanceNotFoundException in case process instance with given id was not found
 	 */
     void signalProcessInstances(List<Long> processInstanceIds, String signalName, Object event);
-    
+
     /**
      * Signal an event to given list of process instances
      * 
@@ -159,7 +203,53 @@ public interface ProcessService {
      * @throws ProcessInstanceNotFoundException in case process instance with given id was not found
      */
     void signalProcessInstances(String deploymentId, List<Long> processInstanceIds, String signalName, Object event);
-    
+
+    /**
+     * Signal an event to a single process instance by correlation key
+     * 
+     * @param correlationKey the process instances unique correlation key
+     * @param signalName the signals id in the process
+     * @param event the event object to be passed in with the event
+     * @throws DeploymentNotFoundException in case deployment unit was not found
+     * @throws ProcessInstanceNotFoundException in case process instance with given id was not found
+     */
+    void signalProcessInstanceByCorrelationKey(CorrelationKey correlationKey, String signalName, Object event);
+
+    /**
+     * Signal an event to a single process instance by correlation key
+     * 
+     * @param deploymentId deployment that process instance belongs to
+     * @param correlationKey the process instances unique correlation key
+     * @param signalName the signals id in the process
+     * @param event the event object to be passed in with the event
+     * @throws DeploymentNotFoundException in case deployment unit was not found
+     * @throws ProcessInstanceNotFoundException in case process instance with given id was not found
+     */
+    void signalProcessInstanceByCorrelationKey(String deploymentId, CorrelationKey correlationKey, String signalName, Object event);
+
+    /**
+     * Signal an event to given list of correlation keys
+     * 
+     * @param correlationKeys list of process instance unique correlation keys
+     * @param signalName the signal's id in the process
+     * @param event the event object to be passed in with the event
+     * @throws DeploymentNotFoundException in case deployment unit was not found
+     * @throws ProcessInstanceNotFoundException in case process instance with given id was not found
+     */
+    void signalProcessInstancesByCorrelationKeys(List<CorrelationKey> correlationKeys, String signalName, Object event);
+
+    /**
+     * Signal an event to given list of correlation keys
+     * 
+     * @param deploymentId deployment that process instance belongs to
+     * @param correlationKeys list of process instance unique correlation keys
+     * @param signalName the signal's id in the process
+     * @param event the event object to be passed in with the event
+     * @throws DeploymentNotFoundException in case deployment unit was not found
+     * @throws ProcessInstanceNotFoundException in case process instance with given id was not found
+     */
+    void signalProcessInstancesByCorrelationKeys(String deploymentId, List<CorrelationKey> correlationKeys, String signalName, Object event);
+
     /**
      * Signal an event to a any process instance that listens to give signal that belongs to given deployment
      * 
@@ -215,8 +305,8 @@ public interface ProcessService {
     /**
 	 * Sets a process variable.
 	 * @param processInstanceId The process instance's unique identifier.
-	 * @param variableName The variable name to set.
-	 * @param variable The variable value.
+	 * @param variableId The variable id to set.
+	 * @param value The variable value.
 	 * @throws DeploymentNotFoundException in case deployment unit was not found
 	 * @throws ProcessInstanceNotFoundException in case process instance with given id was not found
 	 */
@@ -227,8 +317,8 @@ public interface ProcessService {
      * 
      * @param deploymentId deployment that process instance belongs to
      * @param processInstanceId The process instance's unique identifier.
-     * @param variableName The variable name to set.
-     * @param variable The variable value.
+     * @param variableId The variable id to set.
+     * @param value The variable value.
      * @throws DeploymentNotFoundException in case deployment unit was not found
      * @throws ProcessInstanceNotFoundException in case process instance with given id was not found
      */
@@ -403,8 +493,8 @@ public interface ProcessService {
      * @param deploymentId deployment information for the process's kjar
      * @param command actual command for execution
      * @return results of command execution
-     * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist 
-     * or is not active for restricted commands (e.g. start process)
+     * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist
+     * @throws DeploymentNotActiveException in case deployment with given deployment id is not active for restricted commands (e.g. start process)
      */
     public <T> T execute(String deploymentId, Command<T> command);
     
@@ -415,8 +505,14 @@ public interface ProcessService {
      * @param command actual command for execution
      * @return results of command execution
      * @throws DeploymentNotFoundException in case deployment with given deployment id does not exist 
-     * or is not active for restricted commands (e.g. start process)
+     * @throws DeploymentNotActiveException in case deployment with given deployment id is not active for restricted commands (e.g. start process)
      */
     public <T> T execute(String deploymentId, Context<?> context, Command<T> command);
+
+
+
+
+
+
 
 }

@@ -16,12 +16,6 @@
 
 package org.jbpm.kie.services.impl.admin;
 
-import static org.jbpm.services.api.query.QueryResultMapper.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.kie.scanner.KieMavenRepository.getKieMavenRepository;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
@@ -31,6 +25,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.persistence.EntityManager;
 
 import org.assertj.core.api.Assertions;
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
@@ -50,10 +46,13 @@ import org.jbpm.services.api.admin.UserTaskAdminService;
 import org.jbpm.services.api.model.DeploymentUnit;
 import org.jbpm.services.api.model.UserTaskInstanceDesc;
 import org.jbpm.services.api.query.model.QueryDefinition;
-import org.jbpm.services.api.query.model.QueryParam;
 import org.jbpm.services.api.query.model.QueryDefinition.Target;
+import org.jbpm.services.api.query.model.QueryParam;
+import org.jbpm.services.task.audit.impl.model.TaskEventImpl;
+import org.jbpm.services.task.exception.PermissionDeniedException;
 import org.jbpm.shared.services.impl.TransactionalCommandService;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.kie.api.KieServices;
@@ -69,11 +68,18 @@ import org.kie.internal.task.api.TaskModelFactory;
 import org.kie.internal.task.api.TaskModelProvider;
 import org.kie.internal.task.api.model.EmailNotification;
 import org.kie.internal.task.api.model.TaskEvent;
+import org.kie.internal.task.api.model.TaskEvent.TaskEventType;
 import org.kie.scanner.KieMavenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.jbpm.services.api.query.QueryResultMapper.COLUMN_NAME;
+import static org.jbpm.services.api.query.QueryResultMapper.COLUMN_TASKID;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.kie.scanner.KieMavenRepository.getKieMavenRepository;
 
 public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
 
@@ -222,6 +228,42 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
     }
 
     @Test
+    public void testAddRemovePotentialOwnersByUser() {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+        userTaskService.release(task.getId(), "salaboy");
+
+        // Forward the task to HR group (Add HR as potential owners)
+        identityProvider.setRoles(Collections.singletonList("HR"));
+        userTaskAdminService.addPotentialOwners("wbadmin",deploymentUnit.getIdentifier(), task.getId(), true, factory.newGroup("HR"));
+        tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("katy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+
+        // HR has no resources to handle so lets forward it to accounting
+        userTaskAdminService.removePotentialOwners("wbadmin", deploymentUnit.getIdentifier(), task.getId(), factory.newGroup("HR"));
+        tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("katy", new QueryFilter());
+        Assertions.assertThat(tasks).isEmpty();
+
+        identityProvider.setRoles(Collections.singletonList("Accounting"));
+        userTaskAdminService.addPotentialOwners("wbadmin", deploymentUnit.getIdentifier(), task.getId(), false, factory.newGroup("Accounting"));
+        tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("mary", new QueryFilter());
+        EntityManager em = this.emf.createEntityManager();
+        List<TaskEventImpl> impl = em.createQuery("SELECT o FROM TaskEventImpl o", TaskEventImpl.class).getResultList();
+        em.close();
+
+        Assert.assertFalse(impl.stream().filter(e -> e.getType().equals(TaskEventType.UPDATED)).anyMatch(e -> !e.getUserId().equals("wbadmin")));
+        Assertions.assertThat(tasks).hasSize(1);
+
+        // Even when using `bypass` methods, a valid user has to be provided
+        Assertions.assertThatExceptionOfType(PermissionDeniedException.class).isThrownBy(
+                () -> userTaskAdminService.addPotentialOwners("invalidUser", deploymentUnit.getIdentifier(), task.getId(), false, factory.newGroup("Accounting")));
+    }
+
+    @Test
     public void testAddPotentialOwners() {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
         Assertions.assertThat(processInstanceId).isNotNull();
@@ -235,8 +277,8 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         userTaskAdminService.addPotentialOwners(task.getId(), false, factory.newUser("john"));
         
         List<TaskEvent> events = runtimeDataService.getTaskEvents(task.getId(), new QueryFilter());
-        Assertions.assertThat(events).hasSize(3);
-        TaskEvent updatedEvent = events.get(2);
+        Assertions.assertThat(events).hasSize(4);
+        TaskEvent updatedEvent = events.get(3);
         Assertions.assertThat(updatedEvent.getMessage()).isEqualTo("Potential owners [john] have been added");
         
         tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
@@ -283,8 +325,8 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         
         userTaskAdminService.addExcludedOwners(task.getId(), false, factory.newUser("salaboy"));
         List<TaskEvent> events = runtimeDataService.getTaskEvents(task.getId(), new QueryFilter());
-        Assertions.assertThat(events).hasSize(3);
-        TaskEvent updatedEvent = events.get(2);
+        Assertions.assertThat(events).hasSize(4);
+        TaskEvent updatedEvent = events.get(3);
         Assertions.assertThat(updatedEvent.getMessage()).isEqualTo("Excluded owners [salaboy] have been added");
         
         tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
@@ -315,8 +357,8 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         
         userTaskAdminService.addBusinessAdmins(task.getId(), false, factory.newUser("salaboy"));
         List<TaskEvent> events = runtimeDataService.getTaskEvents(task.getId(), new QueryFilter());
-        Assertions.assertThat(events).hasSize(3);
-        TaskEvent updatedEvent = events.get(2);
+        Assertions.assertThat(events).hasSize(4);
+        TaskEvent updatedEvent = events.get(3);
         Assertions.assertThat(updatedEvent.getMessage()).isEqualTo("Business administrators [salaboy] have been added");
         
         tasks = runtimeDataService.getTasksAssignedAsBusinessAdministrator("salaboy", new QueryFilter());
@@ -344,8 +386,8 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         
         userTaskAdminService.removePotentialOwners(task.getId(), factory.newUser("salaboy"));
         List<TaskEvent> events = runtimeDataService.getTaskEvents(task.getId(), new QueryFilter());
-        Assertions.assertThat(events).hasSize(3);
-        TaskEvent updatedEvent = events.get(2);
+        Assertions.assertThat(events).hasSize(4);
+        TaskEvent updatedEvent = events.get(3);
         Assertions.assertThat(updatedEvent.getMessage()).isEqualTo("Potential owners [salaboy] have been removed");
         
         tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
@@ -365,8 +407,8 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         
         userTaskAdminService.addExcludedOwners(task.getId(), false, factory.newUser("salaboy"));
         List<TaskEvent> events = runtimeDataService.getTaskEvents(task.getId(), new QueryFilter());
-        Assertions.assertThat(events).hasSize(3);
-        TaskEvent updatedEvent = events.get(2);
+        Assertions.assertThat(events).hasSize(4);
+        TaskEvent updatedEvent = events.get(3);
         Assertions.assertThat(updatedEvent.getMessage()).isEqualTo("Excluded owners [salaboy] have been added");
         
         tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
@@ -374,8 +416,8 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         
         userTaskAdminService.removeExcludedOwners(task.getId(), factory.newUser("salaboy"));
         events = runtimeDataService.getTaskEvents(task.getId(), new QueryFilter());
-        Assertions.assertThat(events).hasSize(4);
-        updatedEvent = events.get(3);
+        Assertions.assertThat(events).hasSize(5);
+        updatedEvent = events.get(4);
         Assertions.assertThat(updatedEvent.getMessage()).isEqualTo("Excluded owners [salaboy] have been removed");
         
         tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
@@ -393,8 +435,8 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         
         userTaskAdminService.removeBusinessAdmins(task.getId(), factory.newUser("Administrator"));
         List<TaskEvent> events = runtimeDataService.getTaskEvents(task.getId(), new QueryFilter());
-        Assertions.assertThat(events).hasSize(2);
-        TaskEvent updatedEvent = events.get(1);
+        Assertions.assertThat(events).hasSize(3);
+        TaskEvent updatedEvent = events.get(2);
         Assertions.assertThat(updatedEvent.getMessage()).isEqualTo("Business administrators [Administrator] have been removed");
 
         List<Status> readyStatuses = Arrays.asList(new Status[]{
@@ -486,6 +528,25 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
     }
 
     @Test(timeout=10000)
+    public void testReassignNotStartedISOFormat() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+
+        userTaskAdminService.reassignWhenNotStarted(task.getId(), "PT2S", factory.newUser("john"));
+        CountDownListenerFactory.getExistingTask("userTaskAdminService").waitTillCompleted();
+
+        tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(0);
+
+        tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("john", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+    }
+
+    @Test(timeout=10000)
     public void testReassignNotStartedInvalidTimeExpression() throws Exception {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
         Assertions.assertThat(processInstanceId).isNotNull();
@@ -517,6 +578,37 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
     }
 
     @Test(timeout=10000)
+    public void testReassignNotStartedInvalidTimeExpressionISOFormat() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+
+        Assertions.assertThatThrownBy(() -> {
+            userTaskAdminService.reassignWhenNotStarted(task.getId(),
+                                                        "PT2SSSSSSSSS",
+                                                        factory.newUser("john"));
+        })
+                .hasMessage("Text cannot be parsed to a Duration");
+
+        Assertions.assertThatThrownBy(() -> {
+            userTaskAdminService.reassignWhenNotStarted(task.getId(),
+                                                        null,
+                                                        factory.newUser("john"));
+        })
+                .hasMessage("Invalid time expression");
+
+        Assertions.assertThatThrownBy(() -> {
+            userTaskAdminService.reassignWhenNotStarted(task.getId(),
+                                                        "",
+                                                        factory.newUser("john"));
+        })
+                .hasMessage("Invalid time expression");
+    }
+
+    @Test(timeout=10000)
     public void testReassignNotStartedInvalidOrgEntities() throws Exception {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
         Assertions.assertThat(processInstanceId).isNotNull();
@@ -528,6 +620,23 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         Assertions.assertThatThrownBy(() -> {
             userTaskAdminService.reassignWhenNotStarted(task.getId(),
                                                         "2s",
+                                                        null);
+        })
+                .hasMessage("Invalid org entity");
+    }
+
+    @Test(timeout=10000)
+    public void testReassignNotStartedInvalidOrgEntitiesISOFormat() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+
+        Assertions.assertThatThrownBy(() -> {
+            userTaskAdminService.reassignWhenNotStarted(task.getId(),
+                                                        "PT2S",
                                                         null);
         })
                 .hasMessage("Invalid org entity");
@@ -545,16 +654,56 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         userTaskService.start(task.getId(), "salaboy");
         
         Collection<TaskReassignment> reassignments = userTaskAdminService.getTaskReassignments(task.getId(), false);
-        Assertions.assertThat(reassignments).isNotNull();
-        Assertions.assertThat(reassignments).hasSize(0);
+        Assertions.assertThat(reassignments).isNotNull().isEmpty();
         
         userTaskAdminService.reassignWhenNotCompleted(task.getId(), "2s", factory.newUser("john"));
         reassignments = userTaskAdminService.getTaskReassignments(task.getId(), true);
         Assertions.assertThat(reassignments).isNotNull();
         Assertions.assertThat(reassignments).hasSize(1);
         
+        Assertions
+                  .assertThatThrownBy(() -> userTaskAdminService.reassignWhenNotCompleted(task.getId(), "2s", factory.newUser("pepe")))
+                  .isInstanceOf(IllegalArgumentException.class);
+
         CountDownListenerFactory.getExistingTask("userTaskAdminService").waitTillCompleted();
         
+        tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(0);
+
+        tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("john", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+
+        reassignments = userTaskAdminService.getTaskReassignments(task.getId(), true);
+        Assertions.assertThat(reassignments).isNotNull();
+        Assertions.assertThat(reassignments).hasSize(0);
+
+        reassignments = userTaskAdminService.getTaskReassignments(task.getId(), false);
+        Assertions.assertThat(reassignments).isNotNull();
+        Assertions.assertThat(reassignments).hasSize(1);
+    }
+
+    @Test(timeout=10000)
+    public void testReassignNotCompletedISOFormat() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+
+        userTaskService.start(task.getId(), "salaboy");
+
+        Collection<TaskReassignment> reassignments = userTaskAdminService.getTaskReassignments(task.getId(), false);
+        Assertions.assertThat(reassignments).isNotNull();
+        Assertions.assertThat(reassignments).hasSize(0);
+
+        userTaskAdminService.reassignWhenNotCompleted(task.getId(), "PT2S", factory.newUser("john"));
+        reassignments = userTaskAdminService.getTaskReassignments(task.getId(), true);
+        Assertions.assertThat(reassignments).isNotNull();
+        Assertions.assertThat(reassignments).hasSize(1);
+
+        CountDownListenerFactory.getExistingTask("userTaskAdminService").waitTillCompleted();
+
         tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
         Assertions.assertThat(tasks).hasSize(0);
 
@@ -608,6 +757,43 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
     }
 
     @Test(timeout=10000)
+    public void testReassignNotCompletedInvalidTimeExpressionISOFormat() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+
+        userTaskService.start(task.getId(), "salaboy");
+
+        Collection<TaskReassignment> reassignments = userTaskAdminService.getTaskReassignments(task.getId(), false);
+        Assertions.assertThat(reassignments).isNotNull();
+        Assertions.assertThat(reassignments).hasSize(0);
+
+        Assertions.assertThatThrownBy(() -> {
+            userTaskAdminService.reassignWhenNotCompleted(task.getId(),
+                                                          "PT2SSSSS",
+                                                          factory.newUser("john"));
+        })
+                .hasMessage("Text cannot be parsed to a Duration");
+
+        Assertions.assertThatThrownBy(() -> {
+            userTaskAdminService.reassignWhenNotCompleted(task.getId(),
+                                                          null,
+                                                          factory.newUser("john"));
+        })
+                .hasMessage("Invalid time expression");
+
+        Assertions.assertThatThrownBy(() -> {
+            userTaskAdminService.reassignWhenNotCompleted(task.getId(),
+                                                          "",
+                                                          factory.newUser("john"));
+        })
+                .hasMessage("Invalid time expression");
+    }
+
+    @Test(timeout=10000)
     public void testReassignNotCompletedInvalidOrgEntities() throws Exception {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
         Assertions.assertThat(processInstanceId).isNotNull();
@@ -626,6 +812,29 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
             userTaskAdminService.reassignWhenNotCompleted(task.getId(),
                                                         "2s",
                                                         null);
+        })
+                .hasMessage("Invalid org entity");
+    }
+
+    @Test(timeout=10000)
+    public void testReassignNotCompletedInvalidOrgEntitiesISOFormat() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+
+        userTaskService.start(task.getId(), "salaboy");
+
+        Collection<TaskReassignment> reassignments = userTaskAdminService.getTaskReassignments(task.getId(), false);
+        Assertions.assertThat(reassignments).isNotNull();
+        Assertions.assertThat(reassignments).hasSize(0);
+
+        Assertions.assertThatThrownBy(() -> {
+            userTaskAdminService.reassignWhenNotCompleted(task.getId(),
+                                                          "PT2S",
+                                                          null);
         })
                 .hasMessage("Invalid org entity");
     }
@@ -650,6 +859,28 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
         Assertions.assertThat(tasks).hasSize(1);
          
+    }
+
+    @Test(timeout=10000)
+    public void testNotifyNotStartedISOFormat() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+
+        List<OrganizationalEntity> recipients = new ArrayList<>();
+        recipients.add(factory.newUser("john"));
+
+        EmailNotification emailNotification = userTaskAdminService.buildEmailNotification("test", recipients, "Simple body", "Administrator", "");
+
+        userTaskAdminService.notifyWhenNotStarted(task.getId(), "PT2S", emailNotification);
+        CountDownListenerFactory.getExistingTask("userTaskAdminService").waitTillCompleted();
+
+        tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+
     }
     
     @Test(timeout=10000)
@@ -690,6 +921,45 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         Assertions.assertThat(notifications).hasSize(1);
          
     }
+
+    @Test(timeout=10000)
+    public void testNotifyNotCompletedISOFormat() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+
+        Collection<TaskNotification> notifications = userTaskAdminService.getTaskNotifications(task.getId(), false);
+        Assertions.assertThat(notifications).isNotNull();
+        Assertions.assertThat(notifications).hasSize(0);
+
+        userTaskService.start(task.getId(), "salaboy");
+
+        List<OrganizationalEntity> recipients = new ArrayList<>();
+        recipients.add(factory.newUser("john"));
+
+        EmailNotification emailNotification = userTaskAdminService.buildEmailNotification("test", recipients, "Simple body", "Administrator", "");
+
+        userTaskAdminService.notifyWhenNotCompleted(task.getId(), "PT2S", emailNotification);
+        notifications = userTaskAdminService.getTaskNotifications(task.getId(), false);
+        Assertions.assertThat(notifications).isNotNull();
+        Assertions.assertThat(notifications).hasSize(1);
+        CountDownListenerFactory.getExistingTask("userTaskAdminService").waitTillCompleted();
+
+        tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+
+        notifications = userTaskAdminService.getTaskNotifications(task.getId(), true);
+        Assertions.assertThat(notifications).isNotNull();
+        Assertions.assertThat(notifications).hasSize(0);
+
+        notifications = userTaskAdminService.getTaskNotifications(task.getId(), false);
+        Assertions.assertThat(notifications).isNotNull();
+        Assertions.assertThat(notifications).hasSize(1);
+
+    }
     
     @Test(timeout=10000)
     public void testNotifyNotStartedAndCancel() throws Exception {
@@ -721,6 +991,37 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         Assertions.assertThat(notifications).hasSize(0);
          
     }
+
+    @Test(timeout=10000)
+    public void testNotifyNotStartedAndCancelISOFormat() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+
+        Collection<TaskNotification> notifications = userTaskAdminService.getTaskNotifications(task.getId(), false);
+        Assertions.assertThat(notifications).isNotNull();
+        Assertions.assertThat(notifications).hasSize(0);
+
+        List<OrganizationalEntity> recipients = new ArrayList<>();
+        recipients.add(factory.newUser("john"));
+
+        EmailNotification emailNotification = userTaskAdminService.buildEmailNotification("test", recipients, "Simple body", "Administrator", "");
+
+        long notificationId = userTaskAdminService.notifyWhenNotStarted(task.getId(), "PT2S", emailNotification);
+        notifications = userTaskAdminService.getTaskNotifications(task.getId(), true);
+        Assertions.assertThat(notifications).isNotNull();
+        Assertions.assertThat(notifications).hasSize(1);
+
+        userTaskAdminService.cancelNotification(task.getId(), notificationId);
+
+        notifications = userTaskAdminService.getTaskNotifications(task.getId(), true);
+        Assertions.assertThat(notifications).isNotNull();
+        Assertions.assertThat(notifications).hasSize(0);
+
+    }
     
     @Test(timeout=10000)
     public void testReassignNotStartedAndCancel() throws Exception {
@@ -742,6 +1043,31 @@ public class UserTaskAdminServiceImplTest extends AbstractKieServicesBaseTest {
         
         userTaskAdminService.cancelReassignment(task.getId(), reassignmentId);
         
+        reassignments = userTaskAdminService.getTaskReassignments(task.getId(), true);
+        Assertions.assertThat(reassignments).isNotNull();
+        Assertions.assertThat(reassignments).hasSize(0);
+    }
+
+    @Test(timeout=10000)
+    public void testReassignNotStartedAndCancelISOFormat() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        Assertions.assertThat(processInstanceId).isNotNull();
+
+        List<TaskSummary> tasks = runtimeDataService.getTasksAssignedAsPotentialOwner("salaboy", new QueryFilter());
+        Assertions.assertThat(tasks).hasSize(1);
+        TaskSummary task = tasks.get(0);
+
+        Collection<TaskReassignment> reassignments = userTaskAdminService.getTaskReassignments(task.getId(), false);
+        Assertions.assertThat(reassignments).isNotNull();
+        Assertions.assertThat(reassignments).hasSize(0);
+
+        Long reassignmentId = userTaskAdminService.reassignWhenNotStarted(task.getId(), "PT2S", factory.newUser("john"));
+        reassignments = userTaskAdminService.getTaskReassignments(task.getId(), true);
+        Assertions.assertThat(reassignments).isNotNull();
+        Assertions.assertThat(reassignments).hasSize(1);
+
+        userTaskAdminService.cancelReassignment(task.getId(), reassignmentId);
+
         reassignments = userTaskAdminService.getTaskReassignments(task.getId(), true);
         Assertions.assertThat(reassignments).isNotNull();
         Assertions.assertThat(reassignments).hasSize(0);

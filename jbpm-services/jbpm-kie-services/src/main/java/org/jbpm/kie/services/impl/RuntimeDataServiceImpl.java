@@ -16,10 +16,6 @@
 
 package org.jbpm.kie.services.impl;
 
-import static java.util.Objects.requireNonNull;
-import static org.jbpm.kie.services.impl.CommonUtils.getCallbackUserRoles;
-import static org.kie.internal.query.QueryParameterIdentifiers.FILTER;
-
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
@@ -42,6 +39,7 @@ import org.jbpm.kie.services.impl.security.DeploymentRolesManager;
 import org.jbpm.runtime.manager.impl.identity.UserDataServiceProvider;
 import org.jbpm.services.api.DeploymentEvent;
 import org.jbpm.services.api.DeploymentEventListener;
+import org.jbpm.services.api.DeploymentNotFoundException;
 import org.jbpm.services.api.RuntimeDataService;
 import org.jbpm.services.api.TaskNotFoundException;
 import org.jbpm.services.api.model.DeployedAsset;
@@ -68,6 +66,10 @@ import org.kie.internal.query.QueryFilter;
 import org.kie.internal.task.api.AuditTask;
 import org.kie.internal.task.api.model.TaskEvent;
 import org.kie.internal.task.query.TaskSummaryQueryBuilder;
+
+import static java.util.Objects.requireNonNull;
+import static org.jbpm.kie.services.impl.CommonUtils.getCallbackUserRoles;
+import static org.kie.internal.query.QueryParameterIdentifiers.FILTER;
 
 
 public class RuntimeDataServiceImpl implements RuntimeDataService, DeploymentEventListener {
@@ -134,11 +136,6 @@ public class RuntimeDataServiceImpl implements RuntimeDataService, DeploymentEve
         this.deploymentRolesManager = deploymentRolesManager;
     }
 
-    private void addProcessDefinition( ProcessAssetDesc asset) {
-       availableProcesses.add(asset);
-       deploymentIds.add(asset.getDeploymentId());
-    }
-
     private void removeAllProcessDefinitions( Collection<ProcessAssetDesc> assets) {
         Iterator<ProcessAssetDesc> iter = assets.iterator();
         while( iter.hasNext() ) {
@@ -153,6 +150,9 @@ public class RuntimeDataServiceImpl implements RuntimeDataService, DeploymentEve
         if (deploymentId != null && deploymentId.toLowerCase().endsWith("latest")) {
             matched = DeploymentIdResolver.matchAndReturnLatest(deploymentId, deploymentIds);
         }
+        else if (!deploymentIds.contains(deploymentId)) {
+            throw new DeploymentNotFoundException(deploymentId+ " not found");
+        }
         return matched;
     }
 
@@ -166,12 +166,14 @@ public class RuntimeDataServiceImpl implements RuntimeDataService, DeploymentEve
         List<String> roles = null;
         for( DeployedAsset asset : assets ) {
             if( asset instanceof ProcessAssetDesc ) {
-                addProcessDefinition((ProcessAssetDesc) asset);
+                availableProcesses.add((ProcessAssetDesc) asset);
                 if (roles == null) {
                 	roles = ((ProcessAssetDesc) asset).getRoles();
                 }
             }
         }
+        // deployment id should be added regardless they are assets or not
+        deploymentIds.add(event.getDeploymentId());
         if (roles == null) {
         	roles = Collections.emptyList();
         }
@@ -635,6 +637,31 @@ public class RuntimeDataServiceImpl implements RuntimeDataService, DeploymentEve
         return processInstances;
     }
 
+    @Override
+    public Collection<ProcessInstanceDesc> getProcessInstancesWithSubprocessByProcessInstanceId(Long parentProcessInstanceId, List<Integer> states, QueryContext queryContext) {
+        Map<String, Object> params = new HashMap<>();
+
+        if (states == null || states.isEmpty()) {
+            states = new ArrayList<>();
+            states.add(ProcessInstance.STATE_ACTIVE);
+        }
+        params.put("states", states);
+
+        applyQueryContext(params, queryContext);
+        applyDeploymentFilter(params);
+        List<ProcessInstanceDesc> all = new ArrayList<>();
+        List<Long> parentProcessInstancesId = Collections.singletonList(parentProcessInstanceId);
+
+        // this is done till there are no more parents to process
+        while(!parentProcessInstancesId.isEmpty()) {
+            params.put("parentsId", parentProcessInstancesId);
+            List<ProcessInstanceDesc> processInstances = commandService.execute(new QueryNameCommand<>("getProcessInstancesByParents", params));
+            all.addAll(processInstances); 
+            parentProcessInstancesId = processInstances.stream().map(ProcessInstanceDesc::getId).collect(Collectors.toList()); 
+        }
+        return all;
+    }
+
     /*
      * end
      * process instances methods
@@ -810,6 +837,17 @@ public class RuntimeDataServiceImpl implements RuntimeDataService, DeploymentEve
         }
         return null;
 	}
+
+    @Override
+    public UserTaskInstanceDesc getTaskById(Long taskId, boolean withSLA){
+        UserTaskInstanceDesc taskInstanceDesc = getTaskById(taskId);
+        if(withSLA && (taskInstanceDesc != null && taskInstanceDesc.getWorkItemId() != null)) {
+            NodeInstanceDesc nodeInstanceDesc = getNodeInstanceForWorkItem(taskInstanceDesc.getWorkItemId());
+            taskInstanceDesc.setSlaCompliance(nodeInstanceDesc.getSlaCompliance());
+            taskInstanceDesc.setSlaDueDate(nodeInstanceDesc.getSlaDueDate());
+        }
+        return taskInstanceDesc;
+    }
 
 	@Override
 	public List<TaskSummary> getTasksAssignedAsBusinessAdministrator(String userId, QueryFilter filter) {
@@ -1112,18 +1150,20 @@ public class RuntimeDataServiceImpl implements RuntimeDataService, DeploymentEve
     }
 
     public List<TaskEvent> getTaskEvents(long taskId, QueryFilter filter) {
+        UserTaskInstanceDesc task = getTaskById(taskId);
+        if (task == null) {
+            throw new TaskNotFoundException( MessageFormat.format(TASK_NOT_FOUND, taskId) );
+        }
     	Map<String, Object> params = new HashMap<String, Object>();
         params.put("taskId", taskId);
         applyQueryContext(params, filter);
         applyQueryFilter(params, filter);
         List<TaskEvent> taskEvents = commandService.execute(
     				new QueryNameCommand<List<TaskEvent>>("getAllTasksEvents", params));
-
-        if(taskEvents == null || taskEvents.isEmpty()) {
-            
-            UserTaskInstanceDesc task = getTaskById(taskId);
-            if (task == null) {
-                throw new TaskNotFoundException( MessageFormat.format(TASK_NOT_FOUND, taskId) );
+        if (taskEvents != null) {
+            for (TaskEvent taskEvent : taskEvents) {
+                taskEvent.setCorrelationKey(task.getCorrelationKey());
+                taskEvent.setProcessType(task.getProcessType());
             }
         }
         return taskEvents;

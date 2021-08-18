@@ -16,6 +16,10 @@
 
 package org.jbpm.bpmn2.xpath;
 
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
@@ -23,9 +27,10 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
-import org.drools.core.process.instance.WorkItem;
 import org.jbpm.process.instance.impl.AssignmentAction;
+import org.jbpm.process.instance.impl.AssignmentProducer;
 import org.jbpm.workflow.core.node.Assignment;
+import org.kie.api.runtime.process.NodeInstance;
 import org.kie.api.runtime.process.ProcessContext;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -35,19 +40,25 @@ import org.w3c.dom.Text;
 
 public class XPATHAssignmentAction implements AssignmentAction {
 	
-	private String sourceExpr;
-	private String targetExpr;
 	private Assignment assignment;
-	private boolean isInput;
+    private AssignmentProducer producer;
+    private BiFunction<ProcessContext, NodeInstance, Object> source;
+    private BiFunction<ProcessContext, NodeInstance, Object> target;
+    private String sourceExpr;
+    private String targetExpr;
 	
-	public XPATHAssignmentAction(Assignment assignment, String sourceExpr, String targetExpr, boolean isInput) {
+    public XPATHAssignmentAction(Assignment assignment, String sourceExpr, String targetExpr,
+                                 BiFunction<ProcessContext, NodeInstance, Object> source,
+                                 BiFunction<ProcessContext, NodeInstance, Object> target, AssignmentProducer producer) {
 		this.assignment = assignment;
 		this.sourceExpr = sourceExpr;
 		this.targetExpr = targetExpr;
-		this.isInput = isInput;
+		this.source = source;
+		this.target = target;
+		this.producer = producer;
 	}
 
-	public void execute(WorkItem workItem, ProcessContext context) throws Exception {
+	public void execute(NodeInstance nodeInstance, ProcessContext context) throws Exception {
         String from = assignment.getFrom();
         String to = assignment.getTo();
         
@@ -60,26 +71,18 @@ public class XPATHAssignmentAction implements AssignmentAction {
 
         XPathExpression exprTo = xpathTo.compile(to);
 
-        Object target = null;
-        Object source = null;
+        Object target;
+        Object source;
         
-        if (isInput) {
-            source = context.getVariable(sourceExpr);
-            target = ((WorkItem) workItem).getParameter(targetExpr);
-        } else {
-            target = context.getVariable(targetExpr);
-            source = ((WorkItem) workItem).getResult(sourceExpr);
-        }
+        source = this.source.apply(context, nodeInstance);
+        target = this.target.apply(context, nodeInstance);
+        
         
         Object targetElem = null;
-        
-//        XPATHExpressionModifier modifier = new XPATHExpressionModifier();
-//        // modify the tree, returning the root node
-//        target = modifier.insertMissingData(to, (org.w3c.dom.Node) target);
 
         // now pick the leaf for this operation
         if (target != null) {
-            org.w3c.dom.Node parent = null;
+            org.w3c.dom.Node parent;
                 parent = ((org.w3c.dom.Node) target).getParentNode();
                 
                 
@@ -104,7 +107,7 @@ public class XPATHAssignmentAction implements AssignmentAction {
             throw new RuntimeException("Source value was null for source " + sourceExpr);
         }
         
-        if (nl.getLength() == 0) {
+        if (nl == null || nl.getLength() == 0) {
             throw new RuntimeException("Nothing was selected by the from expression " + from + " on " + sourceExpr);
         }
         for (int i = 0 ; i < nl.getLength(); i++) {
@@ -130,11 +133,7 @@ public class XPATHAssignmentAction implements AssignmentAction {
             }
         }
         
-        if (isInput) {
-            ((WorkItem) workItem).setParameter(targetExpr, target);
-        } else {
-            context.setVariable(targetExpr, target);
-        }
+        producer.accept(context, nodeInstance, target);
 	}
 
 }

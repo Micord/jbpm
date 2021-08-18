@@ -16,7 +16,7 @@
 
 package org.jbpm.process.audit.query;
 
-import static org.jbpm.persistence.util.PersistenceUtil.JBPM_PERSISTENCE_UNIT_NAME;
+import static org.jbpm.test.persistence.util.PersistenceUtil.JBPM_PERSISTENCE_UNIT_NAME;
 import static org.jbpm.process.audit.query.AuditQueryDataUtil.cleanDB;
 import static org.jbpm.process.audit.query.AuditQueryDataUtil.createTestNodeInstanceLogData;
 import static org.jbpm.process.audit.query.AuditQueryDataUtil.createTestProcessInstanceLogData;
@@ -34,6 +34,7 @@ import org.jbpm.process.audit.ProcessInstanceLog;
 import org.jbpm.process.audit.VariableInstanceLog;
 import org.jbpm.process.audit.strategy.StandaloneJtaStrategy;
 import org.jbpm.query.QueryBuilderCoverageTestUtil.ModuleSpecificInputFiller;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -47,35 +48,37 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AuditQueryCoverageTest extends JPAAuditLogService {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(AuditQueryCoverageTest.class);
-  
+
     private static EntityManagerFactory emf;
-    
+
     private ProcessInstanceLog [] pilTestData;
     private VariableInstanceLog [] vilTestData;
     private NodeInstanceLog [] nilTestData;
-   
+
     @BeforeClass
-    public static void configure() { 
+    public static void configure() {
         emf = beforeClass(JBPM_PERSISTENCE_UNIT_NAME);
     }
-    
+
     @AfterClass
-    public static void reset() { 
-        cleanDB(emf);
+    public static void reset() {
         afterClass();
     }
 
     @Before
     public void setUp() throws Exception {
-        if( pilTestData == null ) { 
-            // this is not really necessary.. 
-            pilTestData = createTestProcessInstanceLogData(emf);
-            vilTestData = createTestVariableInstanceLogData(emf);
-            nilTestData = createTestNodeInstanceLogData(emf);
-        }
+        pilTestData = createTestProcessInstanceLogData(emf);
+        vilTestData = createTestVariableInstanceLogData(emf);
+        nilTestData = createTestNodeInstanceLogData(emf);
+
         this.persistenceStrategy = new StandaloneJtaStrategy(emf);
+    }
+
+    @After
+    public void tearDown() {
+        cleanDB(emf);
     }
   
     private static ModuleSpecificInputFiller inputFiller = new ModuleSpecificInputFiller() {

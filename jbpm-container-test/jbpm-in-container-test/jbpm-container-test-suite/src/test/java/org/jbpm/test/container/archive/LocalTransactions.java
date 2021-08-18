@@ -26,7 +26,6 @@ import org.jboss.shrinkwrap.resolver.api.maven.PomEquippedResolveStage;
 import org.jbpm.test.container.handlers.ListWorkItemHandler;
 import org.jbpm.test.container.listeners.TrackingAgendaEventListener;
 import org.jbpm.test.container.listeners.TrackingProcessEventListener;
-import org.jbpm.test.container.webspherefix.WebSphereFixedJtaPlatform;
 import org.jbpm.test.container.tools.IntegrationMavenResolver;
 import org.jbpm.test.container.tools.KieUtils;
 import org.kie.api.KieServices;
@@ -35,6 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LocalTransactions {
+
+    private static final String CONTAINER_ID = System.getProperty("container.id", "");
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LocalTransactions.class);
 
@@ -49,7 +50,6 @@ public class LocalTransactions {
     public static final String RULES_TRANSACTIONS = "transactions-rules.drl";
 
     public static final String LOCAL_TRANSACTIONS_PATH = "org/jbpm/test/container/archive/localtransactions/";
-
 
     private WebArchive war;
 
@@ -70,14 +70,14 @@ public class LocalTransactions {
                 .addAsLibraries(dependencies);
 
         war.addClass(LocalTransactions.class)
-                // Workaroud for https://hibernate.atlassian.net/browse/HHH-11606
-                .addClass(WebSphereFixedJtaPlatform.class)
                 .addClass(ListWorkItemHandler.class)
                 .addClass(TrackingAgendaEventListener.class)
                 .addClass(TrackingProcessEventListener.class)
                 .addClass(KieUtils.class);
 
         war.addPackages(true, "org.jbpm.test.container.groups");
+        // NodeCountDownProcessEventListener and its ancestors from jbpm-test-util
+        war.addPackages(true, "org.jbpm.test.listener.process");
 
         // WEB-INF resources
         war.addAsWebResource(getClass().getResource("/logback.xml"), ArchivePaths.create("logback.xml"));
@@ -88,9 +88,12 @@ public class LocalTransactions {
         war.addAsResource(getClass().getResource("/persistence.xml"),
                 ArchivePaths.create("META-INF/persistence.xml"));
 
-        war.addAsWebResource(getClass().getResource("localtransactions/tomcat-context.xml"),
-                ArchivePaths.create("META-INF/context.xml"));
-
+        if (CONTAINER_ID.startsWith("tomcat")) {
+            war.addAsWebResource(getClass().getResource("localtransactions/tomcat-context.xml"),
+                                 ArchivePaths.create("META-INF/context.xml"));
+            war.addAsWebInfResource(getClass().getResource("localtransactions/web.xml"),
+                                    ArchivePaths.create("web.xml"));
+        }
         war.addAsResource(getClass().getResource("localtransactions/jbossts-properties.xml"), ArchivePaths.create("jbossts-properties.xml"));
 
         return war;

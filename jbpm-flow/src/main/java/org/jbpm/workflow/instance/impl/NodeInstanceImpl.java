@@ -18,7 +18,7 @@ package org.jbpm.workflow.instance.impl;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -58,11 +58,17 @@ import org.kie.internal.runtime.error.ExecutionErrorManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.jbpm.workflow.instance.NodeInstance.CancelType.ABORTED;
+import static org.jbpm.workflow.instance.NodeInstance.CancelType.ERROR;
+import static org.jbpm.workflow.instance.NodeInstance.CancelType.OBSOLETE;
+
 /**
  * Default implementation of a RuleFlow node instance.
  * 
  */
 public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.NodeInstance, Serializable {
+
+    public static final String UNIQUE_ID = "UniqueId";
 
 	private static final long serialVersionUID = 510l;
 	protected static final Logger logger = LoggerFactory.getLogger(NodeInstanceImpl.class);
@@ -73,12 +79,19 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
     private org.jbpm.workflow.instance.NodeInstanceContainer nodeInstanceContainer;
     private Map<String, Object> metaData = new HashMap<String, Object>();
     private int level;
-    
+    protected Date triggerTime;
     protected int slaCompliance = ProcessInstance.SLA_NA;
     protected Date slaDueDate;
     protected long slaTimerId = -1;
+    private boolean aborted = false;
+    protected transient CancelType cancelType;
     
     protected transient Map<String, Object> dynamicParameters;
+
+
+    public CancelType getCancelType() {
+        return cancelType;
+    }
 
     public void setId(final long id) {
         this.id = id;
@@ -143,9 +156,13 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
     public boolean isInversionOfControl() {
         return false;
     }
+
+    public final void cancel() {
+        cancel(ABORTED);
+    }
     
-    public void cancel() {
-        nodeInstanceContainer.removeNodeInstance(this);
+    public void cancel(CancelType cancelType) {
+        this.cancelType = cancelType;
         boolean hidden = false;
         Node node = getNode();
     	if (node != null && node.getMetaData().get("hidden") != null) {
@@ -154,7 +171,13 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
     	if (!hidden) {
     		InternalKnowledgeRuntime kruntime = getProcessInstance().getKnowledgeRuntime();
         	((InternalProcessRuntime) kruntime.getProcessRuntime())
-        		.getProcessEventSupport().fireAfterNodeLeft(this, kruntime);
+        		.getProcessEventSupport().fireBeforeNodeLeft(this, kruntime);
+        }
+        nodeInstanceContainer.removeNodeInstance(this);
+        if (!hidden) {
+            InternalKnowledgeRuntime kruntime = getProcessInstance().getKnowledgeRuntime();
+            ((InternalProcessRuntime) kruntime.getProcessRuntime())
+                    .getProcessEventSupport().fireAfterNodeLeft(this, kruntime);
         }
     }
     
@@ -165,15 +188,7 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
     	}
     	
     	if (from != null) {
-    	    int level = ((org.jbpm.workflow.instance.NodeInstance)from).getLevel();
-    	    ((org.jbpm.workflow.instance.NodeInstanceContainer)getNodeInstanceContainer()).setCurrentLevel(level);
-	    	Collection<Connection> incoming = getNode().getIncomingConnections(type);
-	    	for (Connection conn : incoming) {
-	    	    if (conn.getFrom().getId() == from.getNodeId()) {
-	    	        this.metaData.put("IncomingConnection", conn.getMetaData().get("UniqueId"));
-	    	        break;
-	    	    }
-	    	}
+            this.metaData.put("IncomingConnection", from.getNode().getMetaData().get(UNIQUE_ID));
     	}
     	if (dynamicParameters != null) {
             for (Entry<String, Object> entry : dynamicParameters.entrySet()) {
@@ -224,7 +239,9 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
             if (exceptionScopeInstance == null) {
                 throw new WorkflowRuntimeException(this, getProcessInstance(), "Unable to execute Action: " + e.getMessage(), e);
             }
+            
             exceptionScopeInstance.handleException(exceptionName, e);
+            cancel(ERROR);
         }
     }
     
@@ -232,7 +249,7 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
         getExecutionErrorHandler().processed(this);
         Node node = getNode();
         if (node != null) {
-	    	String uniqueId = (String) node.getMetaData().get("UniqueId");
+            String uniqueId = (String) node.getMetaData().get(UNIQUE_ID);
 	    	if( uniqueId == null ) { 
 	    	    uniqueId = ((NodeImpl) node).getUniqueId();
 	    	}
@@ -358,7 +375,7 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
     				if (groupInstance.containsNodeInstance(this)) {
     					for (NodeInstance nodeInstance: groupInstance.getNodeInstances()) {
     						if (nodeInstance != this) {
-    							((org.jbpm.workflow.instance.NodeInstance) nodeInstance).cancel();
+                                ((org.jbpm.workflow.instance.NodeInstance) nodeInstance).cancel(OBSOLETE);
     						}
     					}
     					((ContextInstanceContainer) parent).removeContextInstance(ExclusiveGroup.EXCLUSIVE_GROUP, contextInstance);
@@ -371,27 +388,33 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
     		((org.jbpm.workflow.instance.NodeInstanceContainer) getNodeInstanceContainer())
             	.getNodeInstance(connection.getTo());
     }
-    
+
     protected void triggerNodeInstance(org.jbpm.workflow.instance.NodeInstance nodeInstance, String type) {
+        triggerNodeInstance(nodeInstance, type, true);
+    }
+
+    protected NodeInstance getFrom() {
+        return this;
+    }
+
+    protected void triggerNodeInstance(org.jbpm.workflow.instance.NodeInstance nodeInstance, String type, boolean fireEvents) {
+        triggerTime = new Date();
     	boolean hidden = false;
     	if (getNode().getMetaData().get("hidden") != null) {
     		hidden = true;
     	}
     	InternalKnowledgeRuntime kruntime = getProcessInstance().getKnowledgeRuntime();
-    	if (!hidden) {
+        // trigger next node
+        this.metaData.put("OutgoingConnection", nodeInstance.getNode().getMetaData().get(UNIQUE_ID));
+
+    	if (!hidden && fireEvents) {
     		((InternalProcessRuntime) kruntime.getProcessRuntime())
     			.getProcessEventSupport().fireBeforeNodeLeft(this, kruntime);
     	}
-    	// trigger next node
-        nodeInstance.trigger(this, type);
-        Collection<Connection> outgoing = getNode().getOutgoingConnections(type);
-        for (Connection conn : outgoing) {
-            if (conn.getTo().getId() == nodeInstance.getNodeId()) {
-                this.metaData.put("OutgoingConnection", conn.getMetaData().get("UniqueId"));
-                break;
-            }
-        }
-        if (!hidden) {
+
+        nodeInstance.trigger(getFrom(), type);
+
+        if (!hidden && fireEvents) {
         	((InternalProcessRuntime) kruntime.getProcessRuntime())
         		.getProcessEventSupport().fireAfterNodeLeft(this, kruntime);
         }
@@ -405,14 +428,18 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
     	if (remove) {
     		cancel();
         }
-    	triggerNode(getNodeId());
+    	triggerNode(getNodeId(), remove == false);
+    }
+
+    public void triggerNode(long nodeId) {
+        triggerNode(nodeId, true);
     }
     
-    public void triggerNode(long nodeId) {
+    public void triggerNode(long nodeId, boolean fireEvents) {
     	org.jbpm.workflow.instance.NodeInstance nodeInstance = (org.jbpm.workflow.instance.NodeInstance)
     		((org.jbpm.workflow.instance.NodeInstanceContainer) getNodeInstanceContainer())
             	.getNodeInstance(getNode().getNodeContainer().getNode(nodeId));
-    	triggerNodeInstance(nodeInstance, org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE);
+    	triggerNodeInstance(nodeInstance, org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE, fireEvents);
     }
     
     public Context resolveContext(String contextId, Object param) {
@@ -421,7 +448,15 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
         }
         return ((NodeImpl) getNode()).resolveContext(contextId, param);
     }
-    
+
+    public List<ContextInstance> resolveContextInstance(String contextId) {
+        // check for exclusive group first
+        NodeInstanceContainer parent = getNodeInstanceContainer();
+        if (parent instanceof ContextInstanceContainer) {
+            return ((ContextInstanceContainer) parent).getContextInstances(VariableScope.VARIABLE_SCOPE);
+        }
+        return Collections.emptyList();
+    }
     public ContextInstance resolveContextInstance(String contextId, Object param) {
         Context context = resolveContext(contextId, param);
         if (context == null) {
@@ -435,7 +470,7 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
         }
         return contextInstanceContainer.getContextInstance(context);
     }
-    
+
     private ContextInstanceContainer getContextInstanceContainer(ContextContainer contextContainer) {
     	ContextInstanceContainer contextInstanceContainer = null; 
 		if (this instanceof ContextInstanceContainer) {
@@ -571,5 +606,18 @@ public abstract class NodeInstanceImpl implements org.jbpm.workflow.instance.Nod
     
     public void internalSetSlaTimerId(Long slaTimerId) {
         this.slaTimerId = slaTimerId;
+    }
+
+    public Date getTriggerTime() {
+        return triggerTime;
+    }
+
+    public boolean isAborted() {
+        return aborted;
+    }
+
+    public void setAborted(boolean aborted) {
+        this.aborted = aborted;
+        this.cancelType = aborted ? ABORTED : null;
     }
 }

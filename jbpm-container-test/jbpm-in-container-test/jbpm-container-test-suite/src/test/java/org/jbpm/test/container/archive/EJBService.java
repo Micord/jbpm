@@ -31,7 +31,6 @@ import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.PomEquippedResolveStage;
 import org.jbpm.kie.services.impl.KModuleDeploymentUnit;
-import org.jbpm.runtime.manager.impl.deploy.DeploymentDescriptorImpl;
 import org.jbpm.services.api.DeploymentService;
 import org.jbpm.services.api.ProcessService;
 import org.jbpm.services.api.model.DeploymentUnit;
@@ -40,7 +39,6 @@ import org.jbpm.test.container.AbstractRuntimeEJBServicesTest;
 import org.jbpm.test.container.JbpmContainerTest;
 import org.jbpm.test.container.listeners.TrackingAgendaEventListener;
 import org.jbpm.test.container.tools.IntegrationMavenResolver;
-import org.jbpm.test.container.webspherefix.WebSphereFixedJtaPlatform;
 import org.jbpm.test.listener.process.DefaultCountDownProcessEventListener;
 import org.kie.api.KieServices;
 import org.kie.api.builder.KieBuilder;
@@ -58,6 +56,7 @@ import org.kie.internal.io.ResourceFactory;
 import org.kie.internal.runtime.conf.DeploymentDescriptor;
 import org.kie.internal.runtime.conf.NamedObjectModel;
 import org.kie.internal.runtime.conf.RuntimeStrategy;
+import org.kie.internal.runtime.manager.deploy.DeploymentDescriptorImpl;
 import org.kie.scanner.KieMavenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,8 +98,6 @@ public class EJBService {
                 .create(WebArchive.class, ARCHIVE_NAME + ".war")
                 .addAsLibraries(dependencies)
                 .addClass(EJBService.class)
-                // Workaroud for https://hibernate.atlassian.net/browse/HHH-11606
-                .addClass(WebSphereFixedJtaPlatform.class)
                 .addClass(DefaultCountDownProcessEventListener.class)
                 .addClass(JbpmContainerTest.class)
                 .addClass(AbstractEJBServicesTest.class)
@@ -166,6 +163,7 @@ public class EJBService {
         KieServices ks = KieServices.Factory.get();
         ReleaseId releaseId = ks.newReleaseId(KieJar.TX.groupId, KieJar.TX.artifactId, KieJar.TX.version);
         List<String> assets = new ArrayList<String>();
+        assets.add("HumanTaskThrowException.bpmn2");
         assets.add("ScriptTask.bpmn2");
         assets.add("TxProcess.bpmn2");
         assets.add("TxRules.drl");
@@ -347,8 +345,9 @@ public class EJBService {
             }
         }
         KieBuilder kieBuilder = ks.newKieBuilder(kfs);
-        if (!kieBuilder.buildAll().getResults().getMessages().isEmpty()) {
-            for (Message message : kieBuilder.buildAll().getResults().getMessages()) {
+        List<Message> messages = kieBuilder.buildAll().getResults().getMessages();
+        if (!messages .isEmpty()) {
+            for (Message message : messages) {
                 LOGGER.error("Error Message: ({}) {}", message.getPath(), message.getText());
             }
             throw new RuntimeException("There are errors building the package, please check your knowledge assets!");

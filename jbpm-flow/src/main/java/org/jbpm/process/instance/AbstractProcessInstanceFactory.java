@@ -47,6 +47,9 @@ public abstract class AbstractProcessInstanceFactory implements ProcessInstanceF
     		.addProcessInstance( processInstance, correlationKey );
 
         // set variable default values
+        if (parameters != null && parameters.containsKey("ParentInstanceId")) {
+            processInstance.getMetaData().put("ParentProcessInstanceId", (Long) parameters.get("ParentInstanceId"));
+        }
         // TODO: should be part of processInstanceImpl?
         VariableScope variableScope = (VariableScope) ((ContextContainer) process).getDefaultContext( VariableScope.VARIABLE_SCOPE );
         VariableScopeInstance variableScopeInstance = (VariableScopeInstance) processInstance.getContextInstance( VariableScope.VARIABLE_SCOPE );
@@ -54,14 +57,14 @@ public abstract class AbstractProcessInstanceFactory implements ProcessInstanceF
         if ( parameters != null ) {
             if ( variableScope != null ) {
                 for ( Map.Entry<String, Object> entry : parameters.entrySet() ) {
-                	
-                	variableScope.validateVariable(process.getName(), entry.getKey(), entry.getValue());
-                    variableScopeInstance.setVariable( entry.getKey(), entry.getValue() );
+                    variableScopeInstance.setVariable(entry.getKey(),
+                            variableScope.validateVariable(process.getName(), entry.getKey(), entry.getValue()));
                 }
             } else {
                 throw new IllegalArgumentException( "This process does not support parameters!" );
             }
         }
+        variableScopeInstance.enforceRequiredVariables();
         
         return processInstance;
 	}

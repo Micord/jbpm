@@ -22,14 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.drools.core.command.impl.RegistryContext;
-import org.drools.core.common.InternalKnowledgeRuntime;
 import org.drools.core.definitions.rule.impl.RuleImpl;
-import org.drools.core.event.ProcessEventSupport;
 import org.jbpm.casemgmt.api.model.instance.CaseFileInstance;
 import org.jbpm.casemgmt.impl.event.CaseEventSupport;
-import org.jbpm.process.instance.InternalProcessRuntime;
-import org.jbpm.process.instance.ProcessInstance;
+import org.jbpm.casemgmt.impl.model.instance.CaseFileInstanceImpl;
+import org.jbpm.process.core.context.variable.VariableScope;
 import org.jbpm.services.api.ProcessService;
 import org.kie.api.KieServices;
 import org.kie.api.command.BatchExecutionCommand;
@@ -40,9 +37,10 @@ import org.kie.api.event.rule.DefaultAgendaEventListener;
 import org.kie.api.event.rule.MatchCreatedEvent;
 import org.kie.api.runtime.Context;
 import org.kie.api.runtime.EnvironmentName;
-import org.kie.api.runtime.KieRuntime;
 import org.kie.api.runtime.KieSession;
+import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.internal.KieInternalServices;
+import org.kie.internal.command.RegistryContext;
 import org.kie.internal.identity.IdentityProvider;
 import org.kie.internal.process.CorrelationKey;
 import org.kie.internal.process.CorrelationKeyFactory;
@@ -74,8 +72,7 @@ public class StartCaseCommand extends CaseCommand<Void> {
         this.caseFile = caseFile;
         this.processService = processService;
     }
-
-    @SuppressWarnings("unchecked")
+    
     @Override
     public Void execute(Context context) {
 
@@ -85,6 +82,8 @@ public class StartCaseCommand extends CaseCommand<Void> {
         logger.debug("Inserting case file into working memory");
         List<Command<?>> commands = new ArrayList<>();
         commands.add(new ExecutableCommand<Void>() {
+
+            private static final long serialVersionUID = 8516665043577142587L;
 
             @Override
             public Void execute(Context context) {
@@ -113,19 +112,25 @@ public class StartCaseCommand extends CaseCommand<Void> {
         });
         commands.add(commandsFactory.newInsert(caseFile));
         commands.add(commandsFactory.newFireAllRules());
-
         BatchExecutionCommand batch = commandsFactory.newBatchExecution(commands);
         processService.execute(deploymentId, CaseContext.get(caseId), batch);
-
         logger.debug("Starting process instance for case {} and case definition {}", caseId, caseDefinitionId);
         CorrelationKey correlationKey = correlationKeyFactory.newCorrelationKey(caseId);
         Map<String, Object> params = new HashMap<>();
+        // add process parent
+        if (caseFile instanceof CaseFileInstanceImpl && ((CaseFileInstanceImpl) caseFile).getParentInstanceId() != null && ((CaseFileInstanceImpl) caseFile).getParentInstanceId() >= 0) {
+            params.put("ParentInstanceId", ((CaseFileInstanceImpl) caseFile).getParentInstanceId());
+        }
         // set case id to allow it to use CaseContext when creating runtime engine
         params.put(EnvironmentName.CASE_ID, caseId);
-        final long processInstanceId = processService.startProcess(deploymentId, caseDefinitionId, correlationKey, params);
-        logger.debug("Case {} successfully started (process instance id {})", caseId, processInstanceId);
-
         final Map<String, Object> caseData = caseFile.getData();
+
+        for (Map.Entry<String, Object> entry : caseData.entrySet()) {
+            params.put(VariableScope.CASE_FILE_PREFIX + entry.getKey(), entry.getValue());
+        }
+
+        final long processInstanceId = processService.startProcess(deploymentId, caseDefinitionId, correlationKey, params);
+        logger.debug("Case {} successfully started (process instance id {})", caseId, processInstanceId);        
 
         processService.execute(deploymentId, CaseContext.get(caseId), new ExecutableCommand<Void>() {
 
@@ -142,24 +147,10 @@ public class StartCaseCommand extends CaseCommand<Void> {
                             pi.signalEvent(entry.getKey(), event);
                         }
                     }
-                    if (caseData == null) {
-                        return null;
-                    }
-                    ProcessEventSupport processEventSupport = ((InternalProcessRuntime) ((InternalKnowledgeRuntime) ksession).getProcessRuntime()).getProcessEventSupport();
-                    for (Entry<String, Object> entry : caseData.entrySet()) {
-                        String name = "caseFile_" + entry.getKey();
-                        processEventSupport.fireAfterVariableChanged(
-                                                                     name,
-                                                                     name,
-                                                                     null, entry.getValue(),
-                                                                     pi,
-                                                                     (KieRuntime) ksession);
-                    }
                 }
                 return null;
             }
         });
-
         caseEventSupport.fireAfterCaseStarted(caseId, deploymentId, caseDefinitionId, caseFile, processInstanceId);
         return null;
     }

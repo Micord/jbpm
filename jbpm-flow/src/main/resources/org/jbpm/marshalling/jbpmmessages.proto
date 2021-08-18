@@ -1,4 +1,6 @@
-import "org/drools/core/marshalling/droolsmessages.proto";
+syntax = "proto2";
+
+import "org/drools/serialization/protobuf/droolsmessages.proto";
 
 package org.jbpm.marshalling;
 
@@ -25,7 +27,7 @@ option java_outer_classname = "JBPMMessages";
 //   fresh tag numbers (i.e. tag numbers that were never used in
 //   this protocol buffer, not even by deleted fields).
 
-extend org.drools.core.marshalling.ProcessData {
+extend org.drools.serialization.protobuf.ProcessData {
     repeated ProcessInstance process_instance = 10;
     repeated WorkItem work_item = 11;
     optional int64 timer_id = 13;
@@ -103,10 +105,12 @@ message ProcessInstance {
         message HumanTaskNode {
             optional int64 work_item_id = 1;
             repeated int64 timer_instance_id = 2;
+            optional int64 error_handling_process_instance_id = 3;
         }
         message WorkItemNode {
             optional int64 work_item_id = 1;
             repeated int64 timer_instance_id = 2;
+            optional int64 error_handling_process_instance_id = 3;
         }
         message SubProcessNode {
             optional int64 process_instance_id = 1;
@@ -134,6 +138,8 @@ message ProcessInstance {
             repeated NodeInstance node_instance = 1;
             repeated Variable variable = 2;
             repeated IterationLevel iterationLevels = 3;
+            optional int32 sequential_counter = 4;
+            repeated int64 timer_instance_id = 5;
         }
         message AsyncEventNode {
             optional string event_type = 1;
@@ -165,7 +171,7 @@ message Variable {
     optional bytes value = 3;
 }
 
-extend org.drools.core.marshalling.Timers.Timer {
+extend org.drools.serialization.protobuf.Timers.Timer {
     optional ProcessTimer proc_timer = 100;
 }
 
@@ -184,7 +190,7 @@ message WorkItem {
 
 message ProcessTimer {
     optional TimerInstance timer = 1;
-    optional org.drools.core.marshalling.Trigger trigger = 2;
+    optional org.drools.serialization.protobuf.Trigger trigger = 2;
 
     message TimerInstance {
         optional int64 id = 1;
@@ -197,6 +203,7 @@ message ProcessTimer {
         optional int32 DEPRECATED_sessionId = 8;
         optional int64 sessionId = 9;
         optional int32 repeatLimit = 10;
+        optional string name=11;
     }
 }
 

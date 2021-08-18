@@ -20,13 +20,10 @@
  */
 package org.jbpm.services.task.audit.impl.model;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import java.util.Date;
-
 import java.util.Objects;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -34,9 +31,11 @@ import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import javax.persistence.Version;
 
 import org.kie.internal.task.api.model.TaskEvent;
@@ -45,9 +44,11 @@ import org.kie.internal.task.api.model.TaskEvent;
  *
  */
 @Entity
-@Table(name = "TaskEvent")
+@Table(name = "TaskEvent", indexes = {@Index(name = "IDX_TaskEvent_taskId", columnList = "taskId"), @Index(name = "IDX_TaskEvent_processInstanceId", columnList = "processInstanceId")})
 @SequenceGenerator(name = "taskEventIdSeq", sequenceName = "TASK_EVENT_ID_SEQ")
-public class TaskEventImpl implements TaskEvent, Externalizable {
+public class TaskEventImpl implements TaskEvent, Serializable {
+
+  private static final long serialVersionUID = 6304722095353315479L;
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO, generator = "taskEventIdSeq")
@@ -71,8 +72,16 @@ public class TaskEventImpl implements TaskEvent, Externalizable {
 
   private String message;
 
+  private String correlationKey;
+
+  private Integer processType;
+
   @Temporal(javax.persistence.TemporalType.TIMESTAMP)
   private Date logTime;
+
+  @Temporal(TemporalType.TIMESTAMP)
+  @Column(name = "end_date")
+  private Date end;
 
   public TaskEventImpl() {
   }
@@ -121,6 +130,15 @@ public class TaskEventImpl implements TaskEvent, Externalizable {
     return taskId;
   }
 
+  public Date getEnd() {
+      return end;
+  }
+
+  public void setEnd(Date end) {
+      this.end = end;
+  }
+
+
   @Override
   public TaskEventType getType() {
     return type;
@@ -149,68 +167,28 @@ public class TaskEventImpl implements TaskEvent, Externalizable {
     return message;
   }
 
+  @Override
+  public String getCorrelationKey() {
+    return correlationKey;
+}
+
+  @Override
+  public Integer getProcessType() {
+    return processType;
+  }
+
+  @Override
+  public void setCorrelationKey(String correlationKey) {
+    this.correlationKey = correlationKey;
+  }
+
+  @Override
+  public void setProcessType(Integer processType) {
+    this.processType = processType;
+  }
+
   public void setMessage(String message) {
     this.message = message;
-  }
-
-  @Override
-  public void readExternal(ObjectInput in) throws IOException,
-          ClassNotFoundException {
-	  id = in.readLong();
-	  
-	  processInstanceId = in.readLong();
-	  
-	  taskId = in.readLong();
-	  
-	  type = TaskEventType.valueOf(in.readUTF());
-
-      message = in.readUTF();
-
-	  userId = in.readUTF();
-	  
-	  workItemId = in.readLong();
-	  
-	  if (in.readBoolean()) {
-          logTime = new Date(in.readLong());
-      }
-  }
-
-  @Override
-  public void writeExternal(ObjectOutput out) throws IOException {
-	  out.writeLong( id );
-	  
-	  out.writeLong( processInstanceId );
-	  
-	  out.writeLong( taskId );
-	  
-	  if (type != null) {
-      	out.writeUTF(type.name());
-      } else {
-      	out.writeUTF("");
-      }
-
-      if (message != null) {
-        out.writeUTF(message);
-      } else {
-        out.writeUTF("");
-      }
-
-
-	  if (userId != null) {
-      	out.writeUTF(userId);
-      } else {
-      	out.writeUTF("");
-      }
-	  
-	  out.writeLong( workItemId );
-	  
-	  if (logTime != null) {
-          out.writeBoolean(true);
-          out.writeLong(logTime.getTime());
-      } else {
-          out.writeBoolean(false);
-      }
-
   }
 
   @Override
@@ -252,7 +230,7 @@ public class TaskEventImpl implements TaskEvent, Externalizable {
     if (this.type != other.type) {
       return false;
     }
-    if (!this.message.equals(other.message) ) {
+    if (!Objects.equals(this.message, other.message)) {
       return false;
     }
     if (!Objects.equals(this.processInstanceId, other.processInstanceId) && (this.processInstanceId == null || !this.processInstanceId.equals(other.processInstanceId))) {
@@ -267,4 +245,12 @@ public class TaskEventImpl implements TaskEvent, Externalizable {
     return true;
   }
 
+    @Override
+    public String toString() {
+        return "TaskEventImpl [id=" + id + ", version=" + version + ", taskId=" + taskId + ", workItemId=" + workItemId +
+               ", type=" + type + ", processInstanceId=" + processInstanceId + ", userId=" + userId + ", message=" +
+               message + ", correlationKey=" + correlationKey + ", processType=" + processType + ", logTime=" + logTime +  ", end=" + end +
+               "]";
+    }
+  
 }

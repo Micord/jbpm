@@ -401,7 +401,7 @@
         ProcessInstanceLog log
       where log.status in (:states) and log.processInstanceId in 
       (select vlog.processInstanceId from VariableInstanceLog vlog where vlog.variableId=:variable and vlog.value like :variableValue
-      and vlog.id in (select max(vlog2.id) from VariableInstanceLog vlog2 where vlog2.variableId = vlog.variableId group by vlog2.processInstanceId))
+      and vlog.id = (select max(vlog2.id) from VariableInstanceLog vlog2 where vlog2.variableId = vlog.variableId and vlog2.processInstanceId = vlog.processInstanceId))
       ORDER BY
         log.processId, log.start
     </query>
@@ -435,6 +435,34 @@
     <!-- hint name="org.hibernate.timeout" value="200"/ -->
   </named-query>   
   
+    
+  <named-query name="getProcessInstancesByParents">
+    <query>
+      select
+      new org.jbpm.kie.services.impl.model.ProcessInstanceDesc(
+      log.processInstanceId,
+      log.processId,
+      log.processName,
+      log.processVersion,
+      log.status,
+      log.externalId,
+      log.start,
+      log.identity,
+      log.processInstanceDescription,
+      log.correlationKey,
+      log.parentProcessInstanceId,
+      log.slaDueDate,
+      log.slaCompliance)
+
+      from
+        ProcessInstanceLog log
+      where
+        log.status in (:states)
+        and log.parentProcessInstanceId IN :parentsId
+    </query>
+    <!-- hint name="org.hibernate.timeout" value="200"/ -->
+  </named-query>   
+
   <!-- node instance queries -->
 
   <named-query name="getProcessInstanceFullHistory">
@@ -552,11 +580,8 @@
       from
         NodeInstanceLog log
       where
-        log.nodeInstanceId in (select nodeInstanceId from NodeInstanceLog nid where nid.processInstanceId=:processId AND nid.type = 1 
-        						GROUP BY nid.nodeInstanceId
-                    HAVING sum(nid.type) &gt;= 1)
-       	and log.type = 1 
-       	and log.processInstanceId=:processId  
+        log.type = 1
+        and log.processInstanceId=:processId
       ORDER BY 
         log.id ASC
     </query>
@@ -717,12 +742,19 @@
 	      a.processId,
 	      a.processInstanceId,
 	      a.createdOn,
-	      a.dueDate
+	      a.dueDate,
+	      a.workItemId,
+	      t.formName,
+	      t.subject,
+	      plog.correlationKey,
+	      plog.processType
 	      )
         from 
-        	AuditTaskImpl a 
+          AuditTaskImpl a
+          inner join ProcessInstanceLog plog ON a.processInstanceId = plog.processInstanceId
+          left join TaskImpl t on t.id = a.taskId
         where 
-        	a.taskId = :taskId 
+          a.taskId = :taskId
     </query>
     <!-- hint name="org.hibernate.timeout" value="200"/ -->
   </named-query>
@@ -743,13 +775,19 @@
 	      a.processId,
 	      a.processInstanceId,
 	      a.createdOn,
-	      a.dueDate
+	      a.dueDate,
+	      a.workItemId,
+	      t.formName,
+	      t.subject,
+	      plog.correlationKey,
+	      plog.processType
 	      )
         from 
-        	AuditTaskImpl a
-        where 
-        	a.workItemId = :workItemId 
-        	
+          AuditTaskImpl a
+          inner join ProcessInstanceLog plog ON a.processInstanceId = plog.processInstanceId
+          left join TaskImpl t on t.id = a.taskId
+        where
+          a.workItemId = :workItemId 
     </query>
     <!-- hint name="org.hibernate.timeout" value="200"/ -->
   </named-query>
@@ -770,10 +808,17 @@
         a.processId,
         a.processInstanceId,
         a.createdOn,
-        a.dueDate
+        a.dueDate,
+        a.workItemId,
+        t.formName,
+        t.subject,
+        plog.correlationKey,
+        plog.processType
         )
         from 
           AuditTaskImpl a 
+          inner join ProcessInstanceLog plog ON a.processInstanceId = plog.processInstanceId
+          left join TaskImpl t on t.id = a.taskId
         where 
           a.processInstanceId = :processInstanceId
           and a.status in ( :statuses) 
@@ -1126,6 +1171,35 @@
     </query>
     <!-- hint name="org.hibernate.timeout" value="200"/ -->
   </named-query> 
+
+  <named-query name="getErrorsByDeploymentId">
+    <query>
+     select
+      new org.kie.internal.runtime.error.ExecutionError(
+      error.errorId,
+      error.type,
+      error.deploymentId,
+      error.processInstanceId,
+      error.processId,
+      error.activityId,
+      error.activityName,
+      error.jobId,
+      error.errorMessage,
+      error.acknowledged,
+      error.acknowledgedBy,
+      error.acknowledgedAt,
+      error.errorDate
+      )
+      from
+        ExecutionErrorInfo error
+      where
+        error.acknowledged in (:ack) and
+        error.deploymentId = :deploymentId
+      order by 
+        error.errorDate DESC
+    </query>
+    <!-- hint name="org.hibernate.timeout" value="200"/ -->
+  </named-query> 
   
   <named-query name="getTaskErrors">
     <query>
@@ -1155,5 +1229,84 @@
     </query>
     <!-- hint name="org.hibernate.timeout" value="200"/ -->
   </named-query>   
-        
+
+
+  <!-- advance runtime queries -->
+  <named-native-query name="GetProcessInstanceByIdList">
+      <query>
+        SELECT processInstanceId, processId, processName, processVersion, status, externalId, start_date, user_identity, correlationKey 
+          FROM ProcessInstanceLog pil 
+         WHERE processInstanceId IN (:idList) 
+      ORDER BY processInstanceId ASC 
+    </query>
+  </named-native-query>
+  
+  <named-native-query name="GetVariablesByProcessInstanceIdList">
+      <query>
+            SELECT A1.processInstanceId, A1.variableId, A1.value 
+              FROM VariableInstanceLog A1 
+         LEFT JOIN VariableInstanceLog A2 ON A1.processId = A2.processId 
+                                         AND A1.processInstanceId = A2.processInstanceId 
+                                         AND A1.variableInstanceId = A2.variableInstanceId 
+                                         AND A2.id &gt; A1.id 
+             WHERE A2.id IS NULL AND A1.processInstanceId IN (:idList) 
+          ORDER BY A1.processInstanceId ASC 
+      </query>
+  </named-native-query>
+  <named-native-query name="GetTasksByIdList">
+      <query>
+              SELECT task.id, task.name, task.description, task.formName, task.subject,
+                     task.actualOwner_id, pilog.correlationKey, task.createdOn,
+                     task.createdBy_id, task.expirationTime, task.priority,
+                     task.status, pilog.processInstanceId, pilog.processId, pilog.externalId,
+                     pilog.processInstanceDescription 
+                FROM Task task 
+          INNER JOIN ProcessInstanceLog pilog ON pilog.processInstanceId = task.processInstanceId
+               WHERE task.id IN (:idList)
+            ORDER BY task.id ASC 
+      </query>
+  </named-native-query>
+  <named-native-query name="GetHistoryTasksByIdList">
+      <query>
+              SELECT task.taskId as id, task.name, task.description,
+                     task.actualOwner, pilog.correlationKey, task.createdOn,
+                     task.createdBy, 
+                     task.status, pilog.processInstanceId, pilog.processId, pilog.externalId,
+                     pilog.processInstanceDescription 
+                FROM AuditTaskImpl task 
+          INNER JOIN ProcessInstanceLog pilog ON pilog.processInstanceId = task.processInstanceId
+               WHERE task.taskId IN (:idList)
+            ORDER BY task.taskId ASC 
+      </query>
+  </named-native-query>
+  <named-native-query name="GetTaskVariablesByTaskIdList">
+      <query>
+           SELECT taskId, type, name, value 
+             FROM TaskVariableImpl 
+            WHERE taskId IN (:idList) 
+         ORDER BY taskId ASC
+      </query>
+  </named-native-query>
+  <named-native-query name="GetPotentialOwnersByTaskIdList">
+      <query>
+             SELECT po.task_id, po.entity_id
+              FROM PeopleAssignments_PotOwners po
+             WHERE po.task_id IN(:idList)
+          ORDER BY po.task_id ASC 
+      </query>
+  </named-native-query>
+  <named-native-query name="GetProcessVariablesByTaskIdList">
+      <query>
+              SELECT task.id, A1.variableId, A1.value
+                FROM Task task
+          INNER JOIN ProcessInstanceLog pilog ON task.processInstanceId = pilog.processInstanceId
+          INNER JOIN VariableInstanceLog A1 ON A1.processId = pilog.processId AND A1.processInstanceId = pilog.processInstanceId
+           LEFT JOIN VariableInstanceLog A2 ON A1.processId = A2.processId 
+                                           AND A1.processInstanceId = A2.processInstanceId 
+                                           AND A1.variableInstanceId = A2.variableInstanceId 
+                                           AND A2.id &gt; A1.id
+               WHERE A2.id IS NULL AND task.id IN (:idList)
+            ORDER BY task.id ASC
+      </query>
+  </named-native-query>
 </entity-mappings>

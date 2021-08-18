@@ -16,6 +16,11 @@
 
 package org.jbpm.services.task.test;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 import org.drools.core.impl.AbstractRuntime;
 import org.jbpm.process.core.impl.ProcessImpl;
 import org.jbpm.ruleflow.instance.RuleFlowProcessInstance;
@@ -41,11 +46,6 @@ import org.kie.api.runtime.rule.QueryResults;
 import org.kie.api.runtime.rule.ViewChangedEventListener;
 import org.kie.api.time.SessionClock;
 import org.kie.internal.runtime.StatefulKnowledgeSession;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 public class TestStatefulKnowledgeSession extends AbstractRuntime implements StatefulKnowledgeSession {
 
@@ -169,6 +169,14 @@ public class TestStatefulKnowledgeSession extends AbstractRuntime implements Sta
     }
 
     public ProcessInstance startProcess(String arg0) {
+        return null;
+    }
+
+    public ProcessInstance startProcess(String arg0, Map<String, Object> arg1, AgendaFilter arg3) {
+        return null;
+    }
+
+    public ProcessInstance startProcess(String arg0, AgendaFilter arg3) {
         return null;
     }
 
@@ -312,4 +320,10 @@ public class TestStatefulKnowledgeSession extends AbstractRuntime implements Sta
     public void destroy() {
         dispose();        
     }
+
+    @Override
+    public ProcessInstance startProcessFromNodeIds(String processId, Map<String, Object> params, String... nodeId) {
+        return null;
+    }
+
 }

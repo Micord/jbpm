@@ -16,8 +16,10 @@
 
 package org.jbpm.test.functional.timer;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,7 +63,10 @@ import org.kie.api.task.UserGroupCallback;
 import org.kie.internal.io.ResourceFactory;
 import org.kie.internal.runtime.manager.context.ProcessInstanceIdContext;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
 public class GlobalQuartzDBTimerServiceTest extends GlobalTimerServiceBaseTest {
@@ -79,26 +84,25 @@ public class GlobalQuartzDBTimerServiceTest extends GlobalTimerServiceBaseTest {
     }
     
     @Before
-    public void setUp() {
+    public void setUp() throws IOException, SQLException {
         cleanupSingletonSessionId();
-        emf = Persistence.createEntityManagerFactory("org.jbpm.test.persistence");
+        createTimerSchema();
         System.setProperty("org.quartz.properties", "quartz-db.properties");
-        testCreateQuartzSchema();
+        emf = Persistence.createEntityManagerFactory("org.jbpm.test.persistence");
         globalScheduler = new QuartzSchedulerService();
         ((QuartzSchedulerService)globalScheduler).forceShutdown();
     }
     
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException, SQLException {
         try {
-            
             globalScheduler.shutdown();
-        } catch (Exception e) {
-            
+        } finally {
+            dropTimerSchema();
+            System.clearProperty("org.quartz.properties");
+            cleanup();
         }
-        cleanup();
-        System.clearProperty("org.quartz.properties");
-    }   
+    }
     
     @Override
     protected RuntimeManager getManager(RuntimeEnvironment environment, boolean waitOnStart) {
@@ -110,7 +114,7 @@ public class GlobalQuartzDBTimerServiceTest extends GlobalTimerServiceBaseTest {
         } else if (managerType == 3) {
         	manager = RuntimeManagerFactory.Factory.get().newPerProcessInstanceRuntimeManager(environment);
         } else {
-            throw new IllegalArgumentException("Invalid runtime maanger type");
+            throw new IllegalArgumentException("Invalid runtime manager type");
         }
     	if (waitOnStart) {
 	    	// wait for the 2 seconds (default startup delay for quartz)
@@ -125,7 +129,7 @@ public class GlobalQuartzDBTimerServiceTest extends GlobalTimerServiceBaseTest {
 
     
     @Test(timeout=20000)
-    public void testTimerStartManagerClose() throws Exception {
+    public void testTimerStartManagerClose() {
         NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("StartProcess", 3);
         QuartzSchedulerService additionalCopy = new QuartzSchedulerService();
         additionalCopy.initScheduler(null);
@@ -261,7 +265,7 @@ public class GlobalQuartzDBTimerServiceTest extends GlobalTimerServiceBaseTest {
     }
 
     @Test(timeout=20000)
-    public void testContinueTimer() throws Exception {
+    public void testContinueTimer() {
         // JBPM-4443
         NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("timer", 2);
         // prepare listener to assert results
@@ -311,7 +315,7 @@ public class GlobalQuartzDBTimerServiceTest extends GlobalTimerServiceBaseTest {
     }
     
     @Test(timeout=20000)
-    public void testTimerRequiresRecoveryFlagSet() throws Exception {
+    public void testTimerRequiresRecoveryJobNameFlagSet() throws Exception {
         Properties properties= new Properties();
         properties.setProperty("mary", "HR");
         properties.setProperty("john", "HR");
@@ -339,10 +343,12 @@ public class GlobalQuartzDBTimerServiceTest extends GlobalTimerServiceBaseTest {
             connection = ((DataSource)InitialContext.doLookup("jdbc/jbpm-ds")).getConnection();
             stmt = connection.createStatement();
 
-            ResultSet resultSet = stmt.executeQuery("select REQUESTS_RECOVERY from QRTZ_JOB_DETAILS");
+            ResultSet resultSet = stmt.executeQuery("select REQUESTS_RECOVERY, JOB_NAME from QRTZ_JOB_DETAILS");
             while(resultSet.next()) {
                 boolean requestsRecovery = resultSet.getBoolean(1);
                 assertEquals("Requests recovery must be set to true", true, requestsRecovery);
+                String jobName = resultSet.getString(2);
+                assertTrue(jobName + " does not contain timer name", jobName.contains("Boundary Event"));
             }
         } finally {
             if(stmt != null) {
@@ -407,6 +413,82 @@ public class GlobalQuartzDBTimerServiceTest extends GlobalTimerServiceBaseTest {
         countDownListener.waitTillCompleted(4000);
 
         assertEquals(5, timerExporations.size());
+    }
+
+    @Test(timeout = 20000)
+    public void testQuartzJobDeletionOnManagerCloseWithTimerStart() throws Exception {
+        NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("StartProcess", 3);
+        QuartzSchedulerService additionalCopy = new QuartzSchedulerService();
+        additionalCopy.initScheduler(null);
+        // prepare listener to assert results
+        final List<Long> timerExporations = new ArrayList<Long>();
+        ProcessEventListener listener = new DefaultProcessEventListener() {
+
+            @Override
+            public void beforeProcessStarted(ProcessStartedEvent event) {
+                timerExporations.add(event.getProcessInstance().getId());
+            }
+
+        };
+
+        environment = RuntimeEnvironmentBuilder.Factory.get()
+                                                       .newDefaultBuilder()
+                                                       .entityManagerFactory(emf)
+                                                       .addAsset(ResourceFactory.newClassPathResource("org/jbpm/test/functional/timer/TimerStart2.bpmn2"), ResourceType.BPMN2)
+                                                       .schedulerService(globalScheduler)
+                                                       .registerableItemsFactory(new TestRegisterableItemsFactory(listener, countDownListener))
+                                                       .get();
+
+        manager = getManager(environment, false);
+        RuntimeEngine runtime = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
+        KieSession ksession = runtime.getKieSession();
+
+        assertEquals(0, timerExporations.size());
+
+        countDownListener.waitTillCompleted();
+        manager.disposeRuntimeEngine(runtime);
+        int atDispose = timerExporations.size();
+        assertTrue(atDispose > 0);
+
+        ((AbstractRuntimeManager) manager).close(true);
+        countDownListener.reset(1);
+        countDownListener.waitTillCompleted(3000);
+        assertEquals(atDispose, timerExporations.size());
+
+        Connection connection = null;
+        Statement stmt = null;
+        try {
+            connection = ((DataSource) InitialContext.doLookup("jdbc/jbpm-ds")).getConnection();
+            stmt = connection.createStatement();
+
+            ResultSet resultSet = stmt.executeQuery("select JOB_NAME, JOB_GROUP from QRTZ_JOB_DETAILS");
+            while (resultSet.next()) {
+                String jobName = resultSet.getString(1);
+                String jobGroup = resultSet.getString(2);
+                fail("QRTZ_JOB_DETAILS table must be cleaned up. But a record exists :" + " jobName = " + jobName + ", jobGroup = " + jobGroup);
+            }
+
+            stmt.close();
+
+            stmt = connection.createStatement();
+
+            ResultSet resultSet2 = stmt.executeQuery("select TRIGGER_NAME, TRIGGER_GROUP from QRTZ_TRIGGERS");
+            while (resultSet2.next()) {
+                String triggerName = resultSet2.getString(1);
+                String triggerGroup = resultSet2.getString(2);
+                fail("QRTZ_TRIGGERS table must be cleaned up. But a record exists :" + " triggerName = " + triggerName + ", triggerGroup = " + triggerGroup);
+            }
+
+        } finally {
+            if (stmt != null) {
+                stmt.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
+        }
+
+        additionalCopy.shutdown();
     }
 
 }

@@ -22,7 +22,7 @@ import org.jbpm.runtime.manager.util.TestUtil;
 import org.jbpm.services.task.identity.JBossUserGroupCallbackImpl;
 import org.jbpm.test.listener.process.NodeLeftCountDownProcessEventListener;
 import org.jbpm.test.util.AbstractBaseTest;
-import org.jbpm.test.util.PoolingDataSource;
+import org.kie.test.util.db.PoolingDataSourceWrapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -56,7 +56,7 @@ import static org.junit.Assert.*;
 
 public class ConcurrentOperationsTest extends AbstractBaseTest {
     
-    private PoolingDataSource pds;
+    private PoolingDataSourceWrapper pds;
     private UserGroupCallback userGroupCallback;  
     private RuntimeManager manager;
     
@@ -80,7 +80,7 @@ public class ConcurrentOperationsTest extends AbstractBaseTest {
 
   
     
-    @Test(timeout=10000)
+    @Test(timeout=15000)
     public void testExecuteProcessWithAsyncHandler() throws Exception {
     	final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("Log", 1);
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()

@@ -16,9 +16,9 @@
 
 package org.jbpm.process.audit.query;
 
-import static org.jbpm.persistence.util.PersistenceUtil.JBPM_PERSISTENCE_UNIT_NAME;
-import static org.jbpm.persistence.util.PersistenceUtil.cleanUp;
-import static org.jbpm.persistence.util.PersistenceUtil.setupWithPoolingDataSource;
+import static org.jbpm.test.persistence.util.PersistenceUtil.JBPM_PERSISTENCE_UNIT_NAME;
+import static org.jbpm.test.persistence.util.PersistenceUtil.cleanUp;
+import static org.jbpm.test.persistence.util.PersistenceUtil.setupWithPoolingDataSource;
 import static org.jbpm.process.audit.query.AuditQueryDataUtil.BOTH;
 import static org.jbpm.process.audit.query.AuditQueryDataUtil.MAX;
 import static org.jbpm.process.audit.query.AuditQueryDataUtil.MIN;
@@ -51,6 +51,7 @@ import org.jbpm.process.audit.VariableInstanceLog;
 import org.jbpm.process.audit.strategy.StandaloneJtaStrategy;
 import org.jbpm.process.instance.impl.util.LoggingPrintStream;
 import org.jbpm.test.util.AbstractBaseTest;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -66,45 +67,48 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AuditQueryTest extends JPAAuditLogService {
-    
+
     private static HashMap<String, Object> context;
     private static EntityManagerFactory emf;
 
     private static final Logger logger = LoggerFactory.getLogger(AuditLogServiceTest.class);
-   
+
     private ProcessInstanceLog [] pilTestData;
     private VariableInstanceLog [] vilTestData;
     private NodeInstanceLog [] nilTestData;
-   
-    @AfterClass 
-    public static void resetLogging() { 
+
+    @AfterClass
+    public static void resetLogging() {
         AbstractBaseTest.reset();
     }
-    
+
     @BeforeClass
-    public static void configure() { 
+    public static void configure() {
         AbstractBaseTest.hackTheDatabaseMetadataLoggerBecauseTheresALogbackXmlInTheClasspath();
         LoggingPrintStream.interceptSysOutSysErr();
         context = setupWithPoolingDataSource(JBPM_PERSISTENCE_UNIT_NAME);
         emf = (EntityManagerFactory) context.get(ENTITY_MANAGER_FACTORY);
-        
+
     }
     
     @AfterClass
     public static void reset() { 
         LoggingPrintStream.resetInterceptSysOutSysErr();
-        cleanDB(emf);
         cleanUp(context);
     }
 
     @Before
     public void setUp() throws Exception {
-        if( pilTestData == null ) { 
-                pilTestData = createTestProcessInstanceLogData(emf);
-                vilTestData = createTestVariableInstanceLogData(emf);
-                nilTestData = createTestNodeInstanceLogData(emf);
-        }
+        pilTestData = createTestProcessInstanceLogData(emf);
+        vilTestData = createTestVariableInstanceLogData(emf);
+        nilTestData = createTestNodeInstanceLogData(emf);
+
         this.persistenceStrategy = new StandaloneJtaStrategy(emf);
+    }
+
+    @After
+    public void tearDown() {
+        cleanDB(emf);
     }
    
     @Test

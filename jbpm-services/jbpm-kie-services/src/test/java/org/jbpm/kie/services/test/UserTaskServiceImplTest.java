@@ -16,23 +16,16 @@
 
 package org.jbpm.kie.services.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.kie.scanner.KieMavenRepository.getKieMavenRepository;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.drools.core.util.StringUtils;
@@ -43,6 +36,9 @@ import org.jbpm.services.api.ProcessInstanceNotFoundException;
 import org.jbpm.services.api.TaskNotFoundException;
 import org.jbpm.services.api.model.DeploymentUnit;
 import org.jbpm.services.api.model.UserTaskInstanceDesc;
+import org.jbpm.services.task.HumanTaskServiceFactory;
+import org.jbpm.services.task.audit.TaskAuditServiceFactory;
+import org.jbpm.services.task.audit.service.TaskAuditService;
 import org.jbpm.services.task.commands.GetTaskCommand;
 import org.jbpm.services.task.exception.PermissionDeniedException;
 import org.junit.After;
@@ -51,6 +47,7 @@ import org.junit.Test;
 import org.kie.api.KieServices;
 import org.kie.api.builder.ReleaseId;
 import org.kie.api.runtime.process.ProcessInstance;
+import org.kie.api.task.TaskService;
 import org.kie.api.task.model.Attachment;
 import org.kie.api.task.model.Comment;
 import org.kie.api.task.model.Group;
@@ -60,11 +57,21 @@ import org.kie.api.task.model.Task;
 import org.kie.api.task.model.User;
 import org.kie.internal.query.QueryFilter;
 import org.kie.internal.task.api.TaskModelProvider;
+import org.kie.internal.task.api.TaskVariable;
 import org.kie.internal.task.api.model.InternalTask;
 import org.kie.internal.task.api.model.TaskEvent;
 import org.kie.scanner.KieMavenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.kie.scanner.KieMavenRepository.getKieMavenRepository;
 
 public class UserTaskServiceImplTest extends AbstractKieServicesBaseTest {
 
@@ -136,7 +143,12 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         }
         close();
     }
-    
+
+    protected TaskAuditService getTaskAuditService() {
+        TaskService taskService = HumanTaskServiceFactory.newTaskServiceConfigurator().entityManagerFactory(emf).getTaskService();
+        return TaskAuditServiceFactory.newTaskAuditServiceConfigurator().setTaskService(taskService).getTaskAuditService();
+    }
+
     @Test
     public void testActivate() {
     	processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument.empty");
@@ -173,6 +185,28 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
     	task = runtimeDataService.getTaskById(taskId);
     	assertNotNull(task);
     	assertEquals(Status.Reserved.toString(), task.getStatus());
+    }
+    
+    
+    @Test
+    public void testReleaseAndBulkClaim() {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
+        assertNotNull(processInstanceId);
+        List<Long> taskIds = runtimeDataService.getTasksByProcessInstanceId(processInstanceId);
+        assertNotNull(taskIds);
+        assertEquals(1, taskIds.size());
+        
+        Long taskId = taskIds.get(0);
+        
+        userTaskService.release(taskId, "salaboy");
+        UserTaskInstanceDesc task = runtimeDataService.getTaskById(taskId);
+        assertNotNull(task);
+        assertEquals(Status.Ready.toString(), task.getStatus());
+        
+        userTaskService.claim(null, Collections.singletonList(taskId), "salaboy");
+        task = runtimeDataService.getTaskById(taskId);
+        assertNotNull(task);
+        assertEquals(Status.Reserved.toString(), task.getStatus());
     }
     
     @Test
@@ -498,6 +532,7 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
     
     @Test
     public void testContentRelatedOperations() {
+        identityProvider.setName("salaboy");
     	processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
     	assertNotNull(processInstanceId);
     	List<Long> taskIds = runtimeDataService.getTasksByProcessInstanceId(processInstanceId);
@@ -713,6 +748,8 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
     
     @Test
     public void testUpdateTaskWithData() {
+        TaskAuditService taskAuditService = getTaskAuditService();
+
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
         assertNotNull(processInstanceId);
         List<Long> taskIds = runtimeDataService.getTasksByProcessInstanceId(processInstanceId);
@@ -729,8 +766,26 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         
         Map<String, Object> inputs = userTaskService.getTaskInputContentByTaskId(taskId);
         assertEquals(6, inputs.size());
+
+        // Check TaskVariable table too
+        List<TaskVariable> inputVariables = taskAuditService.taskVariableQuery()
+                                            .taskId(taskId)
+                                            .intersect()
+                                            .type(TaskVariable.VariableType.INPUT)
+                                            .build()
+                                            .getResultList();
+        assertEquals(2, inputVariables.size()); // Some engine variables are skipped during indexing, so just 2
+
         Map<String, Object> outputs = userTaskService.getTaskOutputContentByTaskId(taskId);
         assertEquals(0, outputs.size());
+
+        List<TaskVariable> outputVariables = taskAuditService.taskVariableQuery()
+                                            .taskId(taskId)
+                                            .intersect()
+                                            .type(TaskVariable.VariableType.OUTPUT)
+                                            .build()
+                                            .getResultList();
+        assertEquals(0, outputVariables.size());
         
         ((org.jbpm.kie.services.impl.model.UserTaskInstanceDesc)task).setName("updated");
         ((org.jbpm.kie.services.impl.model.UserTaskInstanceDesc)task).setPriority(5);
@@ -749,10 +804,33 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         assertEquals(5, task.getPriority().intValue()); 
         
         inputs = userTaskService.getTaskInputContentByTaskId(taskId);
-        
+        assertEquals(7, inputs.size());
         assertEquals("test", inputs.get("new task input"));
+
+        Map<String, String> inputVariablesMap = taskAuditService.taskVariableQuery()
+                                                .taskId(taskId)
+                                                .intersect()
+                                                .type(TaskVariable.VariableType.INPUT)
+                                                .build()
+                                                .getResultList()
+                                                .stream()
+                                                .collect(Collectors.toMap(TaskVariable::getName, TaskVariable::getValue));
+
+        assertEquals(3, inputVariablesMap.size());
+        assertEquals("test", inputVariablesMap.get("new task input"));
+
         outputs = userTaskService.getTaskOutputContentByTaskId(taskId);
+        assertEquals(1, outputs.size());
         assertEquals("reviewed", outputs.get("new task output"));
+
+        outputVariables = taskAuditService.taskVariableQuery()
+                            .taskId(taskId)
+                            .intersect()
+                            .type(TaskVariable.VariableType.OUTPUT)
+                            .build()
+                            .getResultList();
+        assertEquals(1, outputVariables.size());
+        assertEquals("reviewed", outputVariables.get(0).getValue());
     }
     
     @Test
@@ -788,7 +866,7 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
     
     @Test
     public void testProcessWithLazyLoadedVariable() {
-        
+        identityProvider.setName("john");
         Image newImage = new Image("test");
         Map<String, Object> params = new HashMap<>();
         params.put("image", newImage);
@@ -856,23 +934,25 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
     
         List<TaskEvent> auditTasks = runtimeDataService.getTaskEvents(taskId, new QueryFilter());
         assertNotNull(auditTasks);
-        assertEquals(2, auditTasks.size());
+        assertEquals(3, auditTasks.size());
         assertEquals(TaskEvent.TaskEventType.ADDED, auditTasks.get(0).getType());
         assertEquals("org.jbpm.writedocument", auditTasks.get(0).getUserId());
-        assertEquals(TaskEvent.TaskEventType.STARTED, auditTasks.get(1).getType());
-        assertEquals("salaboy", auditTasks.get(1).getUserId());
+        assertEquals(TaskEvent.TaskEventType.ACTIVATED, auditTasks.get(1).getType());
+        assertEquals(TaskEvent.TaskEventType.STARTED, auditTasks.get(2).getType());
+        assertEquals("salaboy", auditTasks.get(2).getUserId());
         
         identityProvider.setName("salaboy");
         userTaskService.stop(taskId, null);
         
         auditTasks = runtimeDataService.getTaskEvents(taskId, new QueryFilter());
         assertNotNull(auditTasks);
-        assertEquals(3, auditTasks.size());
+        assertEquals(4, auditTasks.size());
         assertEquals(TaskEvent.TaskEventType.ADDED, auditTasks.get(0).getType());
         assertEquals("org.jbpm.writedocument", auditTasks.get(0).getUserId());
-        assertEquals(TaskEvent.TaskEventType.STARTED, auditTasks.get(1).getType());
-        assertEquals("salaboy", auditTasks.get(1).getUserId());
-        assertEquals(TaskEvent.TaskEventType.STOPPED, auditTasks.get(2).getType());
+        assertEquals(TaskEvent.TaskEventType.ACTIVATED, auditTasks.get(1).getType());
+        assertEquals(TaskEvent.TaskEventType.STARTED, auditTasks.get(2).getType());
+        assertEquals("salaboy", auditTasks.get(2).getUserId());
+        assertEquals(TaskEvent.TaskEventType.STOPPED, auditTasks.get(3).getType());
         assertEquals("salaboy", auditTasks.get(2).getUserId());
         
         Map<String, Object> params = new HashMap<>();
@@ -881,15 +961,16 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         
         auditTasks = runtimeDataService.getTaskEvents(taskId, new QueryFilter());
         assertNotNull(auditTasks);
-        assertEquals(4, auditTasks.size());
+        assertEquals(5, auditTasks.size());
         assertEquals(TaskEvent.TaskEventType.ADDED, auditTasks.get(0).getType());
         assertEquals("org.jbpm.writedocument", auditTasks.get(0).getUserId());
-        assertEquals(TaskEvent.TaskEventType.STARTED, auditTasks.get(1).getType());
-        assertEquals("salaboy", auditTasks.get(1).getUserId());
-        assertEquals(TaskEvent.TaskEventType.STOPPED, auditTasks.get(2).getType());
+        assertEquals(TaskEvent.TaskEventType.ACTIVATED, auditTasks.get(1).getType());
+        assertEquals(TaskEvent.TaskEventType.STARTED, auditTasks.get(2).getType());
         assertEquals("salaboy", auditTasks.get(2).getUserId());
-        assertEquals(TaskEvent.TaskEventType.UPDATED, auditTasks.get(3).getType());
+        assertEquals(TaskEvent.TaskEventType.STOPPED, auditTasks.get(3).getType());
         assertEquals("salaboy", auditTasks.get(3).getUserId());
+        assertEquals(TaskEvent.TaskEventType.UPDATED, auditTasks.get(4).getType());
+        assertEquals("salaboy", auditTasks.get(4).getUserId());
     
         identityProvider.setName("testUser");
         processService.abortProcessInstance(processInstanceId);
@@ -925,5 +1006,6 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         UserTaskInstanceDesc task = runtimeDataService.getTaskById(taskId);
         assertNotNull(task);
         assertEquals(Status.Ready.toString(), task.getStatus());
+        assertCorrelationAndProcess(task, processInstanceId);
     }
 }

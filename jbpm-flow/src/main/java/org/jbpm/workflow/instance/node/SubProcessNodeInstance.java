@@ -21,10 +21,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 
 import org.drools.core.common.InternalKnowledgeRuntime;
-import org.drools.core.util.MVELSafeHelper;
+import org.drools.mvel.MVELSafeHelper;
 import org.jbpm.process.core.Context;
 import org.jbpm.process.core.ContextContainer;
 import org.jbpm.process.core.context.exception.ExceptionScope;
@@ -77,7 +78,6 @@ public class SubProcessNodeInstance extends StateBasedNodeInstance implements Ev
     private static final Logger logger = LoggerFactory.getLogger(SubProcessNodeInstance.class);
     
     // NOTE: ContetxInstances are not persisted as current functionality (exception scope) does not require it
-    private Map<String, ContextInstance> contextInstances = new HashMap<String, ContextInstance>();
     private Map<String, List<ContextInstance>> subContextInstances = new HashMap<String, List<ContextInstance>>();
 
     private long processInstanceId;
@@ -86,6 +86,7 @@ public class SubProcessNodeInstance extends StateBasedNodeInstance implements Ev
         return (SubProcessNode) getNode();
     }
 
+    @Override
     public void internalTrigger(final NodeInstance from, String type) {
     	super.internalTrigger(from, type);
     	// if node instance was cancelled, abort
@@ -206,11 +207,11 @@ public class SubProcessNodeInstance extends StateBasedNodeInstance implements Ev
             ProcessInstance processInstance = null;
             if (((WorkflowProcessInstanceImpl)getProcessInstance()).getCorrelationKey() != null) {
                 // in case there is correlation key on parent instance pass it along to child so it can be easily correlated 
-                // since correlation key must be unique for active instances it appends processId and timestamp
-                List<String> businessKeys = new ArrayList<String>();
+                // since correlation key must be unique for active instances it appends processId and UUID
+                List<String> businessKeys = new ArrayList<>();
                 businessKeys.add(((WorkflowProcessInstanceImpl)getProcessInstance()).getCorrelationKey());
                 businessKeys.add(processId);
-                businessKeys.add(String.valueOf(System.currentTimeMillis()));
+                businessKeys.add(UUID.randomUUID().toString());
                 CorrelationKeyFactory correlationKeyFactory = KieInternalServices.Factory.get().newCorrelationKeyFactory();
                 CorrelationKey subProcessCorrelationKey = correlationKeyFactory.newCorrelationKey(businessKeys);
                 processInstance = (ProcessInstance) ((CorrelationAwareProcessRuntime)kruntime).createProcessInstance(processId, subProcessCorrelationKey, parameters);
@@ -224,7 +225,16 @@ public class SubProcessNodeInstance extends StateBasedNodeInstance implements Ev
 	    	((ProcessInstanceImpl) processInstance).setParentProcessInstanceId(getProcessInstance().getId());
 	    	((ProcessInstanceImpl) processInstance).setSignalCompletion(getSubProcessNode().isWaitForCompletion());
 
-	    	kruntime.startProcessInstance(processInstance.getId());
+            try {
+                kruntime.startProcessInstance(processInstance.getId());
+            } catch (Exception e) {
+                String faultName = e.getClass().getName();
+                if (handleError(e, faultName)) {
+                    return;
+                } else {
+                    throw e;
+                }
+            }
 	    	if (!getSubProcessNode().isWaitForCompletion()) {
 	    		triggerCompleted();
 	    	} else if (processInstance.getState() == ProcessInstance.STATE_COMPLETED
@@ -236,28 +246,35 @@ public class SubProcessNodeInstance extends StateBasedNodeInstance implements Ev
         }
     }
 
-    public void cancel() {
-        super.cancel();
+    @Override
+    public void cancel(CancelType cancelType) {
+        super.cancel(cancelType);
         if (getSubProcessNode() == null || !getSubProcessNode().isIndependent()) {
         	ProcessInstance processInstance = null;
         	InternalKnowledgeRuntime kruntime = ((ProcessInstance) getProcessInstance()).getKnowledgeRuntime();
         	RuntimeManager manager = (RuntimeManager) kruntime.getEnvironment().get(EnvironmentName.RUNTIME_MANAGER);
         	if (manager != null) {
-        	    try {
-            	    org.kie.api.runtime.manager.Context<?> context = ProcessInstanceIdContext.get(processInstanceId);
-                    
-                    String caseId = (String) kruntime.getEnvironment().get(EnvironmentName.CASE_ID);
-                    if (caseId != null) {
-                        context = CaseContext.get(caseId);
-                    }
-                    
-                    RuntimeEngine runtime = manager.getRuntimeEngine(context);
 
+                org.kie.api.runtime.manager.Context<?> context = ProcessInstanceIdContext.get(processInstanceId);
+
+                String caseId = (String) kruntime.getEnvironment().get(EnvironmentName.CASE_ID);
+                if (caseId != null) {
+                    context = CaseContext.get(caseId);
+                }
+
+                RuntimeEngine runtime = null;
+                try {
+                    runtime = manager.getRuntimeEngine(context);
                     KieRuntime managedkruntime = (KieRuntime) runtime.getKieSession();
-            		processInstance = (ProcessInstance) managedkruntime.getProcessInstance(processInstanceId);
-        	    } catch (SessionNotFoundException e) {
-        	        // in case no session is found for parent process let's skip signal for process instance completion
-        	    }
+                    processInstance = (ProcessInstance) managedkruntime.getProcessInstance(processInstanceId);
+                } catch (SessionNotFoundException e) {
+                    // in case no session is found for parent process let's skip signal for process instance completion
+                    logger.debug("Could not found find subprocess instance id {} for cancelling {}", context.getContextId(), cancelType);
+                } finally {
+                    if(runtime != null) {
+                        manager.disposeRuntimeEngine(runtime);
+                    }
+                }
         	} else {
         		processInstance = (ProcessInstance) kruntime.getProcessInstance(processInstanceId);
         	}
@@ -309,21 +326,9 @@ public class SubProcessNodeInstance extends StateBasedNodeInstance implements Ev
         handleOutMappings(processInstance);
         if (processInstance.getState() == ProcessInstance.STATE_ABORTED) {
             String faultName = processInstance.getOutcome()==null?"":processInstance.getOutcome();
-            // handle exception as sub process failed with error code
-            ExceptionScopeInstance exceptionScopeInstance = (ExceptionScopeInstance)
-                    resolveContextInstance(ExceptionScope.EXCEPTION_SCOPE, faultName);
-            if (exceptionScopeInstance != null) {
-
-                exceptionScopeInstance.handleException(faultName, processInstance.getFaultData());
-                if (getSubProcessNode() != null && !getSubProcessNode().isIndependent() && getSubProcessNode().isAbortParent()){
-                    cancel();
-                }
-                return;
-            } else if (getSubProcessNode() != null && !getSubProcessNode().isIndependent() && getSubProcessNode().isAbortParent()){
-                ((ProcessInstance) getProcessInstance()).setState(ProcessInstance.STATE_ABORTED, faultName);
+            if (handleError(processInstance.getFaultData(), faultName)) {
                 return;
             }
-
         }
         // handle dynamic subprocess
         if (getNode() == null) {
@@ -334,6 +339,22 @@ public class SubProcessNodeInstance extends StateBasedNodeInstance implements Ev
 
     }
 
+    private boolean handleError(Object faultData, String faultName) {
+        // handle exception as sub process failed with error code
+        ExceptionScopeInstance exceptionScopeInstance = (ExceptionScopeInstance) resolveContextInstance(ExceptionScope.EXCEPTION_SCOPE, faultName);
+        if (exceptionScopeInstance != null) {
+
+            exceptionScopeInstance.handleException(faultName, faultData);
+            if (getSubProcessNode() != null && !getSubProcessNode().isIndependent() && getSubProcessNode().isAbortParent()) {
+                cancel();
+            }
+            return true;
+        } else if (getSubProcessNode() != null && !getSubProcessNode().isIndependent() && getSubProcessNode().isAbortParent()) {
+            ((ProcessInstance) getProcessInstance()).setState(ProcessInstance.STATE_ABORTED, faultName);
+            return true;
+        }
+        return false;
+    }
     private void handleOutMappings(ProcessInstance processInstance) {
         VariableScopeInstance subProcessVariableScopeInstance = (VariableScopeInstance)
 	        processInstance.getContextInstance(VariableScope.VARIABLE_SCOPE);

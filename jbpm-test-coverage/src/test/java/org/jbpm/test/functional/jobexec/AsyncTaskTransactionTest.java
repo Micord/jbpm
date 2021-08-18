@@ -26,17 +26,17 @@ import javax.transaction.UserTransaction;
 import org.assertj.core.api.Assertions;
 import org.jbpm.executor.impl.ExecutorServiceImpl;
 import org.jbpm.executor.impl.wih.AsyncWorkItemHandler;
-import org.jbpm.persistence.util.PersistenceUtil;
 import org.jbpm.test.JbpmAsyncJobTestCase;
 import org.jbpm.test.listener.CountDownAsyncJobListener;
-import org.jbpm.test.util.PoolingDataSource;
+import org.jbpm.test.persistence.util.PersistenceUtil;
 import org.junit.Test;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.api.runtime.process.WorkItemManager;
 import org.kie.api.runtime.query.QueryContext;
+import org.kie.test.util.db.PoolingDataSourceWrapper;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNull;
 
 public class AsyncTaskTransactionTest extends JbpmAsyncJobTestCase {
 
@@ -157,19 +157,11 @@ public class AsyncTaskTransactionTest extends JbpmAsyncJobTestCase {
     }
 
     @Override
-    protected PoolingDataSource setupPoolingDataSource() {        
-        
+    protected PoolingDataSourceWrapper setupPoolingDataSource() {
         Properties dsProps = PersistenceUtil.getDatasourceProperties();
-        String jdbcUrl = dsProps.getProperty("url");
-        String driverClass = dsProps.getProperty("driverClassName");        
-
+        dsProps.setProperty("POOL_CONNECTIONS", "false");
         // Setup the datasource
-        PoolingDataSource ds1 = PersistenceUtil.setupPoolingDataSource(dsProps, "jdbc/jbpm-ds", false);
-        if (driverClass.startsWith("org.h2")) {
-            ds1.getDriverProperties().setProperty("url", jdbcUrl);
-        }
-        ds1.getDriverProperties().setProperty("POOL_CONNECTIONS", "false");
-        ds1.init();
+        PoolingDataSourceWrapper ds1 = PersistenceUtil.setupPoolingDataSource(dsProps, "jdbc/jbpm-ds");
         return ds1;
     }
 }

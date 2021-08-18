@@ -16,9 +16,15 @@
 
 package org.jbpm.process.workitem.email;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMessage.RecipientType;
@@ -26,19 +32,17 @@ import javax.mail.internet.MimeMessage.RecipientType;
 import org.drools.core.process.instance.impl.DefaultWorkItemManager;
 import org.drools.core.process.instance.impl.WorkItemImpl;
 import org.jbpm.bpmn2.handler.WorkItemHandlerRuntimeException;
-import org.jbpm.test.AbstractBaseTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.kie.api.runtime.process.ProcessWorkItemHandlerException;
 import org.kie.api.runtime.process.WorkItemManager;
 import org.kie.internal.utils.ChainedProperties;
 import org.kie.internal.utils.ClassLoaderUtil;
 import org.subethamail.wiser.Wiser;
 import org.subethamail.wiser.WiserMessage;
 
-import static org.junit.Assert.*;
-
-public class EmailWorkItemHandlerTest extends AbstractBaseTest {
+public class EmailWorkItemHandlerTest {
     private Wiser wiser;
 
     private String emailHost;
@@ -79,6 +83,7 @@ public class EmailWorkItemHandlerTest extends AbstractBaseTest {
         WorkItemImpl workItem = new WorkItemImpl();
         workItem.setParameter( "To", "person1@domain.com" );
         workItem.setParameter( "From", "person2@domain.com" );
+        workItem.setParameter( "DisplayName", "Mr. John Doe" );
         workItem.setParameter( "Reply-To", "person3@domain.com" );
         workItem.setParameter( "Subject", "Subject 1" );
         workItem.setParameter( "Body", "Body 1" );
@@ -96,6 +101,7 @@ public class EmailWorkItemHandlerTest extends AbstractBaseTest {
         assertEquals( workItem.getParameter( "From" ), ((InternetAddress)msg.getFrom()[0]).getAddress() );
         assertEquals( workItem.getParameter( "Reply-To" ), ((InternetAddress)msg.getReplyTo()[0]).getAddress() );
         assertEquals( workItem.getParameter( "To" ), ((InternetAddress)msg.getRecipients( RecipientType.TO )[0]).getAddress() );
+        assertEquals( workItem.getParameter( "DisplayName" ), ((InternetAddress)msg.getFrom()[0]).getPersonal());
         assertNull( msg.getRecipients( RecipientType.CC ) );
         assertNull( msg.getRecipients( RecipientType.BCC ) );
     }
@@ -227,6 +233,31 @@ public class EmailWorkItemHandlerTest extends AbstractBaseTest {
         assertEquals( workItem.getParameter( "To" ), ((InternetAddress)msg.getRecipients( RecipientType.TO )[0]).getAddress() );
         assertNull( msg.getRecipients( RecipientType.CC ) );
         assertNull( msg.getRecipients( RecipientType.BCC ) );
+    }
+    
+    @Test
+    public void testSingleToHandleException() throws Exception {
+        EmailWorkItemHandler handler = new EmailWorkItemHandler("test", "COMPLETE");
+        handler.setConnection( null, null, null, null );
+
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter( "To", "person1@domain.com" );
+        workItem.setParameter( "From", "person2@domain.com" );
+        workItem.setParameter( "Reply-To", "person3@domain.com" );
+        workItem.setParameter( "Subject", "Subject 1" );
+        workItem.setParameter( "Body", "Body 1" );
+
+        WorkItemManager manager = new DefaultWorkItemManager(null);
+        try {
+            handler.executeWorkItem( workItem, manager );
+            fail("Should throw exception as it was instructed to do so");
+        } catch (ProcessWorkItemHandlerException ex) {
+            assertTrue(ex.getCause() instanceof NullPointerException);
+            assertEquals(null, ex.getCause().getMessage());
+            assertEquals("test", ex.getProcessId());
+            assertEquals("COMPLETE", ex.getStrategy().name());
+        }
+
     }
 }
 

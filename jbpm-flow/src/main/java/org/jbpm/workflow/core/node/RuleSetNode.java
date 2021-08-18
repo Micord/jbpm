@@ -27,6 +27,7 @@ import org.jbpm.process.core.ContextContainer;
 import org.jbpm.process.core.context.AbstractContext;
 import org.jbpm.process.core.impl.ContextContainerImpl;
 import org.kie.api.definition.process.Connection;
+import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of a RuleSet node.
@@ -51,11 +52,16 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
     private String namespace;
     private String model;
     private String decision;
-    
+    private String decisionService;
+
     private List<DataAssociation> inMapping = new LinkedList<DataAssociation>();
     private List<DataAssociation> outMapping = new LinkedList<DataAssociation>();
     
     private Map<String, Object> parameters = new HashMap<String, Object>();
+
+    public RuleSetNode() {
+        super(NodeType.BUSINESS_RULE);
+    }
 
     public void setRuleFlowGroup(final String ruleFlowGroup) {
         this.ruleFlowGroup = ruleFlowGroup;
@@ -96,6 +102,15 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
     public void setDecision(String decision) {
         this.decision = decision;
     }
+
+    public String getDecisionService() {
+        return decisionService;
+    }
+
+    public void setDecisionService(String decisionService) {
+        this.decisionService = decisionService;
+    }
+
 
     public void validateAddIncomingConnection(final String type, final Connection connection) {
         super.validateAddIncomingConnection(type, connection);

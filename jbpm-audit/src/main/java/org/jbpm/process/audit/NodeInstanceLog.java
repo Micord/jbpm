@@ -35,7 +35,8 @@ import org.jbpm.process.audit.event.AuditEvent;
 @Entity
 @Table(name = "NodeInstanceLog", indexes = {@Index(name = "IDX_NInstLog_pInstId", columnList = "processInstanceId"),
                                         @Index(name = "IDX_NInstLog_nodeType", columnList = "nodeType"),
-                                        @Index(name = "IDX_NInstLog_pId", columnList = "processId")})
+                                        @Index(name = "IDX_NInstLog_pId", columnList = "processId"),
+                                        @Index(name = "IDX_NInstLog_workItemId", columnList = "workItemId")})
 @SequenceGenerator(name="nodeInstanceLogIdSeq", sequenceName="NODE_INST_LOG_ID_SEQ", allocationSize=1)
 public class NodeInstanceLog implements Serializable, AuditEvent, org.kie.api.runtime.manager.audit.NodeInstanceLog {
    
@@ -72,7 +73,11 @@ public class NodeInstanceLog implements Serializable, AuditEvent, org.kie.api.ru
     
     @Column(nullable=true)
     private Integer slaCompliance;
-    
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "end_date")
+    private Date end;
+
     public NodeInstanceLog() {
     }
     
@@ -87,6 +92,14 @@ public class NodeInstanceLog implements Serializable, AuditEvent, org.kie.api.ru
         this.date = new Date();
     }
 	
+    public Date getEnd() {
+        return end;
+    }
+
+    public void setEnd(Date end) {
+        this.end = end;
+    }
+
 	public Integer getType() {
 		return type;
 	}
@@ -99,7 +112,7 @@ public class NodeInstanceLog implements Serializable, AuditEvent, org.kie.api.ru
     	return id;
     }
     
-    void setId(long id) {
+    public void setId(long id) {
 		this.id = id;
 	}
 

@@ -16,14 +16,8 @@
 
 package org.jbpm.process.audit.jms;
 
-import static org.jbpm.persistence.util.PersistenceUtil.JBPM_PERSISTENCE_UNIT_NAME;
-import static org.jbpm.persistence.util.PersistenceUtil.cleanUp;
-import static org.jbpm.persistence.util.PersistenceUtil.createEnvironment;
-import static org.jbpm.persistence.util.PersistenceUtil.setupWithPoolingDataSource;
-import static org.jbpm.process.audit.AbstractAuditLogServiceTest.createKieSession;
-import static org.jbpm.process.audit.AbstractAuditLogServiceTest.createKnowledgeBase;
-
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -68,10 +62,18 @@ import org.kie.api.runtime.process.ProcessInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.jbpm.process.audit.AbstractAuditLogServiceTest.createKieSession;
+import static org.jbpm.process.audit.AbstractAuditLogServiceTest.createKnowledgeBase;
+import static org.jbpm.test.persistence.util.PersistenceUtil.JBPM_PERSISTENCE_UNIT_NAME;
+import static org.jbpm.test.persistence.util.PersistenceUtil.cleanUp;
+import static org.jbpm.test.persistence.util.PersistenceUtil.createEnvironment;
+import static org.jbpm.test.persistence.util.PersistenceUtil.setupWithPoolingDataSource;
+import static org.junit.Assert.assertTrue;
+
 public class AsyncAuditLogProducerTest extends AbstractBaseTest {
 
     private static final Logger logger = LoggerFactory.getLogger(AsyncAuditLogProducerTest.class);
-    
+
     private HashMap<String, Object> context;
     private ConnectionFactory factory;
     private Queue queue;
@@ -238,6 +240,14 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
             Assertions.assertThat(processInstance.getId()).isEqualTo(nodeInstance.getProcessInstanceId().longValue());
             Assertions.assertThat(nodeInstance.getProcessId()).isEqualTo("com.sample.ruleflow");
             Assertions.assertThat(nodeInstance.getDate()).isNotNull();
+        }
+        //reordering needed for mysql, mariadb, based on nodeInstanceId and id -log_date is probably the same-
+        nodeInstances.sort(Comparator.comparing(NodeInstanceLog::getNodeInstanceId).thenComparing(NodeInstanceLog::getId));
+        for (int i = 1; i < 4; i = i + 2) {
+            assertTrue(nodeInstances.get(i).getConnection().equals(nodeInstances.get(i + 1).getNodeId()));
+        }
+        for (int i = 2; i < 6; i = i + 2) {
+            assertTrue(nodeInstances.get(i).getConnection().equals(nodeInstances.get(i - 1).getNodeId()));
         }
         logService.clear();
         processInstances = logService.findProcessInstances("com.sample.ruleflow");

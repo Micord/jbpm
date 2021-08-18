@@ -19,11 +19,13 @@ package org.jbpm.workflow.instance.node;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
 import org.jbpm.process.core.context.variable.VariableScope;
 import org.jbpm.process.core.event.EventTransformer;
+import org.jbpm.process.instance.ContextInstance;
 import org.jbpm.process.instance.InternalProcessRuntime;
 import org.jbpm.process.instance.ProcessInstance;
 import org.jbpm.process.instance.context.variable.VariableScopeInstance;
@@ -36,6 +38,7 @@ import org.jbpm.workflow.instance.impl.ExtendedNodeInstanceImpl;
 import org.jbpm.workflow.instance.impl.WorkflowProcessInstanceImpl;
 import org.kie.api.runtime.process.EventListener;
 import org.kie.api.runtime.process.NodeInstance;
+import org.mvel2.MVEL;
 
 import static org.jbpm.workflow.instance.impl.DummyEventListener.EMPTY_EVENT_LISTENER;
 
@@ -72,9 +75,15 @@ public class EventNodeInstance extends ExtendedNodeInstanceImpl implements Event
         		}
         		variableScopeInstance.setVariable(variableName, event);
         	}
-        	triggerCompleted();
+        	triggerCompleted(type, event);
         }
     }
+
+    
+    protected void triggerCompleted(String type, Object event) {
+        triggerCompleted();
+    }
+
 
     public void internalTrigger(final NodeInstance from, String type) {
     	if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
@@ -88,7 +97,7 @@ public class EventNodeInstance extends ExtendedNodeInstanceImpl implements Event
     protected void configureSla() {
         String slaDueDateExpression = (String) getNode().getMetaData().get("customSLADueDate");
         if (slaDueDateExpression != null) {
-            TimerInstance timer = ((WorkflowProcessInstanceImpl)getProcessInstance()).configureSLATimer(slaDueDateExpression);
+            TimerInstance timer = ((WorkflowProcessInstanceImpl)getProcessInstance()).configureSLATimer(slaDueDateExpression, getNodeName());
             if (timer != null) {
                 this.slaTimerId = timer.getId();
                 this.slaDueDate = new Date(System.currentTimeMillis() + timer.getDelay());
@@ -152,7 +161,7 @@ public class EventNodeInstance extends ExtendedNodeInstanceImpl implements Event
     }
 
     @Override
-	public void cancel() {
+    public void cancel(CancelType cancelType) {
     	getProcessInstance().removeEventListener(getEventType(), getEventListener(), true);
     	removeTimerListeners();
         if (this.slaCompliance == ProcessInstance.SLA_PENDING) {
@@ -164,7 +173,7 @@ public class EventNodeInstance extends ExtendedNodeInstanceImpl implements Event
             }
         }
     	removeTimerListeners();
-		super.cancel();
+        super.cancel(cancelType);
 	}
 
    private class VariableExternalEventListener implements EventListener, Serializable {
@@ -265,12 +274,23 @@ public class EventNodeInstance extends ExtendedNodeInstanceImpl implements Event
         while (matcher.find()) {
             String paramName = matcher.group(1);
             if (replacements.get(paramName) == null) {
-                VariableScopeInstance variableScopeInstance = (VariableScopeInstance)
-                    resolveContextInstance(VariableScope.VARIABLE_SCOPE, paramName);
+                VariableScopeInstance variableScopeInstance = (VariableScopeInstance) resolveContextInstance(VariableScope.VARIABLE_SCOPE, paramName);
                 if (variableScopeInstance != null) {
                     Object variableValue = variableScopeInstance.getVariable(paramName);
                     String variableValueString = variableValue == null ? "" : variableValue.toString();
                     replacements.put(paramName, variableValueString);
+                } else {
+                    List<ContextInstance> ctxIntances =  resolveContextInstance(VariableScope.VARIABLE_SCOPE);
+                    for(ContextInstance ci : ctxIntances) {
+                        VariableScopeInstance vsi = (VariableScopeInstance) ci;
+                        try {
+                            Object eval = MVEL.eval(paramName, vsi.getVariables());
+                            replacements.put(paramName, eval.toString());
+                            break;
+                        } catch (Exception e) {
+                            // do nothing. errors here is because paramName is not an expression
+                        }
+                    }
                 }
             }
         }

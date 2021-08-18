@@ -49,6 +49,7 @@ public class TimerNodeInstance extends StateBasedNodeInstance implements EventLi
     	this.timerId = timerId;
     }
 
+    @Override
     public void internalTrigger(NodeInstance from, String type) {
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
             throw new IllegalArgumentException(
@@ -67,7 +68,7 @@ public class TimerNodeInstance extends StateBasedNodeInstance implements EventLi
     protected TimerInstance createTimerInstance(InternalKnowledgeRuntime kruntime) {
     	Timer timer = getTimerNode().getTimer(); 
     	TimerInstance timerInstance = new TimerInstance();
-    	
+    	timerInstance.setName(getTimerNode().getName());
     	if (kruntime != null && kruntime.getEnvironment().get("jbpm.business.calendar") != null){
         	BusinessCalendar businessCalendar = (BusinessCalendar) kruntime.getEnvironment().get("jbpm.business.calendar");
         	
@@ -105,10 +106,11 @@ public class TimerNodeInstance extends StateBasedNodeInstance implements EventLi
         triggerCompleted(org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE, remove);
     }
     
-    public void cancel() {
+    @Override
+    public void cancel(CancelType cancelType) {
     	((InternalProcessRuntime) getProcessInstance().getKnowledgeRuntime()
 			.getProcessRuntime()).getTimerManager().cancelTimer(timerId);
-        super.cancel();
+        super.cancel(cancelType);
     }
     
     public void addEventListeners() {

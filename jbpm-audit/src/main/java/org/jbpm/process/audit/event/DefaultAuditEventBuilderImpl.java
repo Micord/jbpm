@@ -32,8 +32,16 @@ import org.kie.api.event.process.ProcessNodeTriggeredEvent;
 import org.kie.api.event.process.ProcessStartedEvent;
 import org.kie.api.event.process.ProcessVariableChangedEvent;
 import org.kie.api.runtime.KieSession;
+import org.kie.api.runtime.process.NodeInstance;
 import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.internal.process.CorrelationKey;
+
+import static org.kie.api.runtime.manager.audit.NodeInstanceLog.TYPE_ABORTED;
+import static org.kie.api.runtime.manager.audit.NodeInstanceLog.TYPE_ENTER;
+import static org.kie.api.runtime.manager.audit.NodeInstanceLog.TYPE_ERROR;
+import static org.kie.api.runtime.manager.audit.NodeInstanceLog.TYPE_EXIT;
+import static org.kie.api.runtime.manager.audit.NodeInstanceLog.TYPE_OBSOLETE;
+import static org.kie.api.runtime.manager.audit.NodeInstanceLog.TYPE_SKIPPED;
 
 public class DefaultAuditEventBuilderImpl implements AuditEventBuilder {
 
@@ -56,7 +64,7 @@ public class DefaultAuditEventBuilderImpl implements AuditEventBuilder {
         }
         
         long parentProcessInstanceId = (Long) pi.getMetaData().getOrDefault("ParentProcessInstanceId", -1L);
-	log.setParentProcessInstanceId( parentProcessInstanceId );	     
+        log.setParentProcessInstanceId(parentProcessInstanceId);
         
 
         return log;
@@ -96,8 +104,7 @@ public class DefaultAuditEventBuilderImpl implements AuditEventBuilder {
             nodeId = Long.toString(nodeInstance.getNodeId());
             nodeType = (String)nodeInstance.getMetaData("NodeType");
         }
-        NodeInstanceLog log = new NodeInstanceLog(
-                NodeInstanceLog.TYPE_ENTER, pi.getId(), pi.getProcessId(), Long.toString(nodeInstance.getId()), 
+        NodeInstanceLog log = new NodeInstanceLog(TYPE_ENTER, pi.getId(), pi.getProcessId(), Long.toString(nodeInstance.getId()),
                 nodeId, nodeInstance.getNodeName());
         if (nodeInstance instanceof WorkItemNodeInstance && ((WorkItemNodeInstance) nodeInstance).getWorkItem() != null) {
             log.setWorkItemId(((WorkItemNodeInstance) nodeInstance).getWorkItem().getId());
@@ -158,9 +165,27 @@ public class DefaultAuditEventBuilderImpl implements AuditEventBuilder {
         if (log != null) {
             logEvent = (NodeInstanceLog) log;
         } else {
-            logEvent = new NodeInstanceLog(
-                NodeInstanceLog.TYPE_EXIT, pi.getId(), pi.getProcessId(), Long.toString(nodeInstance.getId()), 
-                nodeId, nodeInstance.getNodeName());
+            
+            int eventType = TYPE_EXIT;
+            // set if this is cancel operation
+            NodeInstance ni = pnle.getNodeInstance();
+            if (ni instanceof NodeInstanceImpl && ((NodeInstanceImpl) ni).getCancelType() != null) {
+                switch (((NodeInstanceImpl) ni).getCancelType()) {
+                    case ABORTED:
+                        eventType = TYPE_ABORTED;
+                        break;
+                    case SKIPPED:
+                        eventType = TYPE_SKIPPED;
+                        break;
+                    case OBSOLETE:
+                        eventType = TYPE_OBSOLETE;
+                        break;
+                    case ERROR:
+                        eventType = TYPE_ERROR;
+                }
+            }
+            logEvent = new NodeInstanceLog(eventType, pi.getId(), pi.getProcessId(), Long.toString(nodeInstance.getId()),
+                                           nodeId, nodeInstance.getNodeName());
         }
         if (nodeInstance instanceof WorkItemNodeInstance && ((WorkItemNodeInstance) nodeInstance).getWorkItem() != null) {
             logEvent.setWorkItemId(((WorkItemNodeInstance) nodeInstance).getWorkItem().getId());

@@ -30,7 +30,6 @@ import javax.transaction.UserTransaction;
 
 import org.drools.core.command.SingleSessionCommandService;
 import org.drools.core.command.impl.CommandBasedStatefulKnowledgeSession;
-import org.drools.core.command.impl.RegistryContext;
 import org.jbpm.bpmn2.handler.ReceiveTaskHandler;
 import org.jbpm.bpmn2.handler.SendTaskHandler;
 import org.jbpm.bpmn2.handler.ServiceTaskHandler;
@@ -47,6 +46,7 @@ import org.jbpm.process.core.context.variable.VariableScope;
 import org.jbpm.process.core.impl.DataTransformerRegistry;
 import org.jbpm.process.instance.event.listeners.RuleAwareProcessEventLister;
 import org.jbpm.process.instance.event.listeners.TriggerRulesEventListener;
+import org.jbpm.process.instance.impl.FeelReturnValueEvaluatorException;
 import org.jbpm.process.instance.impl.demo.DoNothingWorkItemHandler;
 import org.jbpm.process.instance.impl.demo.SystemOutWorkItemHandler;
 import org.jbpm.test.listener.process.NodeLeftCountDownProcessEventListener;
@@ -82,6 +82,7 @@ import org.kie.api.runtime.process.WorkItem;
 import org.kie.api.runtime.process.WorkItemManager;
 import org.kie.api.runtime.process.WorkflowProcessInstance;
 import org.kie.api.runtime.rule.ConsequenceException;
+import org.kie.internal.command.RegistryContext;
 import org.kie.internal.persistence.jpa.JPAKnowledgeService;
 import org.kie.internal.runtime.StatefulKnowledgeSession;
 import org.slf4j.Logger;
@@ -665,15 +666,42 @@ public class ActivityTest extends JbpmBpmn2TestCase {
 
     @Test
     public void testCallActivityMI() throws Exception {
-        KieBase kbase = createKnowledgeBaseWithoutDumper("BPMN2-CallActivityMI.bpmn2",
-                "BPMN2-CallActivitySubProcess.bpmn2");
+        runAndAssertMultiInstanceProcess("BPMN2-CallActivityMI.bpmn2");
+    }
+
+    @Test
+    public void testCallActivityMIWrongInputTypeStrictEnabled() throws Exception {
+        assertThatExceptionOfType(WorkflowRuntimeException.class)
+                  .isThrownBy(() -> runAndAssertMultiInstanceProcess("BPMN2-CallActivityMIWrongInputType.bpmn2"))
+                  .withCauseInstanceOf(IllegalArgumentException.class)
+                  .withMessageContaining("Variable 'x' has incorrect data type expected:Boolean " +
+                                         "actual:java.lang.String");
+    }
+
+    @Test
+    public void testCallActivityMIWrongInputTypeStrictDisabled() throws Exception {
+        try {
+            VariableScope.setVariableStrictOption(false);
+            runAndAssertMultiInstanceProcess("BPMN2-CallActivityMIWrongInputType.bpmn2");
+        } finally {
+            VariableScope.setVariableStrictOption(true);
+        }
+    }
+    
+    @Test
+    public void testCallActivityMISequential() throws Exception {
+        KieBase kbase = createKnowledgeBaseWithoutDumper("BPMN2-CallActivityMISequential.bpmn2",
+                "BPMN2-UserTask.bpmn2");
         ksession = createKnowledgeSession(kbase);
+        TestWorkItemHandler workItemHandler = new TestWorkItemHandler();
+        ksession.getWorkItemManager().registerWorkItemHandler("Human Task", workItemHandler);
+        
         final List<Long> subprocessStarted = new ArrayList<Long>();
         ksession.addEventListener(new DefaultProcessEventListener() {
 
             @Override
             public void beforeProcessStarted(ProcessStartedEvent event) {
-                if (event.getProcessInstance().getProcessId().equals("SubProcess")) {
+                if (event.getProcessInstance().getProcessId().equals("UserTask")) {
                     subprocessStarted.add(event.getProcessInstance().getId());
                 }
             }
@@ -685,21 +713,26 @@ public class ActivityTest extends JbpmBpmn2TestCase {
         list.add("second");
         List<String> listOut = new ArrayList<String>();
 
-        Map<String, Object> params = new HashMap<String, Object>();
-        params.put("x", "oldValue");
+        Map<String, Object> params = new HashMap<String, Object>();        
         params.put("list", list);
         params.put("listOut", listOut);
 
         ProcessInstance processInstance = ksession.startProcess("ParentProcess", params);
+        
+        List<WorkItem> tasks = workItemHandler.getWorkItems();
+        assertEquals("There should be only one task assigned", 1, tasks.size());
+        
+        ksession.getWorkItemManager().completeWorkItem(tasks.get(0).getId(), null);        
+        
+        tasks = workItemHandler.getWorkItems();
+        assertEquals("There should be only one task assigned", 1, tasks.size());
+        
+        ksession.getWorkItemManager().completeWorkItem(tasks.get(0).getId(), null);
+        
         assertProcessInstanceCompleted(processInstance);
 
         assertEquals(2, subprocessStarted.size());
-        listOut = (List)((WorkflowProcessInstance) processInstance).getVariable("listOut");
-        assertNotNull(listOut);
-        assertEquals(2, listOut.size());
-
-        assertEquals("new value", listOut.get(0));
-        assertEquals("new value", listOut.get(1));
+        
     }
 
 	@Test
@@ -2096,6 +2129,47 @@ public class ActivityTest extends JbpmBpmn2TestCase {
     }
     
     @Test
+    public void testGatewayFEEL() throws Exception {
+        KieBase kbase = createKnowledgeBase("BPMN2-GatewayFEEL.bpmn2");
+        ksession = createKnowledgeSession(kbase);
+
+        Map<String, Object> params1 = new HashMap<String, Object>();
+        params1.put("VA", Boolean.TRUE);
+        params1.put("VB", Boolean.FALSE);
+        WorkflowProcessInstance procInstance1 = (WorkflowProcessInstance) ksession.startProcess("BPMN2-GatewayFEEL", params1);
+        assertEquals("ok", procInstance1.getVariable("Task1"));
+        assertEquals("ok", procInstance1.getVariable("Task2"));
+        assertNull(procInstance1.getVariable("Task3"));
+        assertNodeTriggered(procInstance1.getId(), "Task2", "VA and not(VB)");
+
+        Map<String, Object> params2 = new HashMap<String, Object>();
+        params2.put("VA", Boolean.FALSE);
+        params2.put("VB", Boolean.TRUE);
+        WorkflowProcessInstance procInstance2 = (WorkflowProcessInstance) ksession.startProcess("BPMN2-GatewayFEEL", params2);
+        assertEquals("ok", procInstance2.getVariable("Task1"));
+        assertNull(procInstance2.getVariable("Task2"));
+        assertEquals("ok", procInstance2.getVariable("Task3"));
+        assertNodeTriggered(procInstance2.getId(), "Task3", "VB or not(VA)");
+    }
+
+    @Test
+    public void testGatewayFEELWrong() throws Exception {
+        KieBase kbase = createKnowledgeBase("BPMN2-GatewayFEEL-wrong.bpmn2");
+        ksession = createKnowledgeSession(kbase);
+
+        Map<String, Object> params1 = new HashMap<String, Object>();
+        params1.put("VA", Boolean.TRUE);
+        params1.put("VB", Boolean.FALSE);
+        assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> { 
+            ksession.startProcess("BPMN2-GatewayFEEL", params1);
+        })
+        .withStackTraceContaining("offending symbol: 'Not'")
+        .satisfies((RuntimeException re) -> {
+            assertThat(re).hasRootCauseInstanceOf(FeelReturnValueEvaluatorException.class);
+        });
+    }
+
+    @Test
     public void testBusinessRuleTaskException() throws Exception {
         KieBase kbase = createKnowledgeBaseWithoutDumper("BPMN2-BusinessRuleTask.bpmn2",
                 "BPMN2-BusinessRuleTaskWithException.drl");
@@ -2111,5 +2185,87 @@ public class ActivityTest extends JbpmBpmn2TestCase {
             assertNotNull(re.getCause().getCause());
             assertTrue(re.getCause().getCause() instanceof RuntimeException);
         });        
+    }
+    
+    @RequirePersistence
+    @Test
+    public void testCallActivityChain() throws Exception {
+
+        try {
+            System.setProperty("org.jbpm.correlationkey.length", "155");
+            KieBase kbase = createKnowledgeBase("correlationkey/Process1.bpmn2",
+                                                "correlationkey/Process2.bpmn2",
+                                                "correlationkey/Process3.bpmn2",
+                                                "correlationkey/Process4.bpmn2",
+                                                "correlationkey/Process5.bpmn2");
+            ksession = createKnowledgeSession(kbase);
+            Map<String, Object> params = new HashMap<String, Object>();
+            ProcessInstance processInstance = ksession.startProcess(
+                                                                    "src.Process1", params);
+            assertProcessInstanceCompleted(processInstance);
+
+            ProcessInstanceLog log = logService.findProcessInstances("src.Process5").get(0);
+            assertNotNull(log);
+            assertNotNull(log.getCorrelationKey());
+            assertTrue(log.getCorrelationKey().startsWith(processInstance.getId() + ":src.Process2:"));
+            assertTrue(log.getCorrelationKey().contains(":src.Process4"));
+            assertTrue(log.getCorrelationKey().length() <= 155);
+        } finally {
+            System.clearProperty("org.jbpm.correlationkey.length");
+        }
+
+    }
+    
+    @Test
+    public void testXORWithSameTargetProcess() throws Exception {
+        KieBase kbase = createKnowledgeBase("build/XORSameTarget.bpmn2");
+        ksession = createKnowledgeSession(kbase);
+        
+        Map<String, Object> params = new HashMap<>();
+        params.put("choice", 1);
+        ProcessInstance processInstance = ksession.startProcess("XORTest.XOR2", params);
+        assertProcessInstanceCompleted(processInstance);
+        
+        params = new HashMap<>();
+        params.put("choice", 2);
+        processInstance = ksession.startProcess("XORTest.XOR2", params);
+        assertProcessInstanceCompleted(processInstance);
+    }
+
+    private void runAndAssertMultiInstanceProcess(String process) throws Exception {
+        KieBase kbase = createKnowledgeBaseWithoutDumper(process, "BPMN2-CallActivitySubProcess.bpmn2");
+        ksession = createKnowledgeSession(kbase);
+        final List<Long> subprocessStarted = new ArrayList<>();
+        ksession.addEventListener(new DefaultProcessEventListener() {
+
+            @Override
+            public void beforeProcessStarted(ProcessStartedEvent event) {
+                if (event.getProcessInstance().getProcessId().equals("SubProcess")) {
+                    subprocessStarted.add(event.getProcessInstance().getId());
+                }
+            }
+
+        });
+
+        List<String> list = new ArrayList<>();
+        list.add("first");
+        list.add("second");
+        List<String> listOut = new ArrayList<>();
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("x", "oldValue");
+        params.put("list", list);
+        params.put("listOut", listOut);
+
+        ProcessInstance processInstance = ksession.startProcess("ParentProcess", params);
+        assertProcessInstanceCompleted(processInstance);
+
+        assertEquals(2, subprocessStarted.size());
+        listOut = (List) ((WorkflowProcessInstance) processInstance).getVariable("listOut");
+        assertNotNull(listOut);
+        assertEquals(2, listOut.size());
+
+        assertEquals("new value", listOut.get(0));
+        assertEquals("new value", listOut.get(1));
     }
 }

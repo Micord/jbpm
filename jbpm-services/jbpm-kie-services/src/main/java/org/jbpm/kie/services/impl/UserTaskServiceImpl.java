@@ -17,6 +17,7 @@
 package org.jbpm.kie.services.impl;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -192,6 +193,17 @@ public class UserTaskServiceImpl implements UserTaskService, VariablesAware {
 		}
 
 	}
+
+    @Override
+    public void claim(String deploymentId, Collection<Long> taskIds, String userId) {
+        taskIds.forEach(taskId -> {
+            try {
+                claim(deploymentId, taskId, userId);
+            } catch (TaskNotFoundException | PermissionDeniedException e) {
+                logger.warn("Problem claiming task id {}", taskId, e);
+            }
+        });
+    }
 
 	@Override
     public void complete(Long taskId, String userId, Map<String, Object> params) {
@@ -693,8 +705,17 @@ public class UserTaskServiceImpl implements UserTaskService, VariablesAware {
 	    return saveContent(null, taskId, values);
 	}
 
-	@Override
-	public Long saveContent(String deploymentId, Long taskId, Map<String, Object> values) {
+    @Override
+    public Long saveContentFromUser(Long taskId, String userId, Map<String, Object> values) {
+        return saveContent(null, taskId, userId, values);
+    }
+
+    @Override
+    public Long saveContent(String deploymentId, Long taskId, Map<String, Object> values) {
+        return saveContent(deploymentId, taskId, null, values);
+    }
+
+    public Long saveContent(String deploymentId, Long taskId, String userId, Map<String, Object> values) {
 		UserTaskInstanceDesc task = dataService.getTaskById(taskId);
 		validateTask(deploymentId, taskId, task);
 
@@ -710,7 +731,7 @@ public class UserTaskServiceImpl implements UserTaskService, VariablesAware {
 		try {
 			TaskService taskService = engine.getTaskService();
 			// perform actual operation
-			return ((InternalTaskService)taskService).addContent(taskId, (Map<String, Object>)values);
+            return ((InternalTaskService) taskService).addContentFromUser(taskId, userId, values);
 		} finally {
 			disposeRuntimeEngine(manager, engine);
 		}

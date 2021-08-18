@@ -20,8 +20,10 @@ import java.io.File;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.jboss.shrinkwrap.resolver.api.maven.MavenStrategyStage;
+import org.jboss.shrinkwrap.resolver.api.maven.MavenWorkingSession;
 import org.jboss.shrinkwrap.resolver.api.maven.PomEquippedResolveStage;
-import org.jbpm.test.container.webspherefix.WebSphereFixedJtaPlatform;
+import org.jboss.shrinkwrap.resolver.impl.maven.MavenWorkingSessionContainer;
 import org.jbpm.test.container.tools.IntegrationMavenResolver;
 import org.kie.api.KieServices;
 import org.kie.api.io.Resource;
@@ -51,17 +53,23 @@ public class HelloWebService {
         System.out.println("### Building archive '" + ARCHIVE_NAME + ".war'");
 
         PomEquippedResolveStage resolver = IntegrationMavenResolver.get();
-        File[] dependencies = resolver.importCompileAndRuntimeDependencies().resolve().withTransitivity().asFile();
-        LOGGER.debug("Archive dependencies:");
-        for (File d : dependencies) {
-            LOGGER.debug(d.getName());
+        MavenStrategyStage strategyStage = resolver.importCompileAndRuntimeDependencies().resolve();
+        MavenWorkingSession workingSession = ((MavenWorkingSessionContainer) strategyStage).getMavenWorkingSession();
+
+        File[] dependencies = new File[0];
+
+        if (!workingSession.getDependenciesForResolution().isEmpty()) {
+            dependencies = strategyStage.withTransitivity().asFile();
+
+            LOGGER.debug("Archive dependencies:");
+            for (File d : dependencies) {
+                LOGGER.debug(d.getName());
+            }
         }
         
         war = ShrinkWrap
                 .create(WebArchive.class, ARCHIVE_NAME + ".war")
                 .addPackage(HELLO_WEB_SERVICE_PACKAGE)
-                // Workaroud for https://hibernate.atlassian.net/browse/HHH-11606
-                .addClass(WebSphereFixedJtaPlatform.class)
                 .setWebXML(HELLO_WEB_SERVICE_PATH + "WEB-INF/web.xml")
                 .addAsLibraries(dependencies);
 

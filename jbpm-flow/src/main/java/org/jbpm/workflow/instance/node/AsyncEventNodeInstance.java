@@ -22,13 +22,14 @@ import java.util.UUID;
 import org.jbpm.process.core.async.AsyncSignalEventCommand;
 import org.jbpm.workflow.core.impl.NodeImpl;
 import org.jbpm.workflow.core.node.AsyncEventNode;
+import org.jbpm.workflow.instance.impl.NodeInstanceImpl;
 import org.jbpm.workflow.instance.impl.WorkflowProcessInstanceImpl;
 import org.kie.api.definition.process.Node;
+import org.kie.api.executor.CommandContext;
+import org.kie.api.executor.ExecutorService;
 import org.kie.api.runtime.manager.RuntimeManager;
 import org.kie.api.runtime.process.EventListener;
 import org.kie.api.runtime.process.NodeInstance;
-import org.kie.api.executor.CommandContext;
-import org.kie.api.executor.ExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,13 +92,33 @@ public class AsyncEventNodeInstance extends EventNodeInstance {
     }
 
     @Override
+    protected NodeInstance getFrom() {
+        AsyncEventNode node = (AsyncEventNode) getNode();
+        int level = getLevel();
+        org.jbpm.workflow.instance.NodeInstance instance = ((org.jbpm.workflow.instance.NodeInstanceContainer) getNodeInstanceContainer()).getNodeInstance(node.getPreviousNode());
+        ((org.jbpm.workflow.instance.NodeInstanceContainer) getNodeInstanceContainer()).removeNodeInstance(instance);
+        ((org.jbpm.workflow.instance.impl.NodeInstanceImpl) instance).setLevel(level);
+        return instance;
+    }
+
+    @Override
     public void triggerCompleted() {
         getProcessInstance().removeEventListener(getEventType(), getEventListener(), true);
         ((org.jbpm.workflow.instance.NodeInstanceContainer)getNodeInstanceContainer()).setCurrentLevel(getLevel());
         ((org.jbpm.workflow.instance.NodeInstanceContainer) getNodeInstanceContainer()).removeNodeInstance(this);
         
         NodeInstance instance = ((org.jbpm.workflow.instance.NodeInstanceContainer) getNodeInstanceContainer()).getNodeInstance(getNode());
-        
+        // correction iteration levels of the composite
+        if(getNodeInstanceContainer() instanceof CompositeNodeInstance) {
+            CompositeNodeInstance composite = (CompositeNodeInstance) getNodeInstanceContainer();
+            composite.getIterationLevels().put(getNode().getNodeUniqueId(), getLevel());
+        } else if(getNodeInstanceContainer() instanceof WorkflowProcessInstanceImpl) {
+            WorkflowProcessInstanceImpl composite = (WorkflowProcessInstanceImpl) getNodeInstanceContainer();
+            composite.getIterationLevels().put(getNode().getNodeUniqueId(), getLevel());
+        }
+        ((NodeInstanceImpl) instance).setLevel(getLevel()); // we need to set the right level in this case for the instance
+
+
         triggerNodeInstance((org.jbpm.workflow.instance.NodeInstance) instance, NodeImpl.CONNECTION_DEFAULT_TYPE);
     }
 

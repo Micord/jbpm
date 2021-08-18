@@ -16,9 +16,9 @@
 
 package org.jbpm.bpmn2.persistence;
 
-import static org.jbpm.persistence.util.PersistenceUtil.JBPM_PERSISTENCE_UNIT_NAME;
-import static org.jbpm.persistence.util.PersistenceUtil.cleanUp;
-import static org.jbpm.persistence.util.PersistenceUtil.createEnvironment;
+import static org.jbpm.test.persistence.util.PersistenceUtil.JBPM_PERSISTENCE_UNIT_NAME;
+import static org.jbpm.test.persistence.util.PersistenceUtil.cleanUp;
+import static org.jbpm.test.persistence.util.PersistenceUtil.createEnvironment;
 import static org.junit.Assert.*;
 
 import java.text.SimpleDateFormat;
@@ -29,8 +29,7 @@ import java.util.Map;
 
 import org.drools.core.impl.InternalKnowledgeBase;
 import org.drools.core.impl.KnowledgeBaseFactory;
-import org.jbpm.bpmn2.concurrency.MultipleProcessesPerThreadTest;
-import org.jbpm.persistence.util.PersistenceUtil;
+import org.jbpm.test.persistence.util.PersistenceUtil;
 import org.jbpm.test.listener.process.NodeLeftCountDownProcessEventListener;
 import org.jbpm.test.util.AbstractBaseTest;
 import org.junit.After;
@@ -51,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
 public class UnmarshallingOverdueTimersTest extends AbstractBaseTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(MultipleProcessesPerThreadTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(UnmarshallingOverdueTimersTest.class);
 
     private HashMap<String, Object> context;
 

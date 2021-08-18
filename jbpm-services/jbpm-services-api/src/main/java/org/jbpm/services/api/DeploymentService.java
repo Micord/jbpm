@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2019 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 package org.jbpm.services.api;
 
 import java.util.Collection;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.jbpm.services.api.model.DeployedUnit;
 import org.jbpm.services.api.model.DeploymentUnit;
@@ -40,9 +42,18 @@ public interface DeploymentService {
     /**
 	 * Performs undeployment operation of given <code>unit</code>.
 	 * @param unit deployment unit to be undeployed from runtime
-	 * @throws RuntimeException in case of problems encountered while deploying unit
+	 * @throws RuntimeException in case of problems encountered while undeploying unit
 	 */
     void undeploy(DeploymentUnit unit);
+
+    /**
+     * Performs undeployment operation of given <code>unit</code> aborting existing process instances if needed.
+     * @param unit deployment unit to be undeployed from runtime
+     * @param beforeUndeploy a function to run custom actions before undeploying a given {@link DeploymentUnit} . It should return if the unit can be deployed or not
+     * determining if the deployment can continue.
+     * @throws RuntimeException in case of problems encountered while undeploying unit
+     */
+    void undeploy(DeploymentUnit unit, Function<DeploymentUnit, Boolean> beforeUndeploy);
     
     /**
      * Returns <code>RuntimeManager</code> instance dedicated to deployment unit identified by given id 
@@ -79,7 +90,7 @@ public interface DeploymentService {
     /**
      * Performs a check if given deployment is already active
      * @param deploymentUnitId
-     * @return
+     * @return true if deployment is active, false if not
      */
     boolean isDeployed(String deploymentUnitId);
 }

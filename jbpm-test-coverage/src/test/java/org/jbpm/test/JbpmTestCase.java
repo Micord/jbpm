@@ -16,25 +16,34 @@
 
 package org.jbpm.test;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
+
+import org.apache.commons.io.IOUtils;
 import org.assertj.core.api.Assertions;
-import org.jbpm.persistence.util.PersistenceUtil;
-import org.jbpm.test.util.PoolingDataSource;
+import org.drools.compiler.kie.builder.impl.InternalKieModule;
+import org.jbpm.test.persistence.util.PersistenceUtil;
 import org.junit.Rule;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.kie.api.KieServices;
+import org.kie.api.builder.KieBuilder;
+import org.kie.api.builder.KieFileSystem;
+import org.kie.api.builder.Message;
+import org.kie.api.builder.ReleaseId;
+import org.kie.api.builder.Results;
 import org.kie.api.command.KieCommands;
+import org.kie.api.io.Resource;
 import org.kie.api.io.ResourceType;
 import org.kie.api.runtime.KieSession;
+import org.kie.internal.builder.InternalKieBuilder;
+import org.kie.scanner.KieMavenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import qa.tools.ikeeper.client.BugzillaClient;
-import qa.tools.ikeeper.client.JiraClient;
-import qa.tools.ikeeper.test.IKeeperJUnitConnector;
-
-import java.util.Map;
-import java.util.Properties;
 
 public abstract class JbpmTestCase extends JbpmJUnitBaseTestCase {
 
@@ -73,26 +82,11 @@ public abstract class JbpmTestCase extends JbpmJUnitBaseTestCase {
 
     };
 
-    @Rule
-    public IKeeperJUnitConnector issueKeeper = new IKeeperJUnitConnector(
-            new BugzillaClient("https://bugzilla.redhat.com"),
-            new JiraClient("https://issues.jboss.org")
-    );
-
     @Override
-    protected PoolingDataSource setupPoolingDataSource() {        
-        
+    protected Properties getDataSourceProperties(){
         Properties dsProps = PersistenceUtil.getDatasourceProperties();
-        String jdbcUrl = dsProps.getProperty("url");
-        String driverClass = dsProps.getProperty("driverClassName");
-
-        // Setup the datasource
-        PoolingDataSource ds1 = PersistenceUtil.setupPoolingDataSource(dsProps, "jdbc/jbpm-ds", false);
-        if (driverClass.startsWith("org.h2")) {
-            ds1.getDriverProperties().setProperty("url", jdbcUrl);
-        }
-        ds1.init();
-        return ds1;
+        dsProps.setProperty("POOL_CONNECTIONS", "false");
+        return dsProps;
     }
 
     public KieSession createKSession(String... process) {
@@ -121,6 +115,33 @@ public abstract class JbpmTestCase extends JbpmJUnitBaseTestCase {
 
     protected static KieCommands getCommands() {
         return getServices().getCommands();
+    }
+
+    protected byte[] createAndDeployJar(KieServices ks, ReleaseId releaseId, Resource... resources) throws Exception {
+        KieFileSystem kfs = ks.newKieFileSystem().generateAndWritePomXML(releaseId);
+        for (int i = 0; i < resources.length; i++) {
+            if (resources[i] != null) {
+                kfs.write(resources[i]);
+            }
+        }
+        KieBuilder kieBuilder = ks.newKieBuilder(kfs);
+        ((InternalKieBuilder) kieBuilder).buildAll(o -> true);
+        Results results = kieBuilder.getResults();
+        if (results.hasMessages(Message.Level.ERROR)) {
+            throw new IllegalStateException(results.getMessages(Message.Level.ERROR).toString());
+        }
+        InternalKieModule kieModule = (InternalKieModule) ks.getRepository().getKieModule(releaseId);
+        byte[] pomXmlContent = IOUtils.toByteArray(kieModule.getPomAsStream());
+        File pom = new File("target",
+                UUID.randomUUID().toString());
+        Files.write(pom.toPath(),
+                pomXmlContent);
+        KieMavenRepository.getKieMavenRepository().installArtifact(releaseId,
+                kieModule,
+                pom);
+
+        byte[] jar = kieModule.getBytes();
+        return jar;
     }
 
 }

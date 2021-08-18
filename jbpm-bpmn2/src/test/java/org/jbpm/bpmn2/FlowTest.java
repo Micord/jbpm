@@ -27,7 +27,6 @@ import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.drools.core.command.impl.RegistryContext;
 import org.jbpm.bpmn2.objects.TestWorkItemHandler;
 import org.jbpm.process.core.context.variable.VariableScope;
 import org.jbpm.process.instance.context.variable.VariableScopeInstance;
@@ -56,6 +55,7 @@ import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.api.runtime.process.WorkItem;
 import org.kie.api.runtime.process.WorkItemManager;
 import org.kie.api.runtime.process.WorkflowProcessInstance;
+import org.kie.internal.command.RegistryContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Attr;
@@ -1129,6 +1129,104 @@ public class FlowTest extends JbpmBpmn2TestCase {
         ProcessInstance processInstance = ksession.startProcess(
                 "MultiInstanceLoopCharacteristicsProcess", params);
         assertProcessInstanceCompleted(processInstance);
+    }
+    
+    @Test
+    public void testMultiInstanceLoopCharacteristicsProcessSequential() throws Exception {
+        KieBase kbase = createKnowledgeBaseWithoutDumper("BPMN2-MultiInstanceLoopCharacteristicsProcessSequential.bpmn2");
+        ksession = createKnowledgeSession(kbase);
+        TestWorkItemHandler workItemHandler = new TestWorkItemHandler();
+        ksession.getWorkItemManager().registerWorkItemHandler("Human Task",
+                workItemHandler);
+        Map<String, Object> params = new HashMap<String, Object>();
+        List<String> myList = new ArrayList<String>();
+        myList.add("First Item");
+        myList.add("Second Item");
+        myList.add("Third Item");
+        params.put("list", myList);
+        ProcessInstance processInstance = ksession.startProcess("MultiInstanceLoopCharacteristicsProcess", params);
+        
+        Collection<NodeInstance> nodeInstances = ((WorkflowProcessInstance)processInstance).getNodeInstances();
+        assertEquals("There should be only one node instance active", 1, nodeInstances.size());
+        
+        NodeInstance nodeInstance = nodeInstances.iterator().next();
+        assertTrue(nodeInstance instanceof ForEachNodeInstance);
+       
+        List<WorkItem> tasks = workItemHandler.getWorkItems();
+        assertEquals("There should be only one task assigned", 1, tasks.size());
+        assertEquals(myList.get(0), tasks.get(0).getParameter("data"));
+        
+        ksession.getWorkItemManager().completeWorkItem(tasks.get(0).getId(), null);        
+        
+        tasks = workItemHandler.getWorkItems();
+        assertEquals("There should be only one task assigned", 1, tasks.size());
+        assertEquals(myList.get(1), tasks.get(0).getParameter("data"));
+        
+        ksession.getWorkItemManager().completeWorkItem(tasks.get(0).getId(), null);
+        
+        tasks = workItemHandler.getWorkItems();
+        assertEquals("There should be only one task assigned", 1, tasks.size());
+        assertEquals(myList.get(2), tasks.get(0).getParameter("data"));
+        
+        ksession.getWorkItemManager().completeWorkItem(tasks.get(0).getId(), null);
+        
+        
+        assertProcessInstanceCompleted(processInstance);
+    }
+    
+    @Test
+    public void testMultiInstanceLoopCharacteristicsTaskSequential() throws Exception {
+        KieBase kbase = createKnowledgeBaseWithoutDumper("BPMN2-MultiInstanceLoopCharacteristicsTaskSequential.bpmn2");
+        ksession = createKnowledgeSession(kbase);
+        TestWorkItemHandler workItemHandler = new TestWorkItemHandler();
+        ksession.getWorkItemManager().registerWorkItemHandler("Human Task", workItemHandler);
+        Map<String, Object> params = new HashMap<String, Object>();
+        List<String> myList = new ArrayList<String>();
+        myList.add("First Item");
+        myList.add("Second Item");
+        params.put("list", myList);
+        ProcessInstance processInstance = ksession.startProcess("MultiInstanceLoopCharacteristicsTask", params);
+        
+        List<WorkItem> tasks = workItemHandler.getWorkItems();
+        assertEquals("There should be only one task assigned", 1, tasks.size());
+        assertEquals(myList.get(0), tasks.get(0).getParameter("Item"));
+        
+        ksession.getWorkItemManager().completeWorkItem(tasks.get(0).getId(), null);        
+        
+        tasks = workItemHandler.getWorkItems();
+        assertEquals("There should be only one task assigned", 1, tasks.size());
+        assertEquals(myList.get(1), tasks.get(0).getParameter("Item"));
+        
+        ksession.getWorkItemManager().completeWorkItem(tasks.get(0).getId(), null);
+        
+        assertProcessInstanceCompleted(processInstance);
+
+    }
+    
+    @Test
+    public void testMultiInstanceLoopCharacteristicsTaskCmpCondSequential() throws Exception {
+        KieBase kbase = createKnowledgeBaseWithoutDumper("BPMN2-MultiInstanceLoopCharacteristicsTaskWithOutputCmpCondSequential.bpmn2");
+        ksession = createKnowledgeSession(kbase);
+        TestWorkItemHandler workItemHandler = new TestWorkItemHandler();
+        ksession.getWorkItemManager().registerWorkItemHandler("Human Task", workItemHandler);
+        Map<String, Object> params = new HashMap<String, Object>();
+        List<String> myList = new ArrayList<String>();
+        myList.add("First Item");
+        myList.add("Second Item");
+        params.put("list", myList);
+        ProcessInstance processInstance = ksession.startProcess("MultiInstanceLoopCharacteristicsTask", params);
+        
+        List<WorkItem> tasks = workItemHandler.getWorkItems();
+        assertEquals("There should be only one task assigned", 1, tasks.size());
+        assertEquals(myList.get(0), tasks.get(0).getParameter("Item"));
+        
+        ksession.getWorkItemManager().completeWorkItem(tasks.get(0).getId(), null);        
+        
+        tasks = workItemHandler.getWorkItems();
+        assertEquals("There should be no more task assigned", 0, tasks.size());
+                
+        assertProcessInstanceCompleted(processInstance);
+
     }
     
     @Test

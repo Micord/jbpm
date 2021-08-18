@@ -25,9 +25,9 @@ import java.util.Set;
 
 import org.drools.compiler.compiler.AnalysisResult;
 import org.drools.compiler.lang.descr.BaseDescr;
-import org.drools.compiler.rule.builder.dialect.java.JavaAnalysisResult;
 import org.drools.compiler.rule.builder.dialect.java.parser.JavaLocalDeclarationDescr;
 import org.drools.core.util.StringUtils;
+import org.drools.mvel.java.JavaAnalysisResult;
 import org.jbpm.process.builder.ProcessBuildContext;
 import org.jbpm.process.core.ContextResolver;
 import org.jbpm.process.core.context.variable.VariableScope;
@@ -89,8 +89,7 @@ public class AbstractJavaProcessBuilder {
 
         final List globalTypes = new ArrayList(globals.length);
         for (int i = 0, length = globals.length; i < length; i++) {
-            globalTypes.add(context.getPkg().getGlobals().get(globals[i]).replace('$',
-                    '.'));
+            globalTypes.add(context.getPkg().getGlobals().get(globals[i]).getCanonicalName());
         }
 
         map.put("globals",

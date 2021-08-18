@@ -20,6 +20,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.HashMap;
 
 import javax.ws.rs.ext.RuntimeDelegate;
 
@@ -36,12 +37,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.kie.api.runtime.process.ProcessWorkItemHandlerException;
 import org.kie.api.runtime.process.WorkItemManager;
 
 import static org.jbpm.process.workitem.rest.RESTWorkItemHandler.PARAM_CONNECT_TIMEOUT;
 import static org.jbpm.process.workitem.rest.RESTWorkItemHandler.PARAM_CONTENT;
 import static org.jbpm.process.workitem.rest.RESTWorkItemHandler.PARAM_CONTENT_DATA;
 import static org.jbpm.process.workitem.rest.RESTWorkItemHandler.PARAM_CONTENT_TYPE;
+import static org.jbpm.process.workitem.rest.RESTWorkItemHandler.PARAM_CONTENT_TYPE_CHARSET;
 import static org.jbpm.process.workitem.rest.RESTWorkItemHandler.PARAM_READ_TIMEOUT;
 import static org.jbpm.process.workitem.rest.RESTWorkItemHandler.PARAM_RESULT;
 import static org.jbpm.process.workitem.rest.RESTWorkItemHandler.PARAM_STATUS;
@@ -323,6 +326,8 @@ public class RestWorkItemHandlerTest {
                               "POST");
         workItem.setParameter(PARAM_CONTENT_TYPE,
                               "application/xml");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
         workItem.setParameter(contentParamName,
                               "<person><name>john</name><age>25</age></person>");
 
@@ -359,6 +364,8 @@ public class RestWorkItemHandlerTest {
                               "POST");
         workItem.setParameter(PARAM_CONTENT_TYPE,
                               "application/xml");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
         workItem.setParameter(contentParamName,
                               "<person><name>john</name><age>25</age></person>");
 
@@ -393,6 +400,8 @@ public class RestWorkItemHandlerTest {
                               "POST");
         workItem.setParameter(PARAM_CONTENT_TYPE,
                               "application/xml");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
         workItem.setParameter(contentParamName,
                               "<person><name>john</name><age>25</age></person>");
         workItem.setParameter("AcceptHeader",
@@ -461,6 +470,8 @@ public class RestWorkItemHandlerTest {
                               "PUT");
         workItem.setParameter(PARAM_CONTENT_TYPE,
                               "application/xml");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
         workItem.setParameter(contentParamName,
                               "<person><name>john</name><age>25</age></person>");
 
@@ -497,6 +508,8 @@ public class RestWorkItemHandlerTest {
                               "PUT");
         workItem.setParameter(PARAM_CONTENT_TYPE,
                               "application/xml");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
         workItem.setParameter(contentParamName,
                               "<person><name>john</name><age>25</age></person>");
         workItem.setParameter("AcceptHeader",
@@ -535,6 +548,8 @@ public class RestWorkItemHandlerTest {
                               "PUT");
         workItem.setParameter(PARAM_CONTENT_TYPE,
                               "application/xml");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
         workItem.setParameter(contentParamName,
                               "<person><name>john</name><age>25</age></person>");
         workItem.setParameter("AcceptHeader",
@@ -552,6 +567,40 @@ public class RestWorkItemHandlerTest {
         String responseMsg = (String) results.get(PARAM_STATUS_MSG);
         assertNotNull(responseMsg);
         assertEquals("endpoint " + serverURL + "/xml could not be reached: ",
+                     responseMsg);
+    }
+
+    @Test
+    public void testPATCHOperation() {
+        RESTWorkItemHandler handler = new RESTWorkItemHandler();
+
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/xml");
+        workItem.setParameter("Method",
+                              "PATCH");
+        workItem.setParameter(PARAM_CONTENT_TYPE,
+                              "application/xml");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
+        workItem.setParameter(contentParamName,
+                              "<person><name>john</name><age>25</age></person>");
+
+        WorkItemManager manager = new TestWorkItemManager();
+        handler.executeWorkItem(workItem,
+                                manager);
+
+        Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        String result = (String) results.get(PARAM_RESULT);
+        assertNull("result should be  null",
+                      result);
+        int responseCode = (Integer) results.get(PARAM_STATUS);
+        assertNotNull(responseCode);
+        assertEquals(204,
+                     responseCode);
+        String responseMsg = (String) results.get(PARAM_STATUS_MSG);
+        assertNotNull(responseMsg);
+        assertEquals("request to endpoint " + workItem.getParameter("Url") + " successfully completed No Content",
                      responseMsg);
     }
 
@@ -705,7 +754,9 @@ public class RestWorkItemHandlerTest {
         workItem.setParameter("Method",
                               "POST");
         workItem.setParameter(PARAM_CONTENT_TYPE,
-                              "Application/XML;charset=utf-8");
+                              "Application/XML");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
         workItem.setParameter(contentParamName,
                               "<person><name>john</name><age>25</age></person>");
         workItem.setParameter("ResultClass",
@@ -743,7 +794,9 @@ public class RestWorkItemHandlerTest {
         workItem.setParameter("Method",
                               "PUT");
         workItem.setParameter(PARAM_CONTENT_TYPE,
-                              "Application/Xml;charset=utf-8");
+                              "Application/Xml");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
         workItem.setParameter(contentParamName,
                               "<person><name>john</name><age>25</age></person>");
         workItem.setParameter("ResultClass",
@@ -786,6 +839,8 @@ public class RestWorkItemHandlerTest {
                               "POST");
         workItem.setParameter(PARAM_CONTENT_TYPE,
                               "application/xml");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
         workItem.setParameter(contentParamName,
                               request);
         workItem.setParameter("ResultClass",
@@ -915,7 +970,45 @@ public class RestWorkItemHandlerTest {
     }
 
     @Test
-    public void testPUTOperationWithCharsetSpecified() {
+    public void testPUTOperationWithSetCharset() {
+        RESTWorkItemHandler handler = new RESTWorkItemHandler();
+        String nonAsciiData = "\u0418\u0432\u0430\u043d";
+        String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><person><age>25</age><name>Put Иван</name></person>";
+
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/xml-charset");
+        workItem.setParameter("Method",
+                              "PUT");
+        workItem.setParameter(PARAM_CONTENT_TYPE,
+                              "application/xml");
+        workItem.setParameter(PARAM_CONTENT_TYPE_CHARSET,
+                              "UTF-8");
+        workItem.setParameter(contentParamName,
+                              "<person><name>" + nonAsciiData + "</name><age>25</age></person>");
+
+        WorkItemManager manager = new TestWorkItemManager();
+        handler.executeWorkItem(workItem,
+                                manager);
+
+        Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        String result = (String) results.get(PARAM_RESULT);
+        assertNotNull("result cannot be null",
+                      result);
+        assertEquals(expected,
+                     result);
+        int responseCode = (Integer) results.get(PARAM_STATUS);
+        assertNotNull(responseCode);
+        assertEquals(200,
+                     responseCode);
+        String responseMsg = (String) results.get(PARAM_STATUS_MSG);
+        assertNotNull(responseMsg);
+        assertEquals("request to endpoint " + workItem.getParameter("Url") + " successfully completed OK",
+                     responseMsg);
+    }
+
+    @Test
+    public void testPUTOperationWithCharsetUnspecifiedViaParameter() {
         RESTWorkItemHandler handler = new RESTWorkItemHandler();
         String nonAsciiData = "\u0418\u0432\u0430\u043d";
         String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
@@ -990,7 +1083,29 @@ public class RestWorkItemHandlerTest {
                                 manager);
         Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
         String result = (String) results.get(PARAM_RESULT);
-        assertEquals(result, headerValue);
+        assertEquals(headerValue, result);
+    }
+    
+    @Test
+    public void testHeadersValueWithEquals() {
+        RESTWorkItemHandler handler = new RESTWorkItemHandler();
+        String headerKey = "Authorization";
+        String headerValue = "Basic bcdabcdabcdabcdabcdabcdabcd==";
+        String headers = headerKey + "=" + headerValue;
+         
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/header/" + headerKey);
+        workItem.setParameter("Method",
+                              "GET");
+        workItem.setParameter(PARAM_HEADERS, headers);
+        
+        WorkItemManager manager = new TestWorkItemManager();
+        handler.executeWorkItem(workItem,
+                                manager);
+        Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        String result = (String) results.get(PARAM_RESULT);
+        assertEquals(headerValue, result);
     }
     
     @Test
@@ -1012,7 +1127,7 @@ public class RestWorkItemHandlerTest {
                                 manager);
         Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
         String result = (String) results.get(PARAM_RESULT);
-        assertEquals(result, headerValues);
+        assertEquals(headerValues, result);
     }    
     
     @Test
@@ -1037,7 +1152,7 @@ public class RestWorkItemHandlerTest {
         
         Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
         String result = (String) results.get(PARAM_RESULT);
-        assertEquals(result, headerValues1);
+        assertEquals(headerValues1, result);
         workItem.setParameter("Url",
                                 serverURL + "/header/" + headerKey2);
         workItem.setParameter("Method",
@@ -1047,7 +1162,7 @@ public class RestWorkItemHandlerTest {
                           manager);
         results = ((TestWorkItemManager) manager).getResults(workItem.getId());
         result = (String) results.get(PARAM_RESULT);
-        assertEquals(result, headerValues2);
+        assertEquals(headerValues2, result);
     }
 
     @Test
@@ -1085,4 +1200,221 @@ public class RestWorkItemHandlerTest {
         assertEquals("request to endpoint " + workItem.getParameter("Url") + " successfully completed OK",
                      responseMsg);
     }
+
+    @Test
+    public void testGetContentTypeAndCharset() {
+        RESTWorkItemHandler handler = new RESTWorkItemHandler();
+
+        Map<String, Object> params = new java.util.HashMap<>();
+        params.put(PARAM_CONTENT_TYPE, "application/xml");
+        params.put(PARAM_CONTENT_TYPE_CHARSET, "UTF-8");
+        assertEquals("application/xml;charset=UTF-8", handler.getContentTypeAndCharset(params) );
+
+        params.put(PARAM_CONTENT_TYPE, "application/xml;charset=UTF-8");
+        params.put(PARAM_CONTENT_TYPE_CHARSET, "SOME_WROMG_CHARSET");
+        assertEquals("application/xml;charset=UTF-8", handler.getContentTypeAndCharset(params) );
+
+        params.remove(PARAM_CONTENT_TYPE_CHARSET);
+        assertEquals("application/xml;charset=UTF-8", handler.getContentTypeAndCharset(params) );
+
+        params.remove(PARAM_CONTENT_TYPE);
+        assertNull(handler.getContentTypeAndCharset(params));
+
+    }
+    
+    @Test
+    public void testHandleErrorOnNotSuccessfulResponseHandlingException() {
+        RESTWorkItemHandler handler = new RESTWorkItemHandler("test", "COMPLETE", "user", "password");
+
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/notexisting");
+        workItem.setParameter("Method",
+                              "GET");
+        workItem.setParameter("HandleResponseErrors",
+                              "true");
+
+        WorkItemManager manager = new TestWorkItemManager();
+        try {
+            handler.executeWorkItem(workItem,
+                                    manager);
+            fail("Should throw exception as it was instructed to do so");
+        } catch (ProcessWorkItemHandlerException ex) {
+
+            RESTServiceException e = (RESTServiceException) ex.getCause().getCause();
+            assertEquals(405,
+                         e.getStatus());
+            assertEquals(serverURL + "/notexisting",
+                         e.getEndoint());
+            assertEquals("",
+                         e.getResponse());
+            
+            assertEquals("test", ex.getProcessId());
+            assertEquals("COMPLETE", ex.getStrategy().name());
+        }
+    }
+
+    @Test
+    public void testCookieSingleCookie() {
+        RESTWorkItemHandler handler = new RESTWorkItemHandler();
+        String cookieName1 = "cookieParam1";
+        String cookieValue1 = "cookieParam1_Value";
+        String cookie = cookieName1 + "=" + cookieValue1;
+        String cookieName2 = "cookieParam1";
+        String cookieValue2 = null;
+        String cookie2 = cookieName2 + "=" + cookieValue2;
+
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/testSingleCookie");
+        workItem.setParameter("Method",
+                              "GET");
+        workItem.setParameter("Cookie",
+                              cookie);
+
+        WorkItemManager manager = new TestWorkItemManager();
+        handler.executeWorkItem(workItem, manager);
+        Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        String result = (String) results.get(PARAM_RESULT);
+        assertEquals(cookie, result);
+
+        workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/testSingleCookie");
+        workItem.setParameter("Method",
+                              "GET");
+        workItem.setParameter("Cookie",
+                              cookie2);
+
+        manager = new TestWorkItemManager();
+        handler.executeWorkItem(workItem, manager);
+        results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        result = (String) results.get(PARAM_RESULT);
+        assertEquals(cookie2, result);
+
+    }
+
+    @Test
+    public void testCookieSetCookiePath() {
+        RESTWorkItemHandler handler = new RESTWorkItemHandler();
+        String cookieName1 = "cookieParam1";
+        String cookieValue1 = "cookieParam1_Value";
+        String cookie = cookieName1 + "=" + cookieValue1;
+
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/testSingleCookie");
+        workItem.setParameter("Method",
+                              "GET");
+        workItem.setParameter("Cookie",
+                              cookie);
+        workItem.setParameter("CookiePath",
+                              "/test/testSingleCookie");
+
+        WorkItemManager manager = new TestWorkItemManager();
+        handler.executeWorkItem(workItem, manager);
+        Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        String result = (String) results.get(PARAM_RESULT);
+        assertEquals(cookie, result);
+    }
+
+    @Test
+    public void testCookieIncorrectSeparators() {
+        RESTWorkItemHandler handler = new RESTWorkItemHandler();
+        String cookieName1 = "cookieParam1";
+        String cookieValue1 = "cookieParam1_Value;=";
+        String cookie = cookieName1 + "=" + cookieValue1;
+        
+        String cookieName2 = "cookieParam1";
+        String cookieValue2 = "cookieParam1_Value=";
+        String cookie1 = cookieName2 + "=" + cookieValue2;
+
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/testSingleCookie");
+        workItem.setParameter("Method",
+                              "GET");
+        workItem.setParameter("Cookie",
+                              cookie);
+
+        WorkItemManager manager = new TestWorkItemManager();
+        handler.executeWorkItem(workItem, manager);
+        Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        String result = (String) results.get(PARAM_RESULT);
+        assertEquals("cookieParam1=cookieParam1_Value", result);
+
+        workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/testSingleCookie");
+        workItem.setParameter("Method",
+                              "GET");
+        workItem.setParameter("Cookie",
+                              cookie1);
+
+        manager = new TestWorkItemManager();
+        handler.executeWorkItem(workItem, manager);
+        results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        result = (String) results.get(PARAM_RESULT);
+        assertEquals("cookieParam1=cookieParam1_Value=", result);
+    }
+
+    @Test
+    public void testCookieMultipleCookie() {
+        RESTWorkItemHandler handler = new RESTWorkItemHandler();
+        String cookieName1 = "cookieParam1";
+        String cookieValue1 = "cookieParam1_Value";
+        String cookieName2 = "cookieParam2";
+        String cookieValue2 = "cookieParam2_Value";
+        String cookie = cookieName1 + "=" + cookieValue1 + ";" + cookieName2 + "=" + cookieValue2;
+
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/testMultipleCookie");
+        workItem.setParameter("Method",
+                              "GET");
+        workItem.setParameter("Cookie",
+                              cookie);
+
+        WorkItemManager manager = new TestWorkItemManager();
+        handler.executeWorkItem(workItem, manager);
+        Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        String result = (String) results.get(PARAM_RESULT);
+        assertEquals(cookie, result);
+    }
+
+    @Test
+    public void testCookieIncorrectCookie() {
+        RESTWorkItemHandler handler = new RESTWorkItemHandler();
+        String cookieName1 = "cookieParam1";
+        String cookieValue1 = "cookieParam1_Value";
+        String cookie1 = cookieName1 + "=" + cookieValue1;
+        String cookie2 = cookieName1 + "=" + " ";
+
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter("Url",
+                              serverURL + "/testSingleCookie");
+        workItem.setParameter("Method",
+                              "GET");
+        workItem.setParameter("Cookie",
+                              cookie1+";=");
+
+        WorkItemManager manager = new TestWorkItemManager();
+        handler.executeWorkItem(workItem, manager);
+        Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        String result = (String) results.get(PARAM_RESULT);
+        assertEquals(cookie1, result);
+
+        workItem.setParameter("Url",
+                              serverURL + "/testSingleCookie");
+        workItem.setParameter("Method",
+                              "GET");
+        workItem.setParameter("Cookie",
+                              cookie2);
+
+        handler.executeWorkItem(workItem, manager);
+        results = ((TestWorkItemManager) manager).getResults(workItem.getId());
+        result = (String) results.get(PARAM_RESULT);
+        assertTrue(result == null);
+    }
+
 }

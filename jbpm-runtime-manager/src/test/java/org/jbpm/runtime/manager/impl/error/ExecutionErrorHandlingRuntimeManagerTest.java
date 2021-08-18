@@ -41,7 +41,7 @@ import org.jbpm.services.task.events.DefaultTaskEventListener;
 import org.jbpm.services.task.exception.TaskExecutionException;
 import org.jbpm.services.task.identity.JBossUserGroupCallbackImpl;
 import org.jbpm.test.util.AbstractBaseTest;
-import org.jbpm.test.util.PoolingDataSource;
+import org.kie.test.util.db.PoolingDataSourceWrapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -91,7 +91,7 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         this.strategy = strategy;
     }
     
-    private PoolingDataSource pds;
+    private PoolingDataSourceWrapper pds;
     private UserGroupCallback userGroupCallback;
     private EntityManagerFactory emf;
     private RuntimeManager manager;
@@ -110,6 +110,7 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         userGroupCallback = new JBossUserGroupCallbackImpl(properties);
         
         createRuntimeManager();
+        CountExecutionErrorListener.reset();
     }
     
     @After
@@ -157,7 +158,7 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         assertNotNull(errors);
         assertEquals(1, errors.size());
         assertExecutionError(errors.get(0), "Process", "BrokenScriptTask", "Hello");
-      
+        assertEquals(1, CountExecutionErrorListener.getCount().intValue());
     }
     
     @Test
@@ -201,7 +202,7 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         assertNotNull(errors);
         assertEquals(1, errors.size());
         assertExecutionError(errors.get(0), "Process", "UserTaskWithRollback", "Script Task 1");
-   
+        assertEquals(1, CountExecutionErrorListener.getCount().intValue());
     }
     
     
@@ -246,7 +247,7 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         assertNotNull(errors);
         assertEquals(1, errors.size());        
         assertExecutionError(errors.get(0), "Task", "UserTaskWithRollback", "Hello");
-
+        assertEquals(1, CountExecutionErrorListener.getCount().intValue());
     }
         
     @Test
@@ -260,15 +261,14 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
 
             @Override
             public void afterProcessStarted(ProcessStartedEvent event) {
-                pds.close();
+               emf.close();
             }
-            
         });
         
         try {
             ksession1.startProcess("UserTaskWithRollback");
             fail("Start process should fail due to data base error");
-        } catch (Throwable e) {
+        } catch (Exception e) {
             // expected
         }
         int expectedErrors = 1;
@@ -285,8 +285,8 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         List<ExecutionError> errors = storage.list(0, 10);
         assertNotNull(errors);
         assertTrue(errors.size() >= expectedErrors);
-        assertExecutionError(errors.get(0), "DB", "UserTaskWithRollback", "Hello");      
-
+        assertExecutionError(errors.get(0), "DB", "UserTaskWithRollback", "Hello");
+        assertEquals(expectedErrors, CountExecutionErrorListener.getCount().intValue());
     }
     
     @Test
@@ -332,6 +332,7 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         assertExecutionError(errors.get(0), "Process", "UserTaskWithCustomTask", "Manual Task 2");
         String errorMessage = errors.get(0).getErrorMessage();
         assertTrue(errorMessage.contains("Could not find work item handler for Manual Task"));
+        assertEquals(1, CountExecutionErrorListener.getCount().intValue());
     }
     
     private RuntimeEnvironment createEnvironment() {

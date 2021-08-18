@@ -36,4 +36,6 @@ public @interface WidService {
     WidTrigger trigger() default @WidTrigger;
 
     WidAction action() default @WidAction;
+
+    WidAuth authinfo() default @WidAuth;
 }

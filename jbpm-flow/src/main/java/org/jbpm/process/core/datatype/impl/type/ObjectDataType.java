@@ -23,10 +23,10 @@ import java.util.Map;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.security.ExplicitTypePermission;
-import org.drools.core.common.ProjectClassLoader;
+import org.drools.reflective.classloader.ProjectClassLoader;
 import org.jbpm.process.core.datatype.DataType;
 
-import static org.kie.soup.commons.xstream.XStreamUtils.createXStream;
+import static org.kie.soup.xstream.XStreamUtils.createTrustingXStream;
 
 /**
  * Representation of an object datatype.
@@ -76,7 +76,7 @@ public class ObjectDataType implements DataType {
     }
 
     public boolean verifyDataType(final Object value) {
-        if (value == null) {
+        if (value == null || className == null) {
             return true;
         }
         try {
@@ -85,8 +85,7 @@ public class ObjectDataType implements DataType {
                 return true;
             }
         } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException(
-                "Could not find data type " + className);
+            return false;
         }
         return false;
     }
@@ -100,7 +99,7 @@ public class ObjectDataType implements DataType {
     }
 
     private XStream getXStream() {
-        XStream xstream = createXStream();
+        XStream xstream = createTrustingXStream();
         if (classLoader != null) {
             xstream.setClassLoader(classLoader);
             if (classLoader instanceof ProjectClassLoader ) {

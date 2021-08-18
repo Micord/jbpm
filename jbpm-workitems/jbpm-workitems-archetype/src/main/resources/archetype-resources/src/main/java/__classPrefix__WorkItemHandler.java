@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2020 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,12 +24,17 @@ import org.kie.api.runtime.process.WorkItemManager;
 import org.jbpm.process.workitem.core.util.Wid;
 import org.jbpm.process.workitem.core.util.WidParameter;
 import org.jbpm.process.workitem.core.util.WidResult;
+import org.jbpm.process.workitem.core.util.service.WidAction;
+import org.jbpm.process.workitem.core.util.service.WidAuth;
+import org.jbpm.process.workitem.core.util.service.WidService;
 import org.jbpm.process.workitem.core.util.WidMavenDepends;
 
 @Wid(widfile="${classPrefix}Definitions.wid", name="${classPrefix}Definitions",
-        displayName="${classPrefix}Definitions", icon="",
+        displayName="${classPrefix}Definitions",
         defaultHandler="mvel: new ${package}.${classPrefix}WorkItemHandler()",
         documentation = "${artifactId}/index.html",
+        category = "${artifactId}",
+        icon = "${classPrefix}Definitions.png",
         parameters={
             @WidParameter(name="SampleParam", required = true),
             @WidParameter(name="SampleParamTwo", required = true)
@@ -38,19 +43,32 @@ import org.jbpm.process.workitem.core.util.WidMavenDepends;
             @WidResult(name="SampleResult")
         },
         mavenDepends={
-            @WidMavenDepends(group="${groupId}", artifact="${artifactId}", version="${archetypeVersion}")
-        })
+            @WidMavenDepends(group="${groupId}", artifact="${artifactId}", version="${version}")
+        },
+        serviceInfo = @WidService(category = "${artifactId}", description = "${description}",
+                keywords = "",
+                action = @WidAction(title = "Sample Title"),
+                authinfo = @WidAuth(required = true, params = {"SampleParam", "SampleParamTwo"},
+                        paramsdescription = {"SampleParam", "SampleParamTwo"},
+                        referencesite = "referenceSiteURL")
+        )
+)
 public class ${classPrefix}WorkItemHandler extends AbstractLogOrThrowWorkItemHandler {
+        private String sampleParam;
+        private String sampleParamTwo;
 
-    public void executeWorkItem(WorkItem workItem,
-                                WorkItemManager manager) {
+    public ${classPrefix}WorkItemHandler(String SampleParam, String SampleParamTwo){
+            this.sampleParam = sampleParam;
+            this.sampleParamTwo = sampleParamTwo;
+        }
+
+    public void executeWorkItem(WorkItem workItem, WorkItemManager manager) {
         try {
-            RequiredParameterValidator.validate(this.getClass(),
-               workItem);
+            RequiredParameterValidator.validate(this.getClass(), workItem);
 
             // sample parameters
-            String sampleParam = (String) workItem.getParameter("SampleParam");
-            String sampleParamTwo = (String) workItem.getParameter("SampleParamTwo");
+            sampleParam = (String) workItem.getParameter("SampleParam");
+            sampleParamTwo = (String) workItem.getParameter("SampleParamTwo");
 
             // complete workitem impl...
 

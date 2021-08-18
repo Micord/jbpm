@@ -16,7 +16,8 @@
 
 package org.jbpm.test.functional.timer;
 
-
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -75,7 +76,8 @@ import org.kie.internal.task.api.model.InternalOrganizationalEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 @RunWith(Parameterized.class)
 public class GlobalTimerServiceVolumeTest extends TimerBaseTest {
@@ -111,15 +113,15 @@ public class GlobalTimerServiceVolumeTest extends TimerBaseTest {
     public TestName testName = new TestName();
 
     @Before
-    public void setup() {
+    public void setup() throws IOException, SQLException {
 
         Properties properties = new Properties();
         properties.setProperty("mary", "HR");
         properties.setProperty("john", "HR");
         userGroupCallback = new JBossUserGroupCallbackImpl(properties);
 
+        createTimerSchema();
         System.setProperty("org.quartz.properties", "quartz-db.properties");
-        testCreateQuartzSchema();
         globalScheduler = new QuartzSchedulerService();
 
         emf = Persistence.createEntityManagerFactory("org.jbpm.test.persistence");
@@ -154,18 +156,22 @@ public class GlobalTimerServiceVolumeTest extends TimerBaseTest {
         } else if ("case".equals(strategy)) {
             manager = RuntimeManagerFactory.Factory.get().newPerCaseRuntimeManager(environment, "first");
         } else {
-            throw new RuntimeException("Unknow type of runtime strategy");
+            throw new RuntimeException("Unknown type of runtime strategy");
         }
 
     }
 
     @After
-    public void tearDown() {
-        globalScheduler.shutdown();
-        if (manager != null) {
-            manager.close();
+    public void tearDown() throws IOException, SQLException {
+        try {
+            globalScheduler.shutdown();
+        } finally {
+            dropTimerSchema();
+            if (manager != null) {
+                manager.close();
+            }
+            emf.close();
         }
-        emf.close();
     }
 
     @Test(timeout=30000)

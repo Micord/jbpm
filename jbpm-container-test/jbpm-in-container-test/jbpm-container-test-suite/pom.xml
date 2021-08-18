@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm-in-container-test</artifactId>
-    <version>7.11.0-SNAPSHOT</version>
+    <version>7.59.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>jbpm-container-test-suite</artifactId>
@@ -47,7 +47,7 @@
       </dependency>
       <dependency>
         <groupId>org.jbpm</groupId>
-        <artifactId>idep-hibernate-entitymanager</artifactId>
+        <artifactId>idep-hibernate-core</artifactId>
         <version>${version.org.kie}</version>
       </dependency>
       <dependency>
@@ -77,7 +77,13 @@
     </dependency>
     <dependency>
       <groupId>org.jbpm</groupId>
-      <artifactId>idep-hibernate-entitymanager</artifactId>
+      <artifactId>idep-hibernate-core</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>javax.activation</groupId>
+          <artifactId>javax.activation-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jbpm</groupId>
@@ -142,7 +148,7 @@
     </dependency>
     <dependency>
       <groupId>org.jboss.spec.javax.xml.ws</groupId>
-      <artifactId>jboss-jaxws-api_2.2_spec</artifactId>
+      <artifactId>jboss-jaxws-api_2.3_spec</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -171,11 +177,6 @@
     <dependency> <!-- Dynamic dependency -->
       <groupId>org.jbpm</groupId>
       <artifactId>jbpm-bpmn2</artifactId>
-    </dependency>
-    <dependency> <!-- Dynamic dependency -->
-      <groupId>org.jbpm</groupId>
-      <artifactId>jbpm-persistence-jpa</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency> <!-- Dynamic dependency -->
       <groupId>com.sun.xml.bind</groupId>
@@ -255,8 +256,8 @@
     </dependency>
 
     <dependency>
-      <groupId>org.hibernate.javax.persistence</groupId>
-      <artifactId>hibernate-jpa-2.1-api</artifactId>
+      <groupId>javax.persistence</groupId>
+      <artifactId>javax.persistence-api</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -275,29 +276,10 @@
       <artifactId>xnio-api</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jaxrs</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>net.jcip</groupId>
-          <artifactId>jcip-annotations</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>commons-logging</groupId>
-          <artifactId>commons-logging</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson-provider</artifactId>
-    </dependency>
-
     <!-- In-memory web container for REST WIH testing -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
-      <artifactId>tjws</artifactId>
+      <artifactId>resteasy-undertow</artifactId>
     </dependency>
 
     <!-- EJB Services tests -->
@@ -349,6 +331,27 @@
       </exclusions>
     </dependency>
 
+    <!-- Webservices Metadata API needed for JDK11+ -->
+    <dependency>
+      <groupId>javax.jws</groupId>
+      <artifactId>javax.jws-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Needed for JDK 11 -->
+    <dependency>
+      <groupId>javax.activation</groupId>
+      <artifactId>activation</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Needed for JDK 11 -->
+    <dependency>
+      <groupId>com.sun.xml.bind</groupId>
+      <artifactId>jaxb-impl</artifactId>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -393,6 +396,7 @@
               <settings.localRepository>${settings.localRepository}</settings.localRepository>
               <!--Container port for as-client tests-->
               <container.port>${container.port}</container.port>
+              <container.id>${container.id}</container.id>
             </systemPropertyVariables>
           </configuration>
         </plugin>
@@ -522,15 +526,15 @@
 
   <profiles>
     <profile>
-      <id>wildfly11</id>
+      <id>wildfly</id>
       <activation>
         <property>
           <name>container.profile</name>
-          <value>wildfly11</value>
+          <value>wildfly</value>
         </property>
       </activation>
       <properties>
-        <container.id>wildfly11x</container.id>
+        <container.id>wildfly19x</container.id>
         <container.port>8080</container.port>
         <org.jbpm.persistence.ds>java:/jdbc/jbpm</org.jbpm.persistence.ds>
         <container.tm>org.hibernate.service.jta.platform.internal.JBossAppServerJtaPlatform</container.tm>
@@ -547,7 +551,7 @@
                   <artifactInstaller>
                     <groupId>org.wildfly</groupId>
                     <artifactId>wildfly-dist</artifactId>
-                    <version>${version.wildfly11}</version>
+                    <version>${version.org.wildfly}</version>
                   </artifactInstaller>
                   <dependencies>
                     <dependency>
@@ -559,7 +563,7 @@
                 <configuration>
                   <properties>
                     <cargo.jboss.configuration>standalone-full</cargo.jboss.configuration>
-                    <cargo.jvmargs>-Xmx1g</cargo.jvmargs>
+                    <cargo.jvmargs>-Xmx1536m</cargo.jvmargs>
                     <!-- Datasource -->
                     <cargo.datasource.datasource.jbpm>
                       cargo.datasource.driver=${org.jbpm.datasource.driver.class}|
@@ -582,16 +586,6 @@
           </plugins>
         </pluginManagement>
       </build>
-      <dependencyManagement>
-        <dependencies>
-          <!--Arquillian connector-->
-          <dependency>
-            <groupId>org.wildfly.arquillian</groupId>
-            <artifactId>wildfly-arquillian-container-remote</artifactId>
-            <version>2.1.0.Final</version>
-          </dependency>
-        </dependencies>
-      </dependencyManagement>
       <dependencies>
         <!--Arquillian connector-->
         <dependency>
@@ -614,7 +608,7 @@
         </property>
       </activation>
       <properties>
-        <container.id>wildfly11x</container.id>
+        <container.id>wildfly19x</container.id>
         <container.port>8080</container.port>
         <org.jbpm.persistence.ds>java:/jdbc/jbpm</org.jbpm.persistence.ds>
         <container.tm>org.hibernate.service.jta.platform.internal.JBossAppServerJtaPlatform</container.tm>
@@ -641,7 +635,7 @@
                 <configuration>
                   <properties>
                     <cargo.jboss.configuration>standalone-full</cargo.jboss.configuration>
-                    <cargo.jvmargs>-Xmx1024m</cargo.jvmargs>
+                    <cargo.jvmargs>-Xmx1536m</cargo.jvmargs>
                     <!-- Datasource -->
                     <cargo.datasource.datasource.jbpm>
                       cargo.datasource.driver=${org.jbpm.datasource.driver.class}|
@@ -664,19 +658,9 @@
           </plugins>
         </pluginManagement>
       </build>
-      <dependencyManagement>
-        <dependencies>
-          <!--Arquillian connector-->
-          <!--It is originally for wildfly but it works for EAP7 as well so far-->
-          <dependency>
-            <groupId>org.wildfly.arquillian</groupId>
-            <artifactId>wildfly-arquillian-container-remote</artifactId>
-            <version>2.1.0.Final</version>
-          </dependency>
-        </dependencies>
-      </dependencyManagement>
       <dependencies>
         <!--Arquillian connector-->
+        <!--It is originally for wildfly but it works for EAP7 as well so far-->
         <dependency>
           <groupId>org.wildfly.arquillian</groupId>
           <artifactId>wildfly-arquillian-container-remote</artifactId>
@@ -699,7 +683,7 @@
       <properties>
         <container.id>tomcat9x</container.id>
         <container.port>8080</container.port>
-        <org.jbpm.persistence.ds>java:comp/env/jdbc/jbpm</org.jbpm.persistence.ds>
+        <org.jbpm.persistence.ds>java:comp/env/jbpmDs</org.jbpm.persistence.ds>
         <container.tm>JBossTS</container.tm>
         <org.jbpm.datasource.driver.class>org.h2.jdbcx.JdbcDataSource</org.jbpm.datasource.driver.class>
         <org.jbpm.datasource.driver.factory>org.apache.tomcat.jdbc.naming.GenericNamingResourcesFactory</org.jbpm.datasource.driver.factory>
@@ -716,11 +700,12 @@
                   <artifactInstaller>
                     <groupId>org.apache.tomcat</groupId>
                     <artifactId>tomcat</artifactId>
-                    <version>${version.tomcat9}</version>
+                    <version>${version.tomcat}</version>
                   </artifactInstaller>
                   <systemProperties>
                     <tomcat.home>${project.build.directory}/cargo/configurations/tomcat9x</tomcat.home>
                     <jbpm.tsr.jndi.lookup>java:comp/env/TransactionSynchronizationRegistry</jbpm.tsr.jndi.lookup>
+                    <hibernate.connection.release_mode>after_transaction</hibernate.connection.release_mode>
                     <org.jboss.logging.provider>jdk</org.jboss.logging.provider>
                   </systemProperties>
                   <dependencies>
@@ -729,8 +714,8 @@
                       <artifactId>h2</artifactId>
                     </dependency>
                     <dependency>
-                      <groupId>org.hibernate.javax.persistence</groupId>
-                      <artifactId>hibernate-jpa-2.1-api</artifactId>
+                      <groupId>javax.persistence</groupId>
+                      <artifactId>javax.persistence-api</artifactId>
                     </dependency>
                     <dependency>
                       <groupId>org.slf4j</groupId>
@@ -743,6 +728,26 @@
                     <dependency>
                       <groupId>org.jboss.spec.javax.security.jacc</groupId>
                       <artifactId>jboss-jacc-api_1.5_spec</artifactId>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.jboss.spec.javax.transaction</groupId>
+                      <artifactId>jboss-transaction-api_1.2_spec</artifactId>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.jboss.integration</groupId>
+                      <artifactId>narayana-tomcat</artifactId>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.jboss.narayana.jta</groupId>
+                      <artifactId>narayana-jta</artifactId>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.jboss</groupId>
+                      <artifactId>jboss-transaction-spi</artifactId>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.jboss.logging</groupId>
+                      <artifactId>jboss-logging</artifactId>
                     </dependency>
                   </dependencies>
                 </container>
@@ -792,6 +797,7 @@
         <dependency>
           <groupId>org.slf4j</groupId>
           <artifactId>slf4j-jdk14</artifactId>
+          <scope>test</scope>
         </dependency>
         <dependency>
           <groupId>org.jboss.spec.javax.security.jacc</groupId>
@@ -803,15 +809,34 @@
         <dependency>
           <groupId>commons-codec</groupId>
           <artifactId>commons-codec</artifactId>
+          <scope>test</scope>
         </dependency>
         <!-- arquillian-tomcat-remote-9 not released yet -->
         <dependency>
           <groupId>org.jboss.arquillian.container</groupId>
           <artifactId>arquillian-tomcat-remote-7</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <!-- Narayana integration -->
+        <dependency>
+          <groupId>org.jboss.integration</groupId>
+          <artifactId>narayana-tomcat</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss.narayana.jta</groupId>
+          <artifactId>narayana-jta</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss</groupId>
+          <artifactId>jboss-transaction-spi</artifactId>
+          <scope>test</scope>
         </dependency>
         <dependency>
           <groupId>org.jboss.logging</groupId>
           <artifactId>jboss-logging</artifactId>
+          <scope>test</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -929,7 +954,7 @@
         <!--WebSphere has to use this H2 driver class for pooling datasource-->
         <org.jbpm.datasource.driver.class>org.h2.jdbcx.JdbcDataSource</org.jbpm.datasource.driver.class>
         <org.jbpm.persistence.ds>jdbc/jbpm</org.jbpm.persistence.ds>
-        <container.tm>org.jbpm.test.container.webspherefix.WebSphereFixedJtaPlatform</container.tm>
+        <container.tm>org.hibernate.engine.transaction.jta.platform.internal.WebSphereJtaPlatform</container.tm>
         <!--Different web service URL for WebSphere has to be used-->
         <wsdl.token>/SimpleService.wsdl</wsdl.token>
       </properties>

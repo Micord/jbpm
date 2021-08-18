@@ -15,12 +15,10 @@
  */
 package org.jbpm.runtime.manager.impl;
 
+
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.drools.core.time.TimerService;
 import org.drools.persistence.api.OrderedTransactionSynchronization;
@@ -32,10 +30,13 @@ import org.jbpm.process.core.timer.GlobalSchedulerService;
 import org.jbpm.process.core.timer.TimerServiceRegistry;
 import org.jbpm.process.core.timer.impl.GlobalTimerService;
 import org.jbpm.runtime.manager.api.SchedulerProvider;
-import org.jbpm.runtime.manager.impl.deploy.DeploymentDescriptorManager;
 import org.jbpm.runtime.manager.impl.error.DefaultExecutionErrorStorage;
 import org.jbpm.runtime.manager.impl.error.ExecutionErrorManagerImpl;
+import org.jbpm.runtime.manager.impl.lock.RuntimeManagerLockStrategyFactory;
+import org.jbpm.runtime.manager.impl.lock.RuntimeManagerLockWatcherSingletonService;
 import org.jbpm.runtime.manager.impl.tx.NoOpTransactionManager;
+import org.jbpm.runtime.manager.spi.RuntimeManagerLock;
+import org.jbpm.runtime.manager.spi.RuntimeManagerLockStrategy;
 import org.jbpm.services.task.impl.TaskContentRegistry;
 import org.jbpm.services.task.impl.command.CommandBasedTaskService;
 import org.jbpm.services.task.wih.ExternalTaskEventListener;
@@ -45,6 +46,7 @@ import org.kie.api.event.rule.RuleRuntimeEventListener;
 import org.kie.api.runtime.Environment;
 import org.kie.api.runtime.EnvironmentName;
 import org.kie.api.runtime.KieContainer;
+import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.manager.Context;
 import org.kie.api.runtime.manager.RegisterableItemsFactory;
 import org.kie.api.runtime.manager.RuntimeEngine;
@@ -58,6 +60,7 @@ import org.kie.internal.runtime.manager.CacheManager;
 import org.kie.internal.runtime.manager.Disposable;
 import org.kie.internal.runtime.manager.DisposeListener;
 import org.kie.internal.runtime.manager.InternalRegisterableItemsFactory;
+import org.kie.internal.runtime.manager.InternalRuntimeEngine;
 import org.kie.internal.runtime.manager.InternalRuntimeManager;
 import org.kie.internal.runtime.manager.RuntimeManagerRegistry;
 import org.kie.internal.runtime.manager.SecurityManager;
@@ -65,6 +68,7 @@ import org.kie.internal.runtime.manager.SessionFactory;
 import org.kie.internal.runtime.manager.SessionNotFoundException;
 import org.kie.internal.runtime.manager.TaskServiceFactory;
 import org.kie.internal.runtime.manager.context.ProcessInstanceIdContext;
+import org.kie.internal.runtime.manager.deploy.DeploymentDescriptorManager;
 import org.kie.internal.task.api.EventService;
 import org.kie.internal.task.api.InternalTaskService;
 import org.slf4j.Logger;
@@ -88,6 +92,8 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
     private static final Logger logger = LoggerFactory.getLogger(AbstractRuntimeManager.class);
 
     protected RuntimeManagerRegistry registry = RuntimeManagerRegistry.get();
+    protected RuntimeManagerLockStrategyFactory lockStrategyFactory = new RuntimeManagerLockStrategyFactory();
+
     protected RuntimeEnvironment environment;
     protected DeploymentDescriptor deploymentDescriptor;
     protected KieContainer kieContainer;
@@ -102,8 +108,8 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
     
     protected SecurityManager securityManager = null;
     protected ExecutionErrorManager executionErrorManager;
-        
-    protected ConcurrentMap<Long, ReentrantLock> engineLocks = new ConcurrentHashMap<Long, ReentrantLock>(); 
+    protected RuntimeManagerLockStrategy runtimeManagerLockStrategy;
+    protected RuntimeManagerLockWatcherSingletonService watcher;
     
     public AbstractRuntimeManager(RuntimeEnvironment environment, String identifier) {
         this.environment = environment;
@@ -111,6 +117,10 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
         if (registry.isRegistered(identifier)) {
             throw new IllegalStateException("RuntimeManager with id " + identifier + " is already active");
         }
+
+        // we start the reference and watcher
+        watcher = RuntimeManagerLockWatcherSingletonService.reference();
+
         ((SimpleRuntimeEnvironment)environment).getEnvironmentTemplate().set(EnvironmentName.DEPLOYMENT_ID, this.getIdentifier());
         internalSetDeploymentDescriptor();
         internalSetKieContainer();
@@ -125,8 +135,9 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
         }
         this.executionErrorManager = new ExecutionErrorManagerImpl(storage);
         ((SimpleRuntimeEnvironment)environment).getEnvironmentTemplate().set(EnvironmentName.EXEC_ERROR_MANAGER, executionErrorManager);
+        logger.info("{} is created for {}", this.getClass().getSimpleName(), identifier);
     }
-    
+
     private void internalSetDeploymentDescriptor() {
     	this.deploymentDescriptor = (DeploymentDescriptor) ((SimpleRuntimeEnvironment)environment).getEnvironmentTemplate().get("KieDeploymentDescriptor");
     	if (this.deploymentDescriptor == null) {
@@ -138,38 +149,45 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
     	this.kieContainer = (KieContainer) ((SimpleRuntimeEnvironment)environment).getEnvironmentTemplate().get("KieContainer");
 	}
 
-	public abstract void init();
+	public void init() {
+        if (!isUseLocking()) {
+            runtimeManagerLockStrategy = lockStrategyFactory.createFreeLockStrategy();
+        } else {
+            runtimeManagerLockStrategy = lockStrategyFactory.createLockStrategy(identifier);
+        }
+	}
     
 	protected void registerItems(RuntimeEngine runtime) {
         RegisterableItemsFactory factory = environment.getRegisterableItemsFactory();
+        KieSession ksession = ((InternalRuntimeEngine) runtime).internalGetKieSession();
         // process handlers
         Map<String, WorkItemHandler> handlers = factory.getWorkItemHandlers(runtime);
         for (Entry<String, WorkItemHandler> entry : handlers.entrySet()) {
-            runtime.getKieSession().getWorkItemManager().registerWorkItemHandler(entry.getKey(), entry.getValue());
+            ksession.getWorkItemManager().registerWorkItemHandler(entry.getKey(), entry.getValue());
         }
         
         // register globals
         Map<String, Object> globals = factory.getGlobals(runtime);
         for (Entry<String, Object> entry : globals.entrySet()) {
-            runtime.getKieSession().setGlobal(entry.getKey(), entry.getValue());
+            ksession.setGlobal(entry.getKey(), entry.getValue());
         }
         
         // process listeners
         List<ProcessEventListener> processListeners = factory.getProcessEventListeners(runtime);
         for (ProcessEventListener listener : processListeners) {
-            runtime.getKieSession().addEventListener(listener);
+            ksession.addEventListener(listener);
         }
         
         // agenda listeners
         List<AgendaEventListener> agendaListeners = factory.getAgendaEventListeners(runtime);
         for (AgendaEventListener listener : agendaListeners) {
-            runtime.getKieSession().addEventListener(listener);
+            ksession.addEventListener(listener);
         }
         
         // working memory listeners
         List<RuleRuntimeEventListener> wmListeners = factory.getRuleRuntimeEventListeners(runtime);
         for (RuleRuntimeEventListener listener : wmListeners) {
-            runtime.getKieSession().addEventListener(listener);
+            ksession.addEventListener(listener);
         }       
     }
     
@@ -194,7 +212,7 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
         }
         try {
             // check tx status to disallow dispose when within active transaction       
-            TransactionManager tm = getTransactionManager(runtime.getKieSession().getEnvironment());
+            TransactionManager tm = getTransactionManager(((InternalRuntimeEngine) runtime).internalGetKieSession().getEnvironment());
             if (tm.getStatus() != TransactionManager.STATUS_NO_TRANSACTION
                     && tm.getStatus() != TransactionManager.STATUS_ROLLEDBACK
                     && tm.getStatus() != TransactionManager.STATUS_COMMITTED) {
@@ -208,8 +226,8 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
     }
     
     protected void attachManager(RuntimeEngine runtime) {
-        runtime.getKieSession().getEnvironment().set(EnvironmentName.RUNTIME_MANAGER, this);
-        runtime.getKieSession().getEnvironment().set(EnvironmentName.DEPLOYMENT_ID, this.getIdentifier());
+        ((InternalRuntimeEngine) runtime).internalGetKieSession().getEnvironment().set(EnvironmentName.RUNTIME_MANAGER, this);
+        ((InternalRuntimeEngine) runtime).internalGetKieSession().getEnvironment().set(EnvironmentName.DEPLOYMENT_ID, this.getIdentifier());
     }
     
     @Override
@@ -226,6 +244,13 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
     	cacheManager.dispose();
         environment.close();
         registry.remove(identifier);
+
+
+        if(watcher != null) {
+            watcher.unreference();
+            watcher = null;
+        }
+
         TimerService timerService = TimerServiceRegistry.getInstance().get(getIdentifier() + TimerServiceRegistry.TIMER_SERVICE_SUFFIX);
         if (timerService != null) {
             try {
@@ -286,18 +311,7 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
         	for (TaskLifeCycleEventListener taskListener : factory.getTaskListeners()) {
         		((EventService<TaskLifeCycleEventListener>)internalTaskService).registerTaskEventListener(taskListener);
         	}
-            
-            if (engine != null && engine instanceof Disposable) {
-                ((Disposable)engine).addDisposeListener(new DisposeListener() {
-                    
-                    @Override
-                    public void onDispose(RuntimeEngine runtime) {
-                        if (runtime.getTaskService() instanceof EventService) {
-                            ((EventService)runtime.getTaskService()).clearTaskEventListeners();;
-                        }
-                    }
-                });
-            }
+
         }
     }
     
@@ -373,6 +387,11 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
     	this.securityManager = securityManager;    
     }
     
+    @Override
+    public boolean hasSecurityManager() {
+        return this.securityManager != null;
+    }
+    
     protected void checkPermission() {
     	if (this.securityManager != null) {
     		this.securityManager.checkPermission();
@@ -408,89 +427,65 @@ public abstract class AbstractRuntimeManager implements InternalRuntimeManager {
     protected boolean isUseLocking() {
         return false;
     }
-	
+
+    protected void createLockOnNewProcessInstance(Long id, RuntimeEngine runtime) {
+        createLockOnGetEngine(id, runtime);
+    }
+
     protected void createLockOnGetEngine(Context<?> context, RuntimeEngine runtime) {
-        if (!isUseLocking()) {
-            logger.debug("Locking on runtime manager disabled");
-            return;
-        }
-        
         if (context instanceof ProcessInstanceIdContext) {
             Long piId = ((ProcessInstanceIdContext) context).getContextId();
             createLockOnGetEngine(piId, runtime);
+        } else {
+            logger.debug("Trying to release lock with a non proper context on runtime engine {}", runtime);
         }
     }
     
     protected void createLockOnGetEngine(Long id, RuntimeEngine runtime) {
-        if (!isUseLocking()) {
-            logger.debug("Locking on runtime manager disabled");
+        logger.debug("Attempt to lock {} on runtime {}", id, runtime);
+        if (id == null) {
             return;
         }
-        
-        if (id != null) {
-            ReentrantLock newLock = new ReentrantLock();
-            ReentrantLock lock = engineLocks.putIfAbsent(id, newLock);
-            if (lock == null) {
-                lock = newLock;
-                logger.debug("New lock created as it did not exist before");
-            } else {
-                logger.debug("Lock exists with {} waiting threads", lock.getQueueLength());
+        if (!isUseLocking()) {
+            logger.debug("Locking on runtime manager engine {} disabled for id {}", runtime, id);
+            return;
+        }
+        try {
+            RuntimeManagerLock lock = runtimeManagerLockStrategy.lock(id, runtime);
+            if(watcher != null) {
+                watcher.watch(id, lock);
             }
-            logger.debug("Trying to get a lock {} for {} by {}", lock, id, runtime);
-            lock.lock();
-            logger.debug("Lock {} taken for {} by {} for waiting threads by {}", lock, id, runtime, lock.hasQueuedThreads());
-            
+        } catch(InterruptedException e) {
+            throw new RuntimeException("Runtime manager was not able to lock for {" + id +"}", e);
         }
-        
     }
-    
-    protected void createLockOnNewProcessInstance(Long id, RuntimeEngine runtime) {
-        if (!isUseLocking()) {
-            logger.debug("Locking on runtime manager disabled");
-            return;
-        }
-        ReentrantLock newLock = new ReentrantLock();
-        ReentrantLock lock = engineLocks.putIfAbsent(id, newLock);
-        if (lock == null) {
-            lock = newLock;
-        }
-        lock.lock();
-        logger.debug("[on new process instance] Lock {} created and stored in list by {}", lock, runtime);
-    }
-    
-    
+
     protected void releaseAndCleanLock(RuntimeEngine runtime) {
-        if (!isUseLocking()) {
-            logger.debug("Locking on runtime manager disabled");
-            return;
-        }
-        
         if (((RuntimeEngineImpl)runtime).getContext() instanceof ProcessInstanceIdContext) {
             Long piId = ((ProcessInstanceIdContext) ((RuntimeEngineImpl)runtime).getContext()).getContextId();
             if (piId != null) {
                 releaseAndCleanLock(piId, runtime);
             }
+        } else {
+            logger.debug("Trying to release lock with a non proper context onn runtime manager engine {}", runtime);
         }
     }
-    
-    protected void releaseAndCleanLock(Long id, RuntimeEngine runtime) {
 
-        if (id != null) {
-            ReentrantLock lock = engineLocks.get(id);
-            if (lock != null) {
-                if (!lock.hasQueuedThreads()) {
-                    logger.debug("Removing lock {} from list as non is waiting for it by {}", lock, runtime);
-                    engineLocks.remove(id);
-                }
-                if (lock.isHeldByCurrentThread()) {
-                    lock.unlock();
-                    logger.debug("{} unlocked by {}", lock, runtime);
-                }
-            }
+    protected void releaseAndCleanLock(Long id, RuntimeEngine runtime) {
+        logger.debug("Attempt to unlock {} on runtime {}", id, runtime);
+        if (id == null) {
+            return;
         }
-        
+        if (!isUseLocking()) {
+            logger.debug("Locking on runtime manager engine {} disabled for id {}", runtime, id);
+            return;
+        }
+        if(watcher != null) {
+            watcher.unwatch(id);
+        }
+        runtimeManagerLockStrategy.unlock(id, runtime);
     }
-    
+
     protected boolean isActive() {
         if (hasEnvironmentEntry("Active", false)) {
             return false;

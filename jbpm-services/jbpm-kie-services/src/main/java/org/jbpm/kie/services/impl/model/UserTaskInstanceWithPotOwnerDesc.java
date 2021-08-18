@@ -36,35 +36,39 @@ public class UserTaskInstanceWithPotOwnerDesc extends UserTaskInstanceDesc imple
     private Map<String,Object> inputdata;
     private Map<String,Object> outputdata;
     private String processInstanceDescription;
+    private Map<String, Object> processVariables;
+    private Map<String, Object> data;
 
-    public UserTaskInstanceWithPotOwnerDesc(Long taskId, String name, String formName, 
+    public UserTaskInstanceWithPotOwnerDesc(Long taskId, String name, String description, String formName,
                                             String subject, String actualOwner, String potOwner, 
                                             String correlationKey, Date createdOn, String createdBy, 
                                             Date expirationDate, Date lastModificationDate, String lastModificationUser,
                                             Integer priority, String status, Long processInstanceId, 
                                             String processId, String deploymentId, String processInstanceDescription) {
-        super(taskId, status, actualOwner, name, priority, createdBy, processId, processInstanceId, createdOn, formName, deploymentId, expirationDate);
+        super(taskId, status, actualOwner, name, description, priority, createdBy, processId, processInstanceId, createdOn, formName, deploymentId, expirationDate);
         this.potentialOwners.add(potOwner);
         this.correlationKey = correlationKey;
         this.lastModificationDate = lastModificationDate;
         this.lastModificationUser = lastModificationUser;
         this.subject = subject;
         this.processInstanceDescription = processInstanceDescription;
+        this.processVariables = new HashMap<>();
     }
     
     public UserTaskInstanceWithPotOwnerDesc(String actualOwner, String createdBy,
                                             Date createdOn,Date expirationDate,
-                                            Long taskId, String name, 
+                                            Long taskId, String name, String description,
                                             Integer priority, Long processInstanceId,
                                             String processId, String status,
                                             String potOwner, String formName,
                                             String correlationKey, String subject,
                                             String deploymentId, String processInstanceDescription) {
-              super(taskId, status, actualOwner, name, priority, createdBy, processId, processInstanceId, createdOn, formName, deploymentId,expirationDate);
+              super(taskId, status, actualOwner, name, description, priority, createdBy, processId, processInstanceId, createdOn, formName, deploymentId,expirationDate);
               this.potentialOwners.add(potOwner);
               this.correlationKey = correlationKey;
               this.processInstanceDescription = processInstanceDescription;
               this.subject = subject;
+              this.processVariables = new HashMap<>();
     }
     
     @Override
@@ -155,6 +159,38 @@ public class UserTaskInstanceWithPotOwnerDesc extends UserTaskInstanceDesc imple
 
     public void setProcessInstanceDescription(String processInstanceDescription) {
         this.processInstanceDescription = processInstanceDescription;
+    }
+
+    public void addProcessVariable(String variable, Object variableValue) {
+        if (this.processVariables == null) {
+            this.processVariables = new HashMap<>();
+        }
+        this.processVariables.put(variable, variableValue);
+    }
+
+    @Override
+    public Map<String, Object> getProcessVariables() {
+        return processVariables;
+    }
+
+    public void setProcessVariables(Map<String, Object> processVariables) {
+        this.processVariables = processVariables;
+    }
+
+    public void addExtraData(String variable, Object variableValue) {
+        if (this.data == null) {
+            this.data = new HashMap<>();
+        }
+        this.data.put(variable, variableValue);
+    }
+
+    public void setExtraData(Map<String, Object> data) {
+        this.data = data;
+    }
+
+    @Override
+    public Map<String, Object> getExtraData() {
+        return data;
     }
  
 }
