@@ -184,6 +184,13 @@
       <groupId>org.reflections</groupId>
       <artifactId>reflections</artifactId>
     </dependency>
+
+    <!--Include guice-servlet as a workaround because sisu guice is missing servlet extension-->
+    <dependency>
+      <groupId>org.sonatype.sisu.inject</groupId>
+      <artifactId>guice-servlet</artifactId>
+      <scope>runtime</scope>
+    </dependency>
     
     <!-- test -->
     <dependency>
