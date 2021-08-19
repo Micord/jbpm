@@ -213,7 +213,7 @@
         </configuration>
       </plugin>
       <plugin>
-        <!-- ensure that db files are deleted before _any_ run otherwise
+        <!-- ensure that db files are deleted before _any_ run otherwise 
           we get tests failing because of leftover db's -->
         <artifactId>maven-clean-plugin</artifactId>
         <configuration>

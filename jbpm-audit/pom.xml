@@ -121,7 +121,7 @@
       <artifactId>activation</artifactId>
       <scope>test</scope>
     </dependency>
-
+    
     <!-- Test: persistence -->
     <dependency>
       <groupId>org.jbpm</groupId>

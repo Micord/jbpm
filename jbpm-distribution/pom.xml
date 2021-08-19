@@ -173,7 +173,7 @@
       <groupId>org.jbpm</groupId>
       <artifactId>jbpm-workitems-bpmn2</artifactId>
       <classifier>sources</classifier>
-    </dependency>
+    </dependency>  
     <dependency>
       <groupId>org.jbpm</groupId>
       <artifactId>jbpm-workitems-email</artifactId>
@@ -182,7 +182,7 @@
       <groupId>org.jbpm</groupId>
       <artifactId>jbpm-workitems-email</artifactId>
       <classifier>sources</classifier>
-    </dependency>
+    </dependency>  
     <dependency>
       <groupId>org.jbpm</groupId>
       <artifactId>jbpm-workitems-jms</artifactId>
@@ -336,7 +336,7 @@
       <artifactId>jbpm-runtime-manager</artifactId>
       <classifier>sources</classifier>
     </dependency>
-
+    
     <dependency>
       <groupId>org.jbpm</groupId>
       <artifactId>jbpm-case-mgmt-api</artifactId>
@@ -355,7 +355,7 @@
       <artifactId>jbpm-case-mgmt-impl</artifactId>
       <classifier>sources</classifier>
     </dependency>
-
+    
     <!-- The old assembly also included this optional dependency -->
     <dependency>
       <groupId>com.thoughtworks.xstream</groupId>
