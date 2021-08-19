@@ -398,9 +398,9 @@ public class ProcessRuntimeImpl implements InternalProcessRuntime {
     		}
 	        Map<String, Object> params = new HashMap<>();
 
-	        if (event instanceof SignalEventDesc) {
-	          params.put(StartProcessHelper.SIGNAL_UUID, ((SignalEventDesc) event).getSignalUUID());
-	          params.putAll(((SignalEventDesc) event).getParams());
+           if (event instanceof SignalEventDesc) {
+             params.put(StartProcessHelper.SIGNAL_UUID, ((SignalEventDesc) event).getSignalUUID());
+             params.putAll(((SignalEventDesc) event).getParams());
           }
 
 	        if ( inMappings != null && !inMappings.isEmpty() ) {

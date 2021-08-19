@@ -113,7 +113,7 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
 	private String correlationKey;
 
 	private Date startDate;
-
+	
 	private int slaCompliance = SLA_NA;
 	private Date slaDueDate;
 	private long slaTimerId = -1;
@@ -246,7 +246,7 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
 		}
 		return result;
 	}
-
+	
 	public NodeInstance getNodeInstance(final Node node) {
 	    Node actualNode = node;
 	    // async continuation handling
@@ -316,7 +316,6 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
 		return variableScopeInstance.getVariable(name);
 	}
 
-  @Override
 	public Map<String, Object> getVariables() {
         // for disconnected process instances, try going through the variable scope instances
         // (as the default variable scope cannot be retrieved as the link to the process could
@@ -373,7 +372,7 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
                     this.slaCompliance = state == ProcessInstance.STATE_COMPLETED ? SLA_MET : SLA_ABORTED;
                 }
             }
-
+            
             InternalKnowledgeRuntime kruntime = getKnowledgeRuntime();
             InternalProcessRuntime processRuntime = (InternalProcessRuntime) kruntime.getProcessRuntime();
             processRuntime.getProcessEventSupport().fireBeforeProcessCompleted(this, kruntime);
@@ -473,10 +472,10 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
 	            }
 	        }
 			super.start(trigger);
-
+						
 		}
 	}
-
+	
 	public void configureSLA() {
 	    String slaDueDateExpression = (String) getProcess().getMetaData().get("customSLADueDate");
         if (slaDueDateExpression != null) {
@@ -489,9 +488,9 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
             }
         }
 	}
-
+	
 	public TimerInstance configureSLATimer(String slaDueDateExpression) {
-	    // setup SLA if provided
+	    // setup SLA if provided        
         slaDueDateExpression = resolveVariable(slaDueDateExpression);
         if (slaDueDateExpression == null || slaDueDateExpression.trim().isEmpty()) {
             logger.debug("Sla due date expression resolved to no value '{}'", slaDueDateExpression);
@@ -502,7 +501,7 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
         long duration = -1;
         if (kruntime != null && kruntime.getEnvironment().get("jbpm.business.calendar") != null){
             BusinessCalendar businessCalendar = (BusinessCalendar) kruntime.getEnvironment().get("jbpm.business.calendar");
-
+            
             duration = businessCalendar.calculateBusinessTimeAsDuration(slaDueDateExpression);
         } else {
             duration = DateTimeUtils.parseDuration(slaDueDateExpression);
@@ -516,7 +515,7 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
             ((InternalProcessRuntime)kruntime.getProcessRuntime()).getTimerManager().registerTimer(timerInstance, this);
         }
         return timerInstance;
-
+       
 	}
 
 	private void registerExternalEventNodeListeners() {
@@ -532,7 +531,7 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
                 }
             }  else if (node instanceof DynamicNode) {
                 if (((DynamicNode) node).getActivationEventName() != null) {
-
+                
                     addEventListener(((DynamicNode) node).getActivationEventName(), EMPTY_EVENT_LISTENER, true);
                 }
             }
@@ -551,14 +550,14 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
 			}
 		}
 	}
-
+	
 	private void handleSLAViolation() {
 	    if (slaCompliance == SLA_PENDING) {
-
+	    
     	    InternalKnowledgeRuntime kruntime = getKnowledgeRuntime();
             InternalProcessRuntime processRuntime = (InternalProcessRuntime) kruntime.getProcessRuntime();
             processRuntime.getProcessEventSupport().fireBeforeSLAViolated(this, kruntime);
-            logger.debug("SLA violated on process instance {}", getId());
+            logger.debug("SLA violated on process instance {}", getId());                   
             this.slaCompliance = SLA_VIOLATED;
             this.slaTimerId = -1;
             processRuntime.getProcessEventSupport().fireAfterSLAViolated(this, kruntime);
@@ -581,7 +580,7 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
 			if (getState() != ProcessInstance.STATE_ACTIVE) {
 				return;
 			}
-
+			
 			if ("timerTriggered".equals(type)) {
 	            TimerInstance timer = (TimerInstance) event;
 	            if (timer.getId() == slaTimerId) {
@@ -593,7 +592,7 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
 			if ("slaViolation".equals(type)) {
                 handleSLAViolation();
                 // no need to pass the event along as it was purely for SLA tracking
-                return;
+                return;                
             }
 
 			List<NodeInstance> currentView = new ArrayList<NodeInstance>(this.nodeInstances);
@@ -861,7 +860,7 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
     public void setDeploymentId(String deploymentId) {
         this.deploymentId = deploymentId;
     }
-
+    
     public String getCorrelationKey() {
         if (correlationKey == null && getMetaData().get("CorrelationKey") != null) {
             this.correlationKey = ((CorrelationKey) getMetaData().get("CorrelationKey")).toExternalForm();
@@ -872,11 +871,11 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
     public void setCorrelationKey(String correlationKey) {
         this.correlationKey = correlationKey;
     }
-
+    
     public Date getStartDate() {
         return startDate;
     }
-
+    
     public void internalSetStartDate(Date startDate) {
         if(this.startDate == null) {
             this.startDate = startDate;
@@ -889,56 +888,56 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
         }
 
         return true;
-    }
+    }    
 
     protected boolean useAsync(final Node node) {
-        if (!(node instanceof EventSubProcessNode) && (node instanceof ActionNode || node instanceof StateBasedNode || node instanceof EndNode)) {
+        if (!(node instanceof EventSubProcessNode) && (node instanceof ActionNode || node instanceof StateBasedNode || node instanceof EndNode)) {              
             boolean asyncMode = Boolean.parseBoolean((String)node.getMetaData().get("customAsync"));
             if (asyncMode) {
                 return asyncMode;
             }
-
+            
             return Boolean.parseBoolean((String)getKnowledgeRuntime().getEnvironment().get("AsyncMode"));
         }
-
+        
         return false;
     }
-
+    
     protected boolean useTimerSLATracking() {
-
+                      
         String mode = (String) getKnowledgeRuntime().getEnvironment().get("SLATimerMode");
         if (mode == null) {
             return true;
         }
-
+        
         return Boolean.parseBoolean(mode);
-
+        
     }
 
-
+    
     public int getSlaCompliance() {
         return slaCompliance;
     }
-
+    
     public void internalSetSlaCompliance(int slaCompliance) {
         this.slaCompliance = slaCompliance;
     }
-
+    
     public Date getSlaDueDate() {
         return slaDueDate;
     }
-
+    
     public void internalSetSlaDueDate(Date slaDueDate) {
         this.slaDueDate = slaDueDate;
     }
-
+    
     public Long getSlaTimerId() {
         return slaTimerId;
     }
-
+    
     public void internalSetSlaTimerId(Long slaTimerId) {
         this.slaTimerId = slaTimerId;
     }
-
-
+    
+    
 }
