@@ -1,0 +1,50 @@
+diff --git a/jbpm-runtime-manager/src/main/java/org/jbpm/runtime/manager/impl/PerRequestRuntimeManager.java b/jbpm-runtime-manager/src/main/java/org/jbpm/runtime/manager/impl/PerRequestRuntimeManager.java
+index c3d2f7607..3e8c9b308 100644
+--- a/jbpm-runtime-manager/src/main/java/org/jbpm/runtime/manager/impl/PerRequestRuntimeManager.java
++++ b/jbpm-runtime-manager/src/main/java/org/jbpm/runtime/manager/impl/PerRequestRuntimeManager.java
+@@ -175,6 +175,14 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
+         local.get().remove(identifier);
+     }
+ 
++    public void clearThreadLocalContext() {
++      RuntimeEngine engine = local.get().get(identifier);
++
++      if (engine != null) {
++        local.get().remove(identifier);
++      }
++    }
++
+     @Override
+     public void close() {
+         try {
+diff --git a/jbpm-services/jbpm-kie-services/pom.xml b/jbpm-services/jbpm-kie-services/pom.xml
+index f313c94e9..37b1b1998 100644
+--- a/jbpm-services/jbpm-kie-services/pom.xml
++++ b/jbpm-services/jbpm-kie-services/pom.xml
+@@ -180,6 +180,13 @@
+       <groupId>org.reflections</groupId>
+       <artifactId>reflections</artifactId>
+     </dependency>
++
++    <!--Include guice-servlet as a workaround because sisu guice is missing servlet extension-->
++    <dependency>
++      <groupId>org.sonatype.sisu.inject</groupId>
++      <artifactId>guice-servlet</artifactId>
++      <scope>runtime</scope>
++    </dependency>
+     
+     <!-- test -->
+     <dependency>
+diff --git a/jbpm-services/jbpm-kie-services/src/main/java/org/jbpm/kie/services/impl/ProcessServiceImpl.java b/jbpm-services/jbpm-kie-services/src/main/java/org/jbpm/kie/services/impl/ProcessServiceImpl.java
+index 73720e3ae..c89099a3f 100644
+--- a/jbpm-services/jbpm-kie-services/src/main/java/org/jbpm/kie/services/impl/ProcessServiceImpl.java
++++ b/jbpm-services/jbpm-kie-services/src/main/java/org/jbpm/kie/services/impl/ProcessServiceImpl.java
+@@ -574,7 +574,7 @@ public class ProcessServiceImpl implements ProcessService, VariablesAware {
+         RuntimeEngine engine = manager.getRuntimeEngine(ProcessInstanceIdContext.get(processInstanceId));
+         try {
+             KieSession ksession = engine.getKieSession();
+-            WorkflowProcessInstanceImpl pi = (WorkflowProcessInstanceImpl) ksession.getProcessInstance(processInstanceId, true);
++            WorkflowProcessInstanceImpl pi = (WorkflowProcessInstanceImpl) ksession.getProcessInstance(processInstanceId);
+             if (pi == null) {
+                 throw new ProcessInstanceNotFoundException("Process instance with id " + processInstanceId + " was not found");
+             }

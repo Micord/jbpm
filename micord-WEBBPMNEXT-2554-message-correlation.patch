@@ -1,0 +1,389 @@
+diff --git a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/WorkflowProcessInstance.java b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/WorkflowProcessInstance.java
+index e46042ee6..4ef8c8c66 100644
+--- a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/WorkflowProcessInstance.java
++++ b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/WorkflowProcessInstance.java
+@@ -19,8 +19,12 @@ package org.jbpm.workflow.instance;
+ import org.kie.api.runtime.process.EventListener;
+ import org.jbpm.process.instance.ProcessInstance;
+ 
++import java.util.Map;
++
+ public interface WorkflowProcessInstance extends ProcessInstance, org.kie.api.runtime.process.WorkflowProcessInstance {
+ 
++    Map<String, Object> getVariables();
++
+     void addEventListener(String type, EventListener eventListener, boolean external);
+     
+     void removeEventListener(String type, EventListener eventListener, boolean external);
+diff --git a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/impl/MessageCorrelation.java b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/impl/MessageCorrelation.java
+new file mode 100644
+index 000000000..45778190e
+--- /dev/null
++++ b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/impl/MessageCorrelation.java
+@@ -0,0 +1,28 @@
++/*
++ * Copyright 2017 Red Hat, Inc. and/or its affiliates.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.jbpm.workflow.instance.impl;
++
++import org.kie.api.definition.process.Node;
++
++import java.util.Map;
++
++/**
++ * @author Tim Urmancheev
++ */
++public interface MessageCorrelation {
++
++  boolean matches(Object event, Node node, Map<String, Object> variables);
++}
+diff --git a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/impl/WorkflowProcessInstanceImpl.java b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/impl/WorkflowProcessInstanceImpl.java
+index 91885d0a8..0919a4798 100644
+--- a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/impl/WorkflowProcessInstanceImpl.java
++++ b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/impl/WorkflowProcessInstanceImpl.java
+@@ -564,9 +564,18 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
+ 	    }
+ 	}
+ 
++  public void signalEvent(String type, Object event) {
++    logger.debug("Signal {} received with data {} in process instance {}", type, event, getId());
++    this.signalEvent(type, event, new MessageCorrelation() {
++      @Override
++      public boolean matches(Object event, Node node, Map<String, Object> variables) {
++        return true;
++      }
++    });
++  }
++
+ 	@SuppressWarnings("unchecked")
+-    public void signalEvent(String type, Object event) {
+-	    logger.debug("Signal {} received with data {} in process instance {}", type, event, getId());
++    public void signalEvent(String type, Object event, MessageCorrelation messageCorrelation) {
+ 	    synchronized (this) {
+ 			if (getState() != ProcessInstance.STATE_ACTIVE) {
+ 				return;
+@@ -604,29 +613,37 @@ public abstract class WorkflowProcessInstanceImpl extends ProcessInstanceImpl
+ 				}
+ 				for (Node node : getWorkflowProcess().getNodes()) {
+ 			        if (node instanceof EventNodeInterface) {
+-			            if (((EventNodeInterface) node).acceptsEvent(type, event, (e) -> resolveVariable(e) )) {
+-			                if (node instanceof EventNode && ((EventNode) node).getFrom() == null) {
+-			                    EventNodeInstance eventNodeInstance = (EventNodeInstance) getNodeInstance(node);
+-			                    eventNodeInstance.signalEvent(type, event);
+-			                } else {
+-			                    if (node instanceof EventSubProcessNode && ((resolveVariables(((EventSubProcessNode) node).getEvents()).contains(type)))) {
+-			                        EventSubProcessNodeInstance eventNodeInstance = (EventSubProcessNodeInstance) getNodeInstance(node);
+-    			                    eventNodeInstance.signalEvent(type, event);
+-			                    } if (node instanceof DynamicNode && type.equals(((DynamicNode) node).getActivationEventName())) {
+-			                        DynamicNodeInstance dynamicNodeInstance = (DynamicNodeInstance) getNodeInstance(node);
+-			                        dynamicNodeInstance.signalEvent(type, event);
+-                                }else {
+-    								List<NodeInstance> nodeInstances = getNodeInstances(node.getId(), currentView);
+-    			                    if (nodeInstances != null && !nodeInstances.isEmpty()) {
+-    			                        for (NodeInstance nodeInstance : nodeInstances) {
+-    										((EventNodeInstanceInterface) nodeInstance).signalEvent(type, event);
+-    			                        }
+-    			                    }
+-			                    }
+-			                }
+-			            }
+-			        }
+-				}
++                if (((EventNodeInterface) node).acceptsEvent(type, event, (e) -> resolveVariable(e)) &&
++                    (!type.startsWith("Message-") || messageCorrelation.matches(event, node, getVariables()))
++                    ) {
++                  if (node instanceof EventNode && ((EventNode) node).getFrom() == null) {
++                    EventNodeInstance eventNodeInstance = (EventNodeInstance) getNodeInstance(node);
++                    eventNodeInstance.signalEvent(type, event);
++                  }
++                  else {
++                    if (node instanceof EventSubProcessNode && ((resolveVariables(((EventSubProcessNode) node).getEvents()).contains(type)))) {
++                      EventSubProcessNodeInstance eventNodeInstance = (EventSubProcessNodeInstance) getNodeInstance(node);
++                      eventNodeInstance.signalEvent(type, event);
++                    }
++                  } if (node instanceof DynamicNode && type.equals(((DynamicNode) node).getActivationEventName())) {
++                    DynamicNodeInstance dynamicNodeInstance = (DynamicNodeInstance) getNodeInstance(node);
++                    dynamicNodeInstance.signalEvent(type, event);
++                  }else {
++                      List<NodeInstance> nodeInstances = getNodeInstances(node.getId(), currentView);
++                      if (nodeInstances != null && !nodeInstances.isEmpty()) {
++                        for (NodeInstance nodeInstance : nodeInstances) {
++                          if (nodeInstance instanceof CompositeNodeInstance) {
++                            ((CompositeNodeInstance) nodeInstance).signalEvent(type, event, messageCorrelation);
++                          }
++                          else {
++                            ((EventNodeInstanceInterface) nodeInstance).signalEvent(type, event);
++                          }
++                        }
++                      }
++                    }
++                  }
++                }
++              }
+ 				if (((org.jbpm.workflow.core.WorkflowProcess) getWorkflowProcess()).isDynamic()) {
+ 					for (Node node : getWorkflowProcess().getNodes()) {
+ 						if (type.equals(node.getName()) && node.getIncomingConnections().isEmpty()) {
+diff --git a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/CompositeContextNodeInstance.java b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/CompositeContextNodeInstance.java
+index ec0ef34c8..122a4c816 100644
+--- a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/CompositeContextNodeInstance.java
++++ b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/CompositeContextNodeInstance.java
+@@ -23,10 +23,12 @@ import java.util.Map;
+ 
+ import org.jbpm.process.core.Context;
+ import org.jbpm.process.core.ContextContainer;
++import org.jbpm.process.core.context.variable.VariableScope;
+ import org.jbpm.process.instance.ContextInstance;
+ import org.jbpm.process.instance.ContextInstanceContainer;
+ import org.jbpm.process.instance.ContextableInstance;
+ import org.jbpm.process.instance.ProcessInstance;
++import org.jbpm.process.instance.context.variable.VariableScopeInstance;
+ import org.jbpm.process.instance.impl.ContextInstanceFactory;
+ import org.jbpm.process.instance.impl.ContextInstanceFactoryRegistry;
+ import org.jbpm.workflow.core.node.CompositeContextNode;
+@@ -107,4 +109,34 @@ public class CompositeContextNodeInstance extends CompositeNodeInstance implemen
+         return contextInstance;
+     }
+ 
++    /**
++     * Copied from {@link org.jbpm.workflow.instance.impl.WorkflowProcessInstanceImpl}
++     */
++    @Override
++    protected Map<String, Object> getVariables() {
++        // for disconnected process instances, try going through the variable scope instances
++        // (as the default variable scope cannot be retrieved as the link to the process could
++        // be null and the associated working memory is no longer accessible)
++        if (getProcessInstance().getKnowledgeRuntime() == null) {
++            List<ContextInstance> variableScopeInstances =
++                    getContextInstances(VariableScope.VARIABLE_SCOPE);
++            if (variableScopeInstances == null) {
++                return null;
++            }
++            Map<String, Object> result = new HashMap<String, Object>();
++            for (ContextInstance contextInstance : variableScopeInstances) {
++                Map<String, Object> variables =
++                        ((VariableScopeInstance) contextInstance).getVariables();
++                result.putAll(variables);
++            }
++            return result;
++        }
++        // else retrieve the variable scope
++        VariableScopeInstance variableScopeInstance = (VariableScopeInstance)
++                getContextInstance(VariableScope.VARIABLE_SCOPE);
++        if (variableScopeInstance == null) {
++            return null;
++        }
++        return variableScopeInstance.getVariables();
++    }
+ }
+diff --git a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/CompositeNodeInstance.java b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/CompositeNodeInstance.java
+index c61621963..dabb1d03d 100644
+--- a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/CompositeNodeInstance.java
++++ b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/CompositeNodeInstance.java
+@@ -40,6 +40,7 @@ import org.jbpm.workflow.core.node.StateBasedNode;
+ import org.jbpm.workflow.instance.NodeInstance;
+ import org.jbpm.workflow.instance.NodeInstanceContainer;
+ import org.jbpm.workflow.instance.WorkflowProcessInstance;
++import org.jbpm.workflow.instance.impl.MessageCorrelation;
+ import org.jbpm.workflow.instance.impl.NodeInstanceFactory;
+ import org.jbpm.workflow.instance.impl.NodeInstanceFactoryRegistry;
+ import org.jbpm.workflow.instance.impl.NodeInstanceImpl;
+@@ -279,11 +280,22 @@ public class CompositeNodeInstance extends StateBasedNodeInstance implements Nod
+ 
+     @Override
+ 	public void signalEvent(String type, Object event) {
++        this.signalEvent(type, event, new MessageCorrelation() {
++            @Override
++            public boolean matches(Object event, Node node, Map<String, Object> variables) {
++                return true;
++            }
++        });
++    }
++
++    public void signalEvent(String type, Object event, MessageCorrelation messageCorrelation) {
+ 		List<NodeInstance> currentView = new ArrayList<NodeInstance>(this.nodeInstances);
+ 		super.signalEvent(type, event);
+ 		for (Node node: getCompositeNode().internalGetNodes()) {
+ 			if (node instanceof EventNodeInterface) {
+-				if (((EventNodeInterface) node).acceptsEvent(type, event)) {
++                   if (((EventNodeInterface) node).acceptsEvent(type, event) &&
++                        (!type.startsWith("Message-") || messageCorrelation.matches(event, node, getVariables()))
++                ) {
+ 					if (node instanceof EventNode && ((EventNode) node).getFrom() == null) {
+ 						EventNodeInstanceInterface eventNodeInstance = (EventNodeInstanceInterface) getNodeInstance(node);
+ 						eventNodeInstance.signalEvent(type, event);
+@@ -294,8 +306,12 @@ public class CompositeNodeInstance extends StateBasedNodeInstance implements Nod
+ 						List<NodeInstance> nodeInstances = getNodeInstances(node.getId(), currentView);
+ 						if (nodeInstances != null && !nodeInstances.isEmpty()) {
+ 							for (NodeInstance nodeInstance : nodeInstances) {
+-								((EventNodeInstanceInterface) nodeInstance)
+-										.signalEvent(type, event);
++                                if (nodeInstance instanceof CompositeNodeInstance) {
++                                    ((CompositeNodeInstance) nodeInstance).signalEvent(type, event, messageCorrelation);
++                                }
++                                else {
++                                    ((EventNodeInstanceInterface) nodeInstance).signalEvent(type, event);
++                                }
+ 							}
+ 						}
+ 					}
+@@ -304,7 +320,11 @@ public class CompositeNodeInstance extends StateBasedNodeInstance implements Nod
+ 		}
+ 	}
+ 
+-	public List<NodeInstance> getNodeInstances(final long nodeId) {
++    protected Map<String, Object> getVariables() {
++        return getProcessInstance().getVariables();
++    }
++
++    public List<NodeInstance> getNodeInstances(final long nodeId) {
+ 		List<NodeInstance> result = new ArrayList<NodeInstance>();
+ 		for (final Iterator<NodeInstance> iterator = this.nodeInstances
+ 				.iterator(); iterator.hasNext();) {
+diff --git a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/DynamicNodeInstance.java b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/DynamicNodeInstance.java
+index b55c0b51a..fe46530a3 100644
+--- a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/DynamicNodeInstance.java
++++ b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/DynamicNodeInstance.java
+@@ -23,6 +23,7 @@ import org.drools.core.util.MVELSafeHelper;
+ import org.jbpm.workflow.core.impl.ExtendedNodeImpl;
+ import org.jbpm.workflow.core.impl.NodeImpl;
+ import org.jbpm.workflow.core.node.DynamicNode;
++import org.jbpm.workflow.instance.impl.MessageCorrelation;
+ import org.jbpm.workflow.instance.impl.NodeInstanceResolverFactory;
+ import org.kie.api.definition.process.Node;
+ import org.kie.api.event.rule.AfterMatchFiredEvent;
+@@ -147,11 +148,27 @@ public class DynamicNodeInstance extends CompositeContextNodeInstance implements
+                 matchCreated((MatchCreatedEvent) event);
+             }
+         } else {
+-    		super.signalEvent(type, event);
+-    		for (Node node: getCompositeNode().getNodes()) {
+-    			if (type.equals(node.getName()) && node.getIncomingConnections().isEmpty()) {
+-        			NodeInstance nodeInstance = getNodeInstance(node);
+-        			if (event != null) {                             
++            super.signalEvent(type, event);
++        }
++    }
++
++    @Override
++    public void signalEvent(String type, Object event, MessageCorrelation messageCorrelation) {
++         if (getActivationEventType().equals(type)) {
++              if (event instanceof MatchCreatedEvent) {
++                   matchCreated((MatchCreatedEvent) event);
++              }
++         } else {
++              super.signalEvent(type, event, messageCorrelation);
++              signalToChildNodes(type, event);
++         }
++	}
++
++    private void signalToChildNodes(String type, Object event) {
++         for (Node node: getCompositeNode().getNodes()) {
++              if (type.equals(node.getName()) && node.getIncomingConnections().isEmpty()) {
++                   NodeInstance nodeInstance = getNodeInstance(node);
++                   if (event != null) {
+                         Map<String, Object> dynamicParams = new HashMap<>();
+                         if (event instanceof Map) {
+                             dynamicParams.putAll((Map<String, Object>) event);                                  
+diff --git a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/EventSubProcessNodeInstance.java b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/EventSubProcessNodeInstance.java
+index f2194dc52..2863c629a 100644
+--- a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/EventSubProcessNodeInstance.java
++++ b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/EventSubProcessNodeInstance.java
+@@ -16,12 +16,15 @@
+ package org.jbpm.workflow.instance.node;
+ 
+ import java.util.List;
++import java.util.Map;
+ import java.util.stream.Collectors;
+ 
+ import org.jbpm.process.instance.ProcessInstance;
+ import org.jbpm.workflow.core.node.EventSubProcessNode;
+ import org.jbpm.workflow.core.node.StartNode;
+ import org.jbpm.workflow.instance.NodeInstanceContainer;
++import org.jbpm.workflow.instance.impl.MessageCorrelation;
++import org.kie.api.definition.process.Node;
+ import org.kie.api.definition.process.NodeContainer;
+ import org.kie.api.runtime.process.NodeInstance;
+ 
+@@ -50,6 +53,24 @@ public class EventSubProcessNodeInstance extends CompositeContextNodeInstance {
+ 
+     @Override
+     public void signalEvent(String type, Object event) {
++        signalStartNode(type, event);
++    }
++
++    @Override
++    public void signalEvent(String type, Object event, MessageCorrelation messageCorrelation) {
++        signalStartNode(type, event, messageCorrelation);
++    }
++
++    private void signalStartNode(String type, Object event) {
++        this.signalStartNode(type, event, new MessageCorrelation() {
++            @Override
++            public boolean matches(Object event, Node node, Map<String, Object> variables) {
++                return true;
++            }
++        });
++    }
++
++    private void signalStartNode(String type, Object event, MessageCorrelation messageCorrelation) {
+         if (getNodeInstanceContainer().getNodeInstances().contains(this) || type.startsWith("Error-") || type.equals("timerTriggered") ) {
+             StartNode startNode = getCompositeNode().findStartNode();
+             if (resolveVariables(((EventSubProcessNode) getEventBasedNode()).getEvents()).contains(type) || type.equals("timerTriggered")) {
+@@ -57,7 +78,7 @@ public class EventSubProcessNodeInstance extends CompositeContextNodeInstance {
+                 ((StartNodeInstance) nodeInstance).signalEvent(type, event);
+             }
+         }
+-        super.signalEvent(type, event);
++        super.signalEvent(type, event, messageCorrelation);
+     }
+     
+     @Override
+diff --git a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/StateNodeInstance.java b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/StateNodeInstance.java
+index 71de36f2a..dbad1e87d 100644
+--- a/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/StateNodeInstance.java
++++ b/jbpm-flow/src/main/java/org/jbpm/workflow/instance/node/StateNodeInstance.java
+@@ -23,6 +23,7 @@ import org.jbpm.workflow.core.impl.ExtendedNodeImpl;
+ import org.jbpm.workflow.core.impl.NodeImpl;
+ import org.jbpm.workflow.core.node.StateNode;
+ import org.jbpm.workflow.instance.NodeInstanceContainer;
++import org.jbpm.workflow.instance.impl.MessageCorrelation;
+ import org.kie.api.definition.process.Connection;
+ import org.kie.api.event.rule.MatchCreatedEvent;
+ import org.kie.api.runtime.process.EventListener;
+@@ -73,8 +74,14 @@ public class StateNodeInstance extends CompositeContextNodeInstance implements E
+     protected boolean isLinkedIncomingNodeRequired() {
+     	return false;
+     }
+-    
++
++    @Override
+ 	public void signalEvent(String type, Object event) {
++         super.signalEvent(type, event);
++    }
++
++    @Override
++    public void signalEvent(String type, Object event, MessageCorrelation messageCorrelation) {
+ 		if ("signal".equals(type)) {
+ 			if (event instanceof String) {
+ 				for (Connection connection: getStateNode().getOutgoingConnections(NodeImpl.CONNECTION_DEFAULT_TYPE)) {
+@@ -102,7 +109,7 @@ public class StateNodeInstance extends CompositeContextNodeInstance implements E
+ 				activationCreated((MatchCreatedEvent) event);
+ 			}
+ 		} else {
+-			super.signalEvent(type, event);
++			super.signalEvent(type, event, messageCorrelation);
+ 		}
+ 	}
+ 	

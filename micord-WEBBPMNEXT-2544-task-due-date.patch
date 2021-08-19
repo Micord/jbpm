@@ -1,0 +1,13 @@
+diff --git a/jbpm-human-task/jbpm-human-task-workitems/src/main/java/org/jbpm/services/task/wih/AbstractHTWorkItemHandler.java b/jbpm-human-task/jbpm-human-task-workitems/src/main/java/org/jbpm/services/task/wih/AbstractHTWorkItemHandler.java
+index 44aa8e929..995bc96d5 100644
+--- a/jbpm-human-task/jbpm-human-task-workitems/src/main/java/org/jbpm/services/task/wih/AbstractHTWorkItemHandler.java
++++ b/jbpm-human-task/jbpm-human-task-workitems/src/main/java/org/jbpm/services/task/wih/AbstractHTWorkItemHandler.java
+@@ -174,7 +174,7 @@ public abstract class AbstractHTWorkItemHandler implements WorkItemHandler {
+         Date date = null;
+         if(dueDateString != null && !dueDateString.isEmpty()){
+             if(DateTimeUtils.isPeriod(dueDateString)){
+-                Long longDateValue = DateTimeUtils.parseDateAsDuration(dueDateString.substring(1));
++                Long longDateValue = DateTimeUtils.parseDuration(dueDateString);
+                 date = new Date(System.currentTimeMillis() + longDateValue);
+             }else{
+                 date = new Date(DateTimeUtils.parseDateTime(dueDateString));

@@ -1,0 +1,111 @@
+diff --git a/jbpm-flow/src/main/java/org/jbpm/process/instance/ProcessRuntimeImpl.java b/jbpm-flow/src/main/java/org/jbpm/process/instance/ProcessRuntimeImpl.java
+index fda09fccd..30d2c9076 100644
+--- a/jbpm-flow/src/main/java/org/jbpm/process/instance/ProcessRuntimeImpl.java
++++ b/jbpm-flow/src/main/java/org/jbpm/process/instance/ProcessRuntimeImpl.java
+@@ -49,6 +49,7 @@ import org.jbpm.process.instance.timer.TimerInstance;
+ import org.jbpm.process.instance.timer.TimerManager;
+ import org.jbpm.ruleflow.core.RuleFlowProcess;
+ import org.jbpm.ruleflow.instance.RuleFlowProcessInstance;
++import org.jbpm.util.SignalEventDesc;
+ import org.jbpm.workflow.core.node.EventTrigger;
+ import org.jbpm.workflow.core.node.StartNode;
+ import org.jbpm.workflow.core.node.Trigger;
+@@ -395,10 +396,14 @@ public class ProcessRuntimeImpl implements InternalProcessRuntime {
+ 	        if (eventTransformer != null) {
+     			event = eventTransformer.transformEvent(event);
+     		}
+-	        Map<String, Object> params = null;
++	        Map<String, Object> params = new HashMap<>();
++
++           if (event instanceof SignalEventDesc) {
++             params.put(StartProcessHelper.SIGNAL_UUID, ((SignalEventDesc) event).getSignalUUID());
++             params.putAll(((SignalEventDesc) event).getParams());
++          }
++
+ 	        if ( inMappings != null && !inMappings.isEmpty() ) {
+-	        	params = new HashMap<String, Object>();
+-	        	
+ 	        	if (inMappings.size() == 1) {
+ 	        		params.put( inMappings.keySet().iterator().next(), event );
+ 	        	} else {
+diff --git a/jbpm-flow/src/main/java/org/jbpm/process/instance/StartProcessHelper.java b/jbpm-flow/src/main/java/org/jbpm/process/instance/StartProcessHelper.java
+index c94fb7b69..d62e64082 100644
+--- a/jbpm-flow/src/main/java/org/jbpm/process/instance/StartProcessHelper.java
++++ b/jbpm-flow/src/main/java/org/jbpm/process/instance/StartProcessHelper.java
+@@ -29,6 +29,7 @@ import org.kie.api.runtime.process.ProcessInstance;
+ public final class StartProcessHelper {
+     
+     public static final String PROCESS_COMPARATOR_CLASS_KEY = "jbpm.process.name.comparator";
++    public static final String SIGNAL_UUID= "signal_uuid";
+     
+     private static String comparatorClass = System.getProperty(PROCESS_COMPARATOR_CLASS_KEY);
+ 	
+diff --git a/jbpm-flow/src/main/java/org/jbpm/util/SignalEventDesc.java b/jbpm-flow/src/main/java/org/jbpm/util/SignalEventDesc.java
+new file mode 100644
+index 000000000..68d2d283d
+--- /dev/null
++++ b/jbpm-flow/src/main/java/org/jbpm/util/SignalEventDesc.java
+@@ -0,0 +1,63 @@
++/*
++ * Copyright 2017 Red Hat, Inc. and/or its affiliates.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.jbpm.util;
++
++import java.util.Map;
++import java.util.Objects;
++import java.util.UUID;
++
++/**
++ * @author zamaliev
++ */
++public class SignalEventDesc {
++
++  private UUID signalUUID;
++  private Map<String, Object> params;
++
++  public SignalEventDesc(UUID signalUUID, Map<String, Object> params) {
++    this.signalUUID = Objects.requireNonNull(signalUUID);
++    this.params = params;
++  }
++
++  public UUID getSignalUUID() {
++    return signalUUID;
++  }
++
++  public void setSignalUUID(UUID signalUUID) {
++    this.signalUUID = signalUUID;
++  }
++
++  public Map<String, Object> getParams() {
++    return params;
++  }
++
++  public void setParams(Map<String, Object> params) {
++    this.params = params;
++  }
++
++  @Override
++  public boolean equals(Object o) {
++    if (this == o) return true;
++    if (o == null || getClass() != o.getClass()) return false;
++    SignalEventDesc that = (SignalEventDesc) o;
++    return signalUUID.equals(that.signalUUID);
++  }
++
++  @Override
++  public int hashCode() {
++    return Objects.hash(signalUUID);
++  }
++}
