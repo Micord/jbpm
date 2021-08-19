@@ -213,7 +213,7 @@
               org.drools.persistence.jta,
               org.drools.persistence.map,
               org.jbpm.marshalling.impl,
-              org.jbpm.persistence.api,
+              org.jbpm.persistence.api,              
               org.jbpm.persistence.api.integration,
               org.jbpm.persistence.api.integration.base,
               org.jbpm.persistence.api.integration.model,

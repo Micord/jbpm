@@ -80,7 +80,7 @@ public class EventSubProcessNodeInstance extends CompositeContextNodeInstance {
         }
         super.signalEvent(type, event, messageCorrelation);
     }
-
+    
     @Override
     public void nodeInstanceCompleted(org.jbpm.workflow.instance.NodeInstance nodeInstance, String outType) {
         if (nodeInstance instanceof EndNodeInstance) { 

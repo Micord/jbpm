@@ -79,7 +79,7 @@ public class ConcurrentOperationsTest extends AbstractBaseTest {
 
   
     
-    @Test(timeout=15000)
+    @Test(timeout=10000)
     public void testExecuteProcessWithAsyncHandler() throws Exception {
     	final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("Log", 1);
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()
@@ -139,7 +139,7 @@ public class ConcurrentOperationsTest extends AbstractBaseTest {
         manager.close();
     }
     
-    @Test(timeout=25000)
+    @Test(timeout=10000)
     public void testExecuteHumanTaskWithAsyncHandler() throws Exception {
         final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("Log", 1);
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()

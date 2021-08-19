@@ -43,27 +43,27 @@
       <dependency>
         <groupId>org.jbpm</groupId>
         <artifactId>idep-jbpm-ejb-services</artifactId>
-        <version>${project.version}</version>
+        <version>${version.org.kie}</version>
       </dependency>
       <dependency>
         <groupId>org.jbpm</groupId>
         <artifactId>idep-hibernate-entitymanager</artifactId>
-        <version>${project.version}</version>
+        <version>${version.org.kie}</version>
       </dependency>
       <dependency>
         <groupId>org.jbpm</groupId>
         <artifactId>idep-jbpm</artifactId>
-        <version>${project.version}</version>
+        <version>${version.org.kie}</version>
       </dependency>
       <dependency>
         <groupId>org.jbpm</groupId>
         <artifactId>idep-jbpm-persistence</artifactId>
-        <version>${project.version}</version>
+        <version>${version.org.kie}</version>
       </dependency>
       <dependency>
         <groupId>org.jbpm</groupId>
         <artifactId>idep-rest</artifactId>
-        <version>${project.version}</version>
+        <version>${version.org.kie}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

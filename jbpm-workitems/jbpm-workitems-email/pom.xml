@@ -30,12 +30,12 @@
     <dependency>
       <groupId>javax.activation</groupId>
       <artifactId>activation</artifactId>
-    </dependency>
+    </dependency>    
     <dependency>
       <groupId>org.jbpm</groupId>
       <artifactId>jbpm-workitems-core</artifactId>
     </dependency>
-
+    
     <!-- optional dependencies used by template and notifications support -->
     <dependency>
       <groupId>org.jbpm</groupId>
@@ -47,7 +47,7 @@
       <artifactId>freemarker</artifactId>
       <optional>true</optional>
     </dependency>
-
+    
     <!-- test dependencies -->
     <dependency>
       <groupId>org.jbpm</groupId>
