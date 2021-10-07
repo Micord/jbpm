@@ -107,7 +107,7 @@
         <module>jbpm-case-mgmt</module>
         <module>jbpm-test-coverage</module>
         <module>jbpm-examples</module>
-        <module>jbpm-container-test</module>
+<!--        <module>jbpm-container-test</module>-->
         <module>jbpm-event-emitters</module>
         <module>jbpm-xes</module>
     </modules>
