@@ -87,6 +87,8 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
 
 	public static final XmlBPMNProcessDumper INSTANCE = new XmlBPMNProcessDumper();
 
+    private static String exception;
+
     private static final Logger logger = LoggerFactory.getLogger(XmlBPMNProcessDumper.class);
 
     private final static String EOL = System.getProperty( "line.separator" );
@@ -925,8 +927,8 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
         	List<Process> processes = xmlReader.read(new StringReader(processXml));
             return processes.get(0);
         } catch (Throwable t) {
-        	t.printStackTrace();
-        	return null;
+          exception = t.getMessage();
+        	throw new RuntimeException(t);
         }
 	}
 }
