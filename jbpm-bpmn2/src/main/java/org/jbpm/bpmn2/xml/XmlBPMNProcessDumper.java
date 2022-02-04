@@ -87,7 +87,11 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
 
 	public static final XmlBPMNProcessDumper INSTANCE = new XmlBPMNProcessDumper();
 
-    private static String exception;
+  public String getException() {
+    return exception;
+  }
+
+  private String exception;
 
     private static final Logger logger = LoggerFactory.getLogger(XmlBPMNProcessDumper.class);
 
@@ -928,7 +932,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
             return processes.get(0);
         } catch (Throwable t) {
           exception = t.getMessage();
-        	throw new RuntimeException(t);
+        	return null;
         }
 	}
 }
