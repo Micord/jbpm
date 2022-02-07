@@ -87,11 +87,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
 
 	public static final XmlBPMNProcessDumper INSTANCE = new XmlBPMNProcessDumper();
 
-  public String getException() {
-    return exception;
-  }
-
-  private String exception;
+    private String exception;
 
     private static final Logger logger = LoggerFactory.getLogger(XmlBPMNProcessDumper.class);
 
@@ -100,7 +96,11 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
     private SemanticModule semanticModule;
     private int metaDataType = META_DATA_USING_DI;
 
-    private XmlBPMNProcessDumper() {
+  public String getException() {
+    return exception;
+  }
+
+  private XmlBPMNProcessDumper() {
     	semanticModule = new BPMNSemanticModule();
     }
 
