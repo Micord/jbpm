@@ -9,6 +9,7 @@
     <artifactId>jbpm</artifactId>
     <version>7.58.0.Final-Micord-4</version>
   </parent>
+
   <artifactId>jbpm-flow</artifactId>
   <packaging>bundle</packaging><!-- bundle = jar + OSGi metadata -->
 
