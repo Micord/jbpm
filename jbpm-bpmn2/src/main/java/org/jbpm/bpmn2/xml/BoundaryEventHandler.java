@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.drools.compiler.compiler.xml.XmlDumper;
 import org.drools.core.xml.ExtensibleXmlParser;
+import org.jbpm.bpmn2.WebBPMIllegalArgumentException;
 import org.jbpm.bpmn2.core.Error;
 import org.jbpm.bpmn2.core.Escalation;
 import org.jbpm.bpmn2.core.ItemDefinition;
@@ -434,11 +435,11 @@ public class BoundaryEventHandler extends AbstractNodeHandler {
                 Map<String, Message> messages = (Map<String, Message>) ((ProcessBuildData) parser
                         .getData()).getMetaData("Messages");
                 if (messages == null) {
-                    throw new IllegalArgumentException("No messages found");
+                    throw new WebBPMIllegalArgumentException("No messages found", nodeName, node);
                 }
                 Message message = messages.get(messageRef);
                 if (message == null) {
-                    throw new IllegalArgumentException("Could not find message " + messageRef);
+                    throw new WebBPMIllegalArgumentException("Could not find message " + messageRef, nodeName, node);
                 }
                 message.addIncomingNode(node);
 

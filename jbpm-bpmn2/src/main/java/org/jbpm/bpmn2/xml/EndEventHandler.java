@@ -26,6 +26,7 @@ import org.jbpm.bpmn2.core.Escalation;
 import org.jbpm.bpmn2.core.Message;
 import org.jbpm.bpmn2.handler.SendMessageAction;
 import org.jbpm.bpmn2.handler.SendSignalAction;
+import org.jbpm.bpmn2.WebBPMIllegalArgumentException;
 import org.jbpm.compiler.xml.ProcessBuildData;
 import org.jbpm.workflow.core.Node;
 import org.jbpm.workflow.core.NodeContainer;
@@ -164,11 +165,11 @@ public class EndEventHandler extends AbstractNodeHandler {
                 Map<String, Message> messages = (Map<String, Message>)
                     ((ProcessBuildData) parser.getData()).getMetaData("Messages");
                 if (messages == null) {
-                    throw new IllegalArgumentException("No messages found");
+                    throw new WebBPMIllegalArgumentException("No messages found", nodeName, node);
                 }
                 Message message = messages.get(messageRef);
                 if (message == null) {
-                    throw new IllegalArgumentException("Could not find message " + messageRef);
+                    throw new WebBPMIllegalArgumentException("Could not find message " + messageRef, nodeName, node);
                 }
                 message.addOutgoingNode(node);
                 String varName = (String) endNode.getMetaData("MappingVariable");

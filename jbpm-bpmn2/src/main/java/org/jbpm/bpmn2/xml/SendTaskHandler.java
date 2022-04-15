@@ -19,6 +19,7 @@ package org.jbpm.bpmn2.xml;
 import java.util.Map;
 
 import org.drools.core.xml.ExtensibleXmlParser;
+import org.jbpm.bpmn2.WebBPMIllegalArgumentException;
 import org.jbpm.bpmn2.core.Message;
 import org.jbpm.compiler.xml.ProcessBuildData;
 import org.jbpm.workflow.core.Node;
@@ -47,7 +48,6 @@ public class SendTaskHandler extends TaskHandler {
         Map<String, Message> messages = (Map<String, Message>)
             ((ProcessBuildData) parser.getData()).getMetaData("Messages");
         if (messages == null) {
-            throw new IllegalArgumentException("No messages found");
         }
         Message message = messages.get(messageRef);
         if (message == null) {

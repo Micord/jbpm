@@ -35,6 +35,7 @@ import org.jbpm.bpmn2.core.DataStore;
 import org.jbpm.bpmn2.core.Definitions;
 import org.jbpm.bpmn2.core.Error;
 import org.jbpm.bpmn2.core.ItemDefinition;
+import org.jbpm.bpmn2.WebBPMIllegalArgumentException;
 import org.jbpm.compiler.xml.XmlProcessReader;
 import org.jbpm.process.core.ContextContainer;
 import org.jbpm.process.core.Work;
@@ -85,20 +86,30 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
     public static final int META_DATA_AS_NODE_PROPERTY = 1;
     public static final int META_DATA_USING_DI = 2;
 
+  private String exceptionMessage;
+  private String exceptionNodeType;
+  private String exceptionNodeId;
+
 	public static final XmlBPMNProcessDumper INSTANCE = new XmlBPMNProcessDumper();
 
-    private String exception;
+  public String getExceptionMessage() {
+    return exceptionMessage;
+  }
 
-    private static final Logger logger = LoggerFactory.getLogger(XmlBPMNProcessDumper.class);
+  public String getExceptionNodeType() {
+    return exceptionNodeType;
+  }
+
+  public String getExceptionNodeId() {
+    return exceptionNodeId;
+  }
+
+  private static final Logger logger = LoggerFactory.getLogger(XmlBPMNProcessDumper.class);
 
     private final static String EOL = System.getProperty( "line.separator" );
 
     private SemanticModule semanticModule;
     private int metaDataType = META_DATA_USING_DI;
-
-  public String getException() {
-    return exception;
-  }
 
   private XmlBPMNProcessDumper() {
     	semanticModule = new BPMNSemanticModule();
@@ -930,9 +941,18 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
         try {
         	List<Process> processes = xmlReader.read(new StringReader(processXml));
             return processes.get(0);
-        } catch (Throwable t) {
-          exception = t.getMessage();
+        }
+        catch (WebBPMIllegalArgumentException e) {
+          exceptionMessage = e.getMessage();
+          exceptionNodeType = e.getNodeType();
+          exceptionNodeId = e.getNode().getNodeUniqueId();
+          return null;
+        }
+        catch (Throwable t) {
+          exceptionMessage = t.getMessage();
+          exceptionNodeType = null;
+          exceptionNodeId = null;
         	return null;
         }
-	}
+  }
 }
