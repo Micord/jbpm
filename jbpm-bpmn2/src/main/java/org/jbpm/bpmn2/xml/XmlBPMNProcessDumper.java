@@ -952,7 +952,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
           exceptionMessage = t.getMessage();
           exceptionNodeType = null;
           exceptionNodeId = null;
-        	return null;
+          return null;
         }
   }
 }
