@@ -21,11 +21,11 @@ import org.jbpm.workflow.core.Node;
 /**
  * @author Evgeny Malkov
  */
-public class WebBPMIllegalArgumentException extends IllegalArgumentException {
+public class BpmnNodeIllegalArgumentException extends IllegalArgumentException {
   private String nodeTypeName;
   private Node node;
 
-  public WebBPMIllegalArgumentException(String message, String nodeName, Node node) {
+  public BpmnNodeIllegalArgumentException(String message, String nodeName, Node node) {
     super(message);
     this.nodeTypeName = nodeName;
     this.node = node;

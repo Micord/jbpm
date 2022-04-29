@@ -35,7 +35,7 @@ import org.jbpm.bpmn2.core.DataStore;
 import org.jbpm.bpmn2.core.Definitions;
 import org.jbpm.bpmn2.core.Error;
 import org.jbpm.bpmn2.core.ItemDefinition;
-import org.jbpm.bpmn2.WebBPMIllegalArgumentException;
+import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.compiler.xml.XmlProcessReader;
 import org.jbpm.process.core.ContextContainer;
 import org.jbpm.process.core.Work;
@@ -942,7 +942,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
         	List<Process> processes = xmlReader.read(new StringReader(processXml));
             return processes.get(0);
         }
-        catch (WebBPMIllegalArgumentException e) {
+        catch (BpmnNodeIllegalArgumentException e) {
           exceptionMessage = e.getMessage();
           exceptionNodeType = e.getNodeType();
           exceptionNodeId = e.getNode().getNodeUniqueId();
