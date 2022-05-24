@@ -16,26 +16,30 @@
 
 package org.jbpm.bpmn2;
 
-import org.jbpm.workflow.core.Node;
-
 /**
  * @author Evgeny Malkov
  */
 public class BpmnNodeIllegalArgumentException extends IllegalArgumentException {
-  private String nodeTypeName;
-  private Node node;
+  private String nodeName;
+  private String nodeUniqId;
 
-  public BpmnNodeIllegalArgumentException(String message, String nodeName, Node node) {
+  public BpmnNodeIllegalArgumentException(String message, String nodeName, String nodeUniqId) {
     super(message);
-    this.nodeTypeName = nodeName;
-    this.node = node;
+    this.nodeName = nodeName;
+    this.nodeUniqId = nodeUniqId;
   }
 
-  public String getNodeType() {
-    return nodeTypeName;
+  public BpmnNodeIllegalArgumentException(String message, String nodeName) {
+    super(message);
+    this.nodeName = nodeName;
   }
 
-  public Node getNode() {
-    return node;
+  public String getNodeUniqId() {
+    return nodeUniqId;
   }
+
+  public String getNodeName() {
+    return nodeName;
+  }
+
 }

@@ -87,17 +87,16 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
     public static final int META_DATA_USING_DI = 2;
 
   private String exceptionMessage;
-  private String exceptionNodeType;
+  private String exceptionNodeName;
   private String exceptionNodeId;
 
 	public static final XmlBPMNProcessDumper INSTANCE = new XmlBPMNProcessDumper();
 
+  public String getExceptionNodeName() {
+    return exceptionNodeName; }
+
   public String getExceptionMessage() {
     return exceptionMessage;
-  }
-
-  public String getExceptionNodeType() {
-    return exceptionNodeType;
   }
 
   public String getExceptionNodeId() {
@@ -944,13 +943,13 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
         }
         catch (BpmnNodeIllegalArgumentException e) {
           exceptionMessage = e.getMessage();
-          exceptionNodeType = e.getNodeType();
-          exceptionNodeId = e.getNode().getNodeUniqueId();
+          exceptionNodeName = e.getNodeName();
+          exceptionNodeId = e.getNodeUniqId();
           return null;
         }
         catch (Throwable t) {
           exceptionMessage = t.getMessage();
-          exceptionNodeType = null;
+          exceptionNodeName = null;
           exceptionNodeId = null;
           return null;
         }

@@ -16,6 +16,7 @@
 
 package org.jbpm.workflow.core.node;
 
+import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.workflow.core.impl.ExtendedNodeImpl;
 import org.kie.api.definition.process.Connection;
 import org.kie.api.definition.process.NodeType;
@@ -56,14 +57,14 @@ public class EndNode extends ExtendedNodeImpl {
     public void validateAddIncomingConnection(final String type, final Connection connection) {
         super.validateAddIncomingConnection(type, connection);
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getTo().getMetaData().get("UniqueId") + ", " + connection.getTo().getName() 
-                    + "] only accepts default incoming connection type!");
+          throw new BpmnNodeIllegalArgumentException("This type of node only accepts default incoming connection type!",
+              connection.getFrom().getName(),
+              connection.getFrom().getNodeUniqueId());
         }
         if (getFrom() != null && !"true".equals(System.getProperty("jbpm.enable.multi.con"))) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getTo().getMetaData().get("UniqueId") + ", " + connection.getTo().getName() 
-                    + "] cannot have more than one incoming connection!");
+          throw new BpmnNodeIllegalArgumentException("This type of node cannot have more than one incoming connection!",
+              connection.getTo().getName(),
+              connection.getTo().getNodeUniqueId());
         }
     }
 

@@ -234,11 +234,11 @@ public class IntermediateThrowEventHandler extends AbstractNodeHandler {
 				Map<String, Message> messages = (Map<String, Message>) ((ProcessBuildData) parser
 						.getData()).getMetaData("Messages");
 				if (messages == null) {
-					throw new BpmnNodeIllegalArgumentException("No messages found", nodeName, node);
+					throw new BpmnNodeIllegalArgumentException("No messages found", nodeName, node.getNodeUniqueId());
 				}
 				Message message = messages.get(messageRef);
 				if (message == null) {
-					throw new BpmnNodeIllegalArgumentException("Could not find message " + messageRef, nodeName, node);
+					throw new BpmnNodeIllegalArgumentException("Could not find message " + messageRef, nodeName, node.getNodeUniqueId());
 				}
                 message.addOutgoingNode(node);
                 String mappingVariable = (String) actionNode.getMetaData("MappingVariable");

@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Queue;
 
 import org.drools.core.time.impl.CronExpression;
+import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.process.core.Work;
 import org.jbpm.process.core.context.exception.CompensationScope;
 import org.jbpm.process.core.context.variable.Variable;
@@ -809,7 +810,7 @@ public class RuleFlowProcessValidator implements ProcessValidator {
     private void processNode(final Node node,
                              final Map<Node, Boolean> nodes) {
         if (!nodes.containsKey(node) && !((node instanceof CompositeNodeEnd) || (node instanceof ForEachSplitNode) || (node instanceof ForEachJoinNode))) {
-            throw new IllegalStateException("A process node is connected with a node that does not belong to the process: " + node.getName());
+            throw new BpmnNodeIllegalArgumentException("A process node is connected with a node that does not belong to the process: ", node.getName());
         }
         final Boolean prevValue = nodes.put(node,
                                             Boolean.TRUE);

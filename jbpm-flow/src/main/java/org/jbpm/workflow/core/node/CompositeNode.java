@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.workflow.core.NodeContainer;
 import org.jbpm.workflow.core.impl.ConnectionImpl;
 import org.jbpm.workflow.core.impl.NodeContainerImpl;
@@ -236,7 +237,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
     	CompositeNode.NodeAndType nodeAndType = internalGetLinkedIncomingNode(type);
     	if (connection.getFrom().getNodeContainer() == this) {
     		if (nodeAndType != null) {
-    			throw new IllegalArgumentException("Cannot link incoming connection type more than once: " + type);
+    			throw new BpmnNodeIllegalArgumentException("Cannot link incoming connection type more than once: ", type);
     		}
     	} else {
 	        if (nodeAndType != null) {
@@ -271,7 +272,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
         CompositeNode.NodeAndType nodeAndType = internalGetLinkedOutgoingNode(type);
         if (connection.getTo().getNodeContainer() == this) {
     		if (nodeAndType != null) {
-    			throw new IllegalArgumentException("Cannot link outgoing connection type more than once: " + type);
+    			throw new BpmnNodeIllegalArgumentException("Cannot link outgoing connection type more than once: ", type, connection.getTo().getNodeUniqueId());
     		}
     	} else {
     		if (nodeAndType != null) {

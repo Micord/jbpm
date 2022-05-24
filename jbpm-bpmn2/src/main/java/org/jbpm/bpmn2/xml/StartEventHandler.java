@@ -119,11 +119,11 @@ public class StartEventHandler extends AbstractNodeHandler {
                 Map<String, Message> messages = (Map<String, Message>)
                         ((ProcessBuildData) parser.getData()).getMetaData("Messages");
                 if (messages == null) {
-                    throw new BpmnNodeIllegalArgumentException("No messages found", nodeName, node);
+                    throw new BpmnNodeIllegalArgumentException("No messages found", nodeName, node.getNodeUniqueId());
                 }
                 Message message = messages.get(messageRef);
                 if (message == null) {
-                    throw new BpmnNodeIllegalArgumentException("No messages found", nodeName, node);
+                    throw new BpmnNodeIllegalArgumentException("No messages found", nodeName, node.getNodeUniqueId());
                 }
                 message.addIncomingNode(node);
                 startNode.setMetaData("MessageType", message.getType());
