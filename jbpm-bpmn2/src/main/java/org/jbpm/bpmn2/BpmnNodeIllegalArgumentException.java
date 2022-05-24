@@ -41,5 +41,4 @@ public class BpmnNodeIllegalArgumentException extends IllegalArgumentException {
   public String getNodeName() {
     return nodeName;
   }
-
 }
