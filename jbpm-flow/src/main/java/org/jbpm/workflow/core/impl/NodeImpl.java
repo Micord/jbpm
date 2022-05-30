@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.process.core.Context;
 import org.jbpm.process.core.ContextResolver;
 import org.jbpm.workflow.core.Constraint;
@@ -340,8 +339,8 @@ public abstract class NodeImpl implements Node, Serializable, ContextResolver {
 
     public void addConstraint(ConnectionRef connectionRef, Constraint constraint) {
     	if (connectionRef == null) {
-    		throw new BpmnNodeIllegalArgumentException(
-				"A node only accepts constraints linked to a connection", this.getName());
+    		throw new IllegalArgumentException(
+				"A " + this.getName() + " node only accepts constraints linked to a connection");
     	}
         this.constraints.put(connectionRef, constraint);
     }

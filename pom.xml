@@ -155,6 +155,11 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>org.jbpm</groupId>
+                <artifactId>jbpm-bpmn2</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>simple-jndi</groupId>
                 <artifactId>simple-jndi</artifactId>
                 <version>0.11.4.1</version>
