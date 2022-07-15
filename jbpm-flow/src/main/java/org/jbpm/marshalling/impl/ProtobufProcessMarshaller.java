@@ -334,6 +334,9 @@ public class ProtobufProcessMarshaller
                                            ( ObjectInputStream ) context,
                                            _variable.getValue().toByteArray(), 
                                            (context.getKnowledgeBase() == null)?null:context.getKnowledgeBase().getRootClassLoader() );
+        if (value instanceof Integer) {
+            value = ((Integer) value).longValue();
+        }
         return value;
     }
     
