@@ -260,7 +260,9 @@ public class ServicesProcessDataEventListener implements ProcessDataEventListene
             String name = iter.next();
             if( "Object".equals(name) || "String".equals(name)
                 || "Float".equals(name) || "Integer".equals(name)
-                || "Boolean".equals(name) ) {
+                || "Boolean".equals(name)
+                || "Long".equals(name)
+                || "Double".equals(name) ) {
                 processDescriptor.getReferencedClasses().add("java.lang." + name );
                iter.remove();
             }
