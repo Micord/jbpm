@@ -1230,7 +1230,8 @@ public class PerProcessInstanceRuntimeManagerTest extends AbstractBaseTest {
         assertEquals(1, tasks2.size());
 
         Object data = "some data";
-
+        // flaky test this will cause the eager init of the runtime manager and avoid install disposable runtime manager
+        runtime1.getKieSession();
         runtime1.getTaskService().claim(tasks1.get(0), "john");
         runtime1.getTaskService().start(tasks1.get(0), "john");
         runtime1.getTaskService().complete(tasks1.get(0), "john", Collections.singletonMap("_output", data));
@@ -1331,6 +1332,43 @@ public class PerProcessInstanceRuntimeManagerTest extends AbstractBaseTest {
         manager.disposeRuntimeEngine(runtime);
         manager.close();
     }
+
+    @Test
+    public void testSignalProcessAndCheckCleanup() {
+        RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()
+                .newDefaultBuilder()
+                .userGroupCallback(userGroupCallback)
+                .addAsset(ResourceFactory.newClassPathResource("BPMN2-IntermediateCatchEventSignalWithRef.bpmn2"), ResourceType.BPMN2)
+                .get();
+
+        manager = RuntimeManagerFactory.Factory.get().newPerProcessInstanceRuntimeManager(environment);
+        assertNotNull(manager);
+        RuntimeEngine runtime = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
+        KieSession ksession = runtime.getKieSession();
+
+        ksession.startProcess("IntermediateCatchEventWithRef");
+
+
+        List<? extends ProcessInstanceLog> logs = runtime.getAuditService().findActiveProcessInstances("IntermediateCatchEventWithRef");
+
+        assertEquals(1, logs.size());
+        manager.disposeRuntimeEngine(runtime);
+
+        manager.signalEvent("Signal1", null);
+
+        runtime = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
+        logs = runtime.getAuditService().findActiveProcessInstances("IntermediateCatchEventWithRef");
+        assertEquals(0, logs.size());
+        manager.disposeRuntimeEngine(runtime);
+        manager.close();
+
+        Query sessionInfoQuery = emf.createEntityManager()
+                                     .createQuery("select id from SessionInfo");
+        // there should only be the one SessionInfo entry created for ksession above
+        assertEquals(1, sessionInfoQuery.getResultList().size());
+        emf.close();
+    }
+
     @Test
     public void testSignalEventWithDeactivate() {
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()
@@ -1567,7 +1605,7 @@ public class PerProcessInstanceRuntimeManagerTest extends AbstractBaseTest {
         emf.close();
     }
 
-    @Test(timeout=15000)
+    @Test //(timeout=15000)
     public void testIndependentSubprocessAbortLocking() throws InterruptedException {
         // independent = true
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()

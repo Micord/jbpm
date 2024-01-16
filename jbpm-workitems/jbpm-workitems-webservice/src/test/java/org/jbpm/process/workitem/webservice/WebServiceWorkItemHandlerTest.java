@@ -16,6 +16,16 @@
 
 package org.jbpm.process.workitem.webservice;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -30,6 +40,7 @@ import org.apache.cxf.message.Message;
 import org.apache.cxf.transport.http.HTTPConduit;
 import org.drools.core.process.instance.impl.WorkItemImpl;
 import org.jbpm.process.workitem.core.TestWorkItemManager;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kie.api.runtime.KieSession;
@@ -37,16 +48,6 @@ import org.kie.api.runtime.process.ProcessWorkItemHandlerException;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class WebServiceWorkItemHandlerTest {
@@ -60,12 +61,15 @@ public class WebServiceWorkItemHandlerTest {
     @Mock
     ConcurrentHashMap<String, Client> clients;
 
+    @Before
+    public void setUp() {
+        when(clients.computeIfAbsent(any(), any())).thenReturn(client);
+    }
+
     @Test
     public void testExecuteSyncOperation() throws Exception {
 
-        when(clients.containsKey(any())).thenReturn(true);
-        when(clients.get(any())).thenReturn(client);
-
+   
         TestWorkItemManager manager = new TestWorkItemManager();
         WorkItemImpl workItem = new WorkItemImpl();
         workItem.setParameter("Interface",
@@ -91,8 +95,6 @@ public class WebServiceWorkItemHandlerTest {
     @Test
     public void testExecuteWrappedModeSync() throws Exception {
 
-        when(clients.containsKey(any())).thenReturn(true);
-        when(clients.get(any())).thenReturn(client);
         Endpoint endpoint = mock(Endpoint.class);
         when(client.getEndpoint()).thenReturn(endpoint);
         ArrayList<Interceptor<? extends Message>> interceptors = new ArrayList<>();
@@ -129,8 +131,6 @@ public class WebServiceWorkItemHandlerTest {
     @Test
     public void testExecuteWrappedModeOneWay() throws Exception {
 
-        when(clients.containsKey(any())).thenReturn(true);
-        when(clients.get(any())).thenReturn(client);
         Endpoint endpoint = mock(Endpoint.class);
         when(client.getEndpoint()).thenReturn(endpoint);
         ArrayList<Interceptor<? extends Message>> interceptors = new ArrayList<>();
@@ -164,8 +164,6 @@ public class WebServiceWorkItemHandlerTest {
     @Test
     public void testExecuteWrappedModeAsync() throws Exception {
 
-        when(clients.containsKey(any())).thenReturn(true);
-        when(clients.get(any())).thenReturn(client);
         Endpoint endpoint = mock(Endpoint.class);
         when(client.getEndpoint()).thenReturn(endpoint);
         ArrayList<Interceptor<? extends Message>> interceptors = new ArrayList<>();
@@ -202,8 +200,6 @@ public class WebServiceWorkItemHandlerTest {
         HTTPConduit http = Mockito.mock(HTTPConduit.class,
                                         Mockito.CALLS_REAL_METHODS);
 
-        when(clients.containsKey(any())).thenReturn(true);
-        when(clients.get(any())).thenReturn(client);
         when(client.getConduit()).thenReturn(http);
 
         TestWorkItemManager manager = new TestWorkItemManager();
@@ -240,11 +236,52 @@ public class WebServiceWorkItemHandlerTest {
     }
     
     @Test
+    public void testExecuteSyncOperationWithBasicAuthWithParameter() {
+
+        HTTPConduit http = Mockito.mock(HTTPConduit.class,
+                                        Mockito.CALLS_REAL_METHODS);
+
+        when(client.getConduit()).thenReturn(http);
+
+        TestWorkItemManager manager = new TestWorkItemManager();
+        WorkItemImpl workItem = new WorkItemImpl();
+        workItem.setParameter("Interface",
+                              "someInterface");
+        workItem.setParameter("Operation",
+                              "someOperation");
+        workItem.setParameter("Parameter",
+                              "myParam");
+        workItem.setParameter("Mode",
+                              "SYNC");
+        workItem.setParameter("Username",
+                              "testusername");
+        workItem.setParameter("Password",
+                              "testpassword");
+
+        WebServiceWorkItemHandler handler = new WebServiceWorkItemHandler(kieSession);
+                                                                          
+        handler.setClients(clients);
+
+        handler.executeWorkItem(workItem,
+                                manager);
+        assertNotNull(manager.getResults());
+        assertEquals(1,
+                     manager.getResults().size());
+        assertTrue(manager.getResults().containsKey(workItem.getId()));
+
+        assertNotNull(http.getAuthorization());
+        AuthorizationPolicy authorizationPolicy = http.getAuthorization();
+        assertEquals("Basic",
+                     authorizationPolicy.getAuthorizationType());
+        assertEquals("testusername",
+                     authorizationPolicy.getUserName());
+        assertEquals("testpassword",
+                     authorizationPolicy.getPassword());
+    }
+    
+    @Test
     public void testExecuteSyncOperationHandlingException() throws Exception {
-
-        when(clients.containsKey(any())).thenReturn(true);
-        when(clients.get(any())).thenReturn(null);
-
+        when(clients.computeIfAbsent(any(), any())).thenReturn(null);
         TestWorkItemManager manager = new TestWorkItemManager();
         WorkItemImpl workItem = new WorkItemImpl();
         workItem.setParameter("Interface",

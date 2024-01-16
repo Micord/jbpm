@@ -17,12 +17,15 @@
 package org.jbpm.process.workitem.webservice;
 
 import java.io.File;
+import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,14 +33,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.xml.namespace.QName;
 
+import org.apache.cxf.common.util.ProxyHelper;
+import org.apache.cxf.common.util.ReflectionUtil;
 import org.apache.cxf.configuration.security.AuthorizationPolicy;
+import org.apache.cxf.databinding.DataBinding;
 import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.endpoint.ClientCallback;
 import org.apache.cxf.endpoint.Endpoint;
 import org.apache.cxf.endpoint.dynamic.DynamicClientFactory;
+import org.apache.cxf.headers.Header;
+import org.apache.cxf.jaxb.JAXBDataBinding;
 import org.apache.cxf.jaxws.endpoint.dynamic.JaxWsDynamicClientFactory;
 import org.apache.cxf.jaxws.interceptors.HolderInInterceptor;
 import org.apache.cxf.jaxws.interceptors.WrapperClassInInterceptor;
@@ -52,6 +61,8 @@ import org.jbpm.process.workitem.core.util.Wid;
 import org.jbpm.process.workitem.core.util.WidMavenDepends;
 import org.jbpm.process.workitem.core.util.WidParameter;
 import org.jbpm.process.workitem.core.util.WidResult;
+import org.jbpm.process.workitem.core.util.WorkItemHeaderInfo;
+import org.jbpm.process.workitem.core.util.WorkItemHeaderUtils;
 import org.jbpm.process.workitem.core.util.service.WidAction;
 import org.jbpm.process.workitem.core.util.service.WidAuth;
 import org.jbpm.process.workitem.core.util.service.WidService;
@@ -84,7 +95,9 @@ import org.slf4j.LoggerFactory;
                 @WidParameter(name = "Endpoint"),
                 @WidParameter(name = "Parameter"),
                 @WidParameter(name = "Mode"),
-                @WidParameter(name = "Wrapped")
+                @WidParameter(name = "Wrapped"),
+                @WidParameter(name = "Username"),
+                @WidParameter(name = "Password")
         },
         results = {
                 @WidResult(name = "Result", runtimeType = "java.lang.Object")
@@ -106,7 +119,7 @@ public class WebServiceWorkItemHandler extends AbstractLogOrThrowWorkItemHandler
     private final Long defaultJbpmCxfClientConnectionTimeout = Long.parseLong(System.getProperty("org.jbpm.cxf.client.connectionTimeout", "30000"));
     private final Long defaultJbpmCxfClientReceiveTimeout = Long.parseLong(System.getProperty("org.jbpm.cxf.client.receiveTimeout", "60000"));
 
-    private ConcurrentHashMap<String, Client> clients = new ConcurrentHashMap<String, Client>();
+    private ConcurrentHashMap<String, Client> clients = new ConcurrentHashMap<>();
     private DynamicClientFactory dcf = null;
     private KieSession ksession;
     private int asyncTimeout = 10;
@@ -317,6 +330,7 @@ public class WebServiceWorkItemHandler extends AbstractLogOrThrowWorkItemHandler
         this.handlingStrategy = handlingStrategy;
     }
 
+    @Override
     public void executeWorkItem(WorkItem workItem,
                                 final WorkItemManager manager) {
 
@@ -358,7 +372,13 @@ public class WebServiceWorkItemHandler extends AbstractLogOrThrowWorkItemHandler
             }
 
             // apply authorization if needed
-            applyAuthorization(username, password, client);
+            String u = (String) workItem.getParameter("Username");
+            String p = (String) workItem.getParameter("Password");
+            if (u == null || p == null) {
+                u = this.username;
+                p = this.password;
+            }
+            applyAuthorization(u, p, client);
 
             //Remove interceptors if using wrapped mode
             if (wrapped) {
@@ -397,6 +417,7 @@ public class WebServiceWorkItemHandler extends AbstractLogOrThrowWorkItemHandler
                     }
                     new Thread(new Runnable() {
 
+                        @Override
                         public void run() {
 
                             try {
@@ -472,61 +493,144 @@ public class WebServiceWorkItemHandler extends AbstractLogOrThrowWorkItemHandler
         });
     }
 
-    @SuppressWarnings("unchecked")
     protected Client getWSClient(WorkItem workItem, String interfaceRef) {
-        if (clients.containsKey(interfaceRef)) {
-            return clients.get(interfaceRef);
+        return clients.computeIfAbsent(interfaceRef, k -> createClient(workItem, interfaceRef));
+    }
+
+    private Client createClient(WorkItem workItem, String interfaceRef) {
+        String importLocation = (String) workItem.getParameter("Url");
+        String importNamespace = (String) workItem.getParameter("Namespace");
+        if (importLocation != null && importLocation.trim().length() > 0 && importNamespace != null && importNamespace.trim().length() > 0) {
+            return createClient(workItem, importLocation, importNamespace, interfaceRef);
         }
 
-        synchronized (this) {
+        long processInstanceId = ((WorkItemImpl) workItem).getProcessInstanceId();
+        WorkflowProcessImpl process = ((WorkflowProcessImpl) ksession.getProcessInstance(processInstanceId).getProcess());
+        @SuppressWarnings("unchecked")
+        List<Bpmn2Import> typedImports = (List<Bpmn2Import>) process.getMetaData("Bpmn2Imports");
 
-        	if (clients.containsKey(interfaceRef)) {
-            	return clients.get(interfaceRef);
-        	}
-
-	        String importLocation = (String) workItem.getParameter("Url");
-	        String importNamespace = (String) workItem.getParameter("Namespace");
-	        if (importLocation != null && importLocation.trim().length() > 0
-	                && importNamespace != null && importNamespace.trim().length() > 0) {
-	            Client client = getDynamicClientFactory().createClient(importLocation,
-	                                                                   new QName(importNamespace,
-	                                                                             interfaceRef),
-	                                                                   getInternalClassLoader(),
-	                                                                   null);
-	            setClientTimeout(workItem, client);
-	            clients.put(interfaceRef,
-	                        client);
-	            return client;
-	        }
-
-	        long processInstanceId = ((WorkItemImpl) workItem).getProcessInstanceId();
-	        WorkflowProcessImpl process = ((WorkflowProcessImpl) ksession.getProcessInstance(processInstanceId).getProcess());
-	        List<Bpmn2Import> typedImports = (List<Bpmn2Import>) process.getMetaData("Bpmn2Imports");
-
-	        if (typedImports != null) {
-	            Client client = null;
-	            for (Bpmn2Import importObj : typedImports) {
-	                if (WSDL_IMPORT_TYPE.equalsIgnoreCase(importObj.getType())) {
-	                    try {
-	                        client = getDynamicClientFactory().createClient(importObj.getLocation(),
-	                                                                        new QName(importObj.getNamespace(),
-	                                                                                  interfaceRef),
-	                                                                        getInternalClassLoader(),
-	                                                                        null);
-	                        setClientTimeout(workItem, client);
-	                        clients.put(interfaceRef,
-	                                    client);
-	                        return client;
-	                    } catch (Exception e) {
-	                        logger.error("Error when creating WS Client",
-	                                     e);
-	                        continue;
-	                    }
-	                }
-	            }
-	        }
+        if (typedImports != null) {
+            for (Bpmn2Import importObj : typedImports) {
+                if (WSDL_IMPORT_TYPE.equalsIgnoreCase(importObj.getType())) {
+                    try {
+                        return createClient(workItem, importObj.getLocation(), importObj.getNamespace(), interfaceRef);
+                    } catch (Exception e) {
+                        logger.error("Error when creating WS Client", e);
+                    }
+                }
+            }
         }
         return null;
+    }
+    
+    private Client createClient(WorkItem workItem, String location, String namespace, String interfaceRef) {
+        Client client = getDynamicClientFactory().createClient(location, new QName(namespace, interfaceRef),
+                                                               getInternalClassLoader(), null);
+        setClientTimeout(workItem, client);
+        setEscapeHandler(workItem, client);
+        addHeaders(workItem, client);
+        addRawWriterInterceptor(workItem, client);
+        return client;
+    }
+
+    private void addHeaders(WorkItem workItem, Client client) {
+        Collection<WorkItemHeaderInfo> headers = WorkItemHeaderUtils.getHeaderInfo(workItem);
+        if (!headers.isEmpty()) {
+            client.getRequestContext().put(Header.HEADER_LIST,
+                                           headers.stream().map(h -> buildHeader(h, client)).collect(Collectors.toList()));
+        }
+    }
+
+    private Header buildHeader(WorkItemHeaderInfo header, Client client) {
+        String namespace = (String) header.getParam("NS");
+        QName name = namespace == null ? new QName(header.getName()) : new QName(namespace, header.getName());
+        JAXBDataBinding binding = (JAXBDataBinding) client.getConduitSelector().getEndpoint().getService().getDataBinding();
+        String escapeHandler = (String) header.getParam("ESCAPE");
+        if (escapeHandler != null)
+            try {
+                binding = new JAXBDataBinding(binding.getContext());
+                setEscapeHandler(binding, escapeHandler);
+            } catch (Exception ex) {
+                logger.warn("Error creating binding for escapeHandler {}", escapeHandler, ex);
+            }
+        return new Header(name, header.getContent(), binding);
+    }
+
+    private void setEscapeHandler(WorkItem workItem, Client client) {
+        String escapeHandler = (String) workItem.getParameter("ESCAPE_HANDLER");
+        if (escapeHandler == null) {
+            escapeHandler = System.getProperty("org.jbpm.cxf.client.escapeHandler");
+        }
+        if (escapeHandler != null) {
+            DataBinding binding = client.getConduitSelector().getEndpoint().getService().getDataBinding();
+            if (binding instanceof JAXBDataBinding) {
+                setEscapeHandler((JAXBDataBinding) binding, escapeHandler);
+            }
+        }
+    }
+
+    private static void setEscapeHandler(JAXBDataBinding dataBinding, String escapeHandler) {
+        Object escapeHandlerObj = createEscapeHandler(dataBinding, escapeHandler);
+        logger.debug("Escape handler {} created. Object is {}", escapeHandler, escapeHandlerObj);
+        Map<String, Object> map = dataBinding.getMarshallerProperties();
+        if (map == null) {
+            map = new HashMap<>();
+        }
+        // if implementation is not reference one, this should be ignored. 
+        map.put("com.sun.xml.bind.characterEscapeHandler", escapeHandlerObj);
+        map.put("com.sun.xml.bind.marshaller.CharacterEscapeHandler", escapeHandlerObj);
+        logger.debug("Marshalling properties {}", map);
+        dataBinding.setMarshallerProperties(map);
+    }
+
+    /* this code is a modified version of cxf that uses the class loader of context, no current thread context */
+    public static Object createEscapeHandler(JAXBDataBinding binding, String escapeHandler) {
+        Class<?> cls = binding.getContext().getClass();
+        ClassLoader classLoader = cls.getClassLoader();
+        String className = cls.getName();
+        String postFix = className.contains("com.sun.xml.internal") || className.contains("eclipse") ? ".internal" : "";
+        try {
+            Class<?> handlerInterface = classLoader.loadClass("com.sun.xml" + postFix + ".bind.marshaller.CharacterEscapeHandler");
+            Class<?> handlerClass = classLoader.loadClass("com.sun.xml" + postFix + ".bind.marshaller." + escapeHandler);
+            Object targetHandler = ReflectionUtil.getDeclaredField(handlerClass, "theInstance").get(null);
+            return ProxyHelper.getProxy(classLoader, new Class[]{handlerInterface}, new LoggingEscapeHandlerInvocationHandler(targetHandler));
+        } catch (Exception e) {
+            logger.warn("Error instantiating escape handler, characters will be escaped", e);
+        }
+        return null;
+    }
+    
+    private void addRawWriterInterceptor(WorkItem workItem, Client client) {
+        String rawElements = (String) workItem.getParameter("RawElements");
+        if (rawElements != null) {
+            logger.debug("Adding Raw Interceptor for elements {}", rawElements);
+            client.getOutInterceptors().add(new RawWriterInterceptor(Arrays.asList(rawElements.split(","))));
+        }
+    }
+
+    private static final class LoggingEscapeHandlerInvocationHandler implements InvocationHandler {
+
+        private Object target;
+
+        public LoggingEscapeHandlerInvocationHandler(Object obj) {
+            target = obj;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            logger.debug("Escape handler invoked with  args {}", args);
+            Object result = null;
+            if (method.getName().equals("escape") && args.length == 5) {
+                if ((Integer) args[1] == 0 && (Integer) args[2] == 0) {
+                    Writer writer = (Writer) args[4];
+                    writer.write("");
+                    return null;
+                }
+                result = method.invoke(target, args);
+            }
+            logger.debug("Escape handler result {}", result);
+            return result;
+        }
     }
 
     private void setClientTimeout(WorkItem workItem, Client client) {
@@ -556,6 +660,7 @@ public class WebServiceWorkItemHandler extends AbstractLogOrThrowWorkItemHandler
         return this.dcf;
     }
 
+    @Override
     public void abortWorkItem(WorkItem workItem,
                               WorkItemManager manager) {
         // Do nothing, cannot be aborted

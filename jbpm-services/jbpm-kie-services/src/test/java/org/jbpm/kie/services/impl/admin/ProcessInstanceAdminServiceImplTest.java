@@ -87,6 +87,8 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         processes.add("repo/processes/errors/BPMN2-BrokenScriptTask.bpmn2");
         processes.add("repo/processes/errors/BPMN2-UserTaskWithRollback.bpmn2");
         processes.add("repo/processes/general/AdHocSubProcess.bpmn2");
+        processes.add("repo/processes/general/BPMN2-ProcessSLA.bpmn2");
+        processes.add("repo/processes/general/BPMN2-SuspendUntil.bpmn2");
 
         InternalKieModule kJar1 = createKieJar(ks, releaseId, processes);
         File pom = new File("target/admin", "pom.xml");
@@ -159,7 +161,16 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         assertEquals("ActionNode", mappedNodes.get("Report"));
         assertEquals("EndNode", mappedNodes.get("End"));
     }
+
     
+    @Test
+    public void testQuerySlaProcess() {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "test.processSQLquery");
+        Collection<TimerInstance> timers = processAdminService.getTimerInstances(processInstanceId);
+        assertEquals(1, timers.size());
+        processService.abortProcessInstance(processInstanceId);
+    }
+
     @Test
     public void testCancelAndTrigger() {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
@@ -261,6 +272,11 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         Collection<NodeInstanceDesc> completedNodes = runtimeDataService.getProcessInstanceHistoryCompleted(processInstanceId, new QueryFilter());
         assertNotNull(completedNodes);
         assertEquals(1, completedNodes.size());
+
+        // test for finished nodes
+        Collection<NodeInstanceDesc> finishedNodes = runtimeDataService.getProcessInstanceHistoryFinished(processInstanceId, new QueryFilter());
+        assertNotNull(finishedNodes);
+        assertEquals(2, finishedNodes.size());
 
         final List<NodeInstanceDesc> nodeInstances = completedNodes.stream().filter(node -> node.getId().equals(active.getId())).collect(Collectors.toList());
         assertEquals(0, nodeInstances.size());
@@ -414,7 +430,34 @@ public class ProcessInstanceAdminServiceImplTest extends AbstractKieServicesBase
         assertNotNull(timer.getId());
         assertNotNull(timer.getTimerName());
     }
-    
+
+    @Test(timeout=10000)
+    public void testListSuspendUntilTimer() throws Exception {
+        processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "humanTaskWithSuspendUntil");
+        assertNotNull(processInstanceId);
+
+        List<Long> ids = this.runtimeDataService.getTasksByProcessInstanceId(processInstanceId);
+        ids.forEach(id -> {
+            this.userTaskService.suspend(id, "Administrator");
+        });
+
+        Collection<TimerInstance> timers = processAdminService.getTimerInstances(processInstanceId);
+        assertNotNull(timers);
+        assertEquals(1, timers.size());
+
+        TimerInstance timer = timers.iterator().next();
+        assertNotNull(timer.getActivationTime());
+        assertEquals(2000L, timer.getDelay());
+        assertNotNull(timer.getNextFireTime());
+        assertNotNull(timer.getProcessInstanceId());
+        assertNotNull(timer.getSessionId());
+        assertNotNull(timer.getTimerId());
+        assertTrue(timer.getId() >= 0);
+        assertTrue(timer.getTimerName().startsWith("[SuspendUntil]"));
+
+        processService.abortProcessInstance(processInstanceId);
+    }
+
     @Test(timeout = 10000)
     public void testTimerName() throws Exception {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.boundarytimer");

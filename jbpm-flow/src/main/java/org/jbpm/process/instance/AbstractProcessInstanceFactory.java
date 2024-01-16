@@ -51,7 +51,7 @@ public abstract class AbstractProcessInstanceFactory implements ProcessInstanceF
             processInstance.getMetaData().put("ParentProcessInstanceId", (Long) parameters.get("ParentInstanceId"));
         }
         // TODO: should be part of processInstanceImpl?
-        VariableScope variableScope = (VariableScope) ((ContextContainer) process).getDefaultContext( VariableScope.VARIABLE_SCOPE );
+        VariableScope variableScope = (VariableScope) ((ContextContainer) process).getDefaultContext( VariableScope.VARIABLE_SCOPE );		
         VariableScopeInstance variableScopeInstance = (VariableScopeInstance) processInstance.getContextInstance( VariableScope.VARIABLE_SCOPE );
         // set input parameters
         if ( parameters != null ) {
@@ -64,6 +64,7 @@ public abstract class AbstractProcessInstanceFactory implements ProcessInstanceF
                 throw new IllegalArgumentException( "This process does not support parameters!" );
             }
         }
+        variableScopeInstance.setDefaultValues(variableScope, variableScopeInstance);
         variableScopeInstance.enforceRequiredVariables();
         
         return processInstance;

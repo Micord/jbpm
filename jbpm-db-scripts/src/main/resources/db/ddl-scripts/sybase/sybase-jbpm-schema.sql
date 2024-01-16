@@ -31,7 +31,6 @@
         taskId numeric(19,0) null,
         workItemId numeric(19,0) null,
         lastModificationDate datetime,
-        end_date datetime,
         primary key (id)
     ) lock datarows
     go
@@ -48,7 +47,6 @@
         taskName varchar(255) null,
         userId varchar(255) null,
         OPTLOCK int null,
-        end_date datetime,
         primary key (pk)
     ) lock datarows
     go
@@ -108,6 +106,18 @@
         OPTLOCK int null,
         primary key (mappingId)
     ) lock datarows
+    go
+
+    create table TimerMappingInfo (
+    	id numeric(19,0) identity not null, 
+    	externalTimerId varchar(255), 
+    	kieSessionId numeric(19,0) not null, 
+    	processInstanceId numeric(19,0), 
+    	timerId numeric(19,0), 
+    	uuid varchar(255) not null, 
+    	info image null,
+    	primary key (id)
+    )
     go
 
     create table CorrelationKeyInfo (
@@ -236,7 +246,7 @@
         workItemId numeric(19,0) null,
         nodeContainerId varchar(255) null,
         referenceId numeric(19,0) null,
-        end_date datetime,
+        observation varchar(255),
         primary key (id)
     ) lock datarows
     go
@@ -456,7 +466,7 @@
         workItemId numeric(19,0) null,
         correlationKey varchar(255),	
         processType int,
-        end_date datetime,
+        currentOwner varchar(255),
         primary key (id)
     ) lock datarows
     go
@@ -484,7 +494,6 @@
         value varchar(255) null,
         variableId varchar(255) null,
         variableInstanceId varchar(255) null,
-        end_date datetime,
         primary key (id)
     ) lock datarows
     go
@@ -917,7 +926,7 @@
     create index IDX_TaskEvent_processInstanceId on TaskEvent (processInstanceId)
     go
 
-    create index IDX_EventTypes_element ON EventTypes(element)
+    create index IDX_EventTypes_IdElement ON EventTypes(InstanceId,element)
     go
 
     create index IDX_CMI_Context ON ContextMappingInfo(CONTEXT_ID)
@@ -927,6 +936,9 @@
     create index IDX_CMI_Owner ON ContextMappingInfo(OWNER_ID)
     go
 
+    create unique index IDX_TMI_KSessionUUID on TimerMappingInfo (kieSessionId, uuid)
+    go
+    
     create index IDX_RequestInfo_status ON RequestInfo(status)
     go
     create index IDX_RequestInfo_timestamp ON RequestInfo(timestamp)
@@ -1021,4 +1033,12 @@
     create index IDX_TaskVariableImpl_pInstId on TaskVariableImpl(processInstanceId)
     go
     create index IDX_TaskVariableImpl_processId on TaskVariableImpl(processId)
+    go
+    create index IDX_CaseRoleAssignLog_caseId on CaseRoleAssignmentLog(caseId)
+    go
+    create index IDX_CaseRoleAssignLog_processInstanceId on CaseRoleAssignmentLog(processInstanceId)
+    go
+    create index IDX_CaseFileDataLog_caseId on CaseFileDataLog(caseId)
+    go
+    create index IDX_CaseFileDataLog_itemName on CaseFileDataLog(itemName)
     go

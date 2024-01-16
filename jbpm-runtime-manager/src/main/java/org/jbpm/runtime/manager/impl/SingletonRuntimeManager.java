@@ -97,7 +97,12 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
             }
         }
     }
-    
+
+    @Override
+    public boolean useContextMapping() {
+        return false;
+    }
+
     public void init() {
         super.init();
         // TODO should we proxy/wrap the ksession so we capture dispose.destroy method calls?
@@ -349,5 +354,4 @@ public class SingletonRuntimeManager extends AbstractRuntimeManager {
     public void setTaskServiceFactory(TaskServiceFactory taskServiceFactory) {
         this.taskServiceFactory = taskServiceFactory;
     }
-
 }

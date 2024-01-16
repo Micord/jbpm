@@ -417,7 +417,17 @@ public class RuntimeDataServiceImpl implements RuntimeDataService, DeploymentEve
 
     }
 
+    public Long countProcessInstancesByDeploymentId(String deploymentId, List<Integer> states) {
+        deploymentId = getLatestDeploymentId(requireNonNull(deploymentId, DEPLOYMENT_ID_MUST_NOT_BE_NULL));
 
+        Map<String, Object> params = new HashMap<>();
+        params.put("externalId", deploymentId);
+        params.put("states", states);
+        applyDeploymentFilter(params);
+        return ((List<Long>)commandService.execute(
+                new QueryNameCommand<>("countProcessInstancesByDeploymentId", params))).get(0);
+    }
+    
     public Collection<ProcessInstanceDesc> getProcessInstancesByProcessDefinition(String processDefId, QueryContext queryContext){
     	Map<String, Object> params = new HashMap<String, Object>();
         params.put("processDefId", processDefId);
@@ -682,6 +692,13 @@ public class RuntimeDataServiceImpl implements RuntimeDataService, DeploymentEve
         return getProcessInstanceHistory(processId, true, queryContext);
     }
 
+    @Override
+    public Collection<NodeInstanceDesc> getProcessInstanceHistoryFinished(long processId, QueryContext queryContext) {
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("processId", processId);
+        applyQueryContext(params, queryContext);
+        return commandService.execute(new QueryNameCommand<List<NodeInstanceDesc>>("getProcessInstanceFinishedNodes", params));
+    }
 
     protected Collection<NodeInstanceDesc> getProcessInstanceHistory(long processId, boolean completed, QueryContext queryContext) {
     	Map<String, Object> params = new HashMap<String, Object>();

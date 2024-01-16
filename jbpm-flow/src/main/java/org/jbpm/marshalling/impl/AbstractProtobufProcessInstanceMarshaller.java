@@ -247,7 +247,9 @@ public abstract class AbstractProtobufProcessInstanceMarshaller
                     _task.addTimerInstanceId( id );
                 }
             }
+            _task.setTimerInstanceIdSuspendUntil(((HumanTaskNodeInstance) nodeInstance).getSuspendUntilTimerId());
             _task.setErrorHandlingProcessInstanceId(((HumanTaskNodeInstance) nodeInstance).getExceptionHandlingProcessInstanceId());
+            _task.setTriggerCount(((HumanTaskNodeInstance) nodeInstance).getTriggerCount());
             _content = JBPMMessages.ProcessInstance.NodeInstanceContent.newBuilder()
                     .setType( NodeInstanceType.HUMAN_TASK_NODE )
                     .setHumanTask( _task.build() );
@@ -263,6 +265,7 @@ public abstract class AbstractProtobufProcessInstanceMarshaller
                 }
             }
             _wi.setErrorHandlingProcessInstanceId(((WorkItemNodeInstance) nodeInstance).getExceptionHandlingProcessInstanceId());
+            _wi.setTriggerCount(((WorkItemNodeInstance) nodeInstance).getTriggerCount());
             _content = JBPMMessages.ProcessInstance.NodeInstanceContent.newBuilder()
                     .setType( NodeInstanceType.WORK_ITEM_NODE )
                     .setWorkItem( _wi.build() );
@@ -539,7 +542,7 @@ public abstract class AbstractProtobufProcessInstanceMarshaller
         if (_instance.getSlaDueDate() > 0) {
             processInstance.internalSetSlaDueDate(new Date(_instance.getSlaDueDate()));
         }
-        processInstance.internalSetSlaTimerId(_instance.getSlaTimerId());
+        processInstance.internalSetSlaTimerId(_instance.getSlaTimerId() > 0 ? _instance.getSlaTimerId() : -1);
         
         long nodeInstanceCounter = _instance.getNodeInstanceCounter();
         processInstance.setKnowledgeRuntime( wm.getKnowledgeRuntime() );
@@ -621,7 +624,8 @@ public abstract class AbstractProtobufProcessInstanceMarshaller
         if (_node.getSlaDueDate() > 0) {
             nodeInstance.internalSetSlaDueDate(new Date(_node.getSlaDueDate()));
         }
-        nodeInstance.internalSetSlaTimerId(_node.getSlaTimerId());
+
+        nodeInstance.internalSetSlaTimerId(_node.getSlaTimerId() > 0 ? _node.getSlaTimerId() : -1) ;
 
         switch ( _node.getContent().getType() ) {
             case COMPOSITE_CONTEXT_NODE :
@@ -750,6 +754,12 @@ public abstract class AbstractProtobufProcessInstanceMarshaller
                     ((HumanTaskNodeInstance) nodeInstance).internalSetTimerInstances( timerInstances );                    
                 }
                 ((WorkItemNodeInstance) nodeInstance).internalSetProcessInstanceId( _content.getHumanTask().getErrorHandlingProcessInstanceId() );
+                ((WorkItemNodeInstance) nodeInstance).internalSetTriggerCount( _content.getHumanTask().getTriggerCount() );
+                if(_content.getHumanTask().hasTimerInstanceIdSuspendUntil()) {
+                    ((HumanTaskNodeInstance) nodeInstance).setSuspendUntilTimerId(_content.getHumanTask().getTimerInstanceIdSuspendUntil());
+                } else {
+                    ((HumanTaskNodeInstance) nodeInstance).setSuspendUntilTimerId(-1);
+                }
                 break;
             case WORK_ITEM_NODE :
                 nodeInstance = new WorkItemNodeInstance();
@@ -762,6 +772,7 @@ public abstract class AbstractProtobufProcessInstanceMarshaller
                     ((WorkItemNodeInstance) nodeInstance).internalSetTimerInstances( timerInstances );
                 }
                 ((WorkItemNodeInstance) nodeInstance).internalSetProcessInstanceId( _content.getWorkItem().getErrorHandlingProcessInstanceId() );
+                ((WorkItemNodeInstance) nodeInstance).internalSetTriggerCount( _content.getWorkItem().getTriggerCount() );
                 break;
             case SUBPROCESS_NODE :
                 nodeInstance = new SubProcessNodeInstance();

@@ -10,6 +10,7 @@
     <mapping-file>META-INF/Executor-orm.xml</mapping-file>
     <class>org.jbpm.executor.entities.ErrorInfo</class>
     <class>org.jbpm.executor.entities.RequestInfo</class>
+    <class>org.jbpm.runtime.manager.impl.jpa.ExecutionErrorInfo</class>
     <exclude-unlisted-classes>true</exclude-unlisted-classes>
  
     <properties>
@@ -46,6 +47,7 @@
     
     <!-- manager -->
     <class>org.jbpm.runtime.manager.impl.jpa.ContextMappingInfo</class>
+    <class>org.jbpm.runtime.manager.impl.jpa.TimerMappingInfo</class>
     
     <!-- task -->
     <class>org.jbpm.services.task.impl.model.AttachmentImpl</class>
@@ -116,6 +118,7 @@
     
     <!-- manager -->
     <class>org.jbpm.runtime.manager.impl.jpa.ContextMappingInfo</class>
+    <class>org.jbpm.runtime.manager.impl.jpa.TimerMappingInfo</class>
     
     <!-- task -->
     <class>org.jbpm.services.task.impl.model.AttachmentImpl</class>

@@ -18,9 +18,11 @@ package org.jbpm.process.instance.timer;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.drools.core.common.InternalKnowledgeRuntime;
@@ -42,12 +44,15 @@ import org.drools.core.time.impl.CronTrigger;
 import org.drools.core.time.impl.IntervalTrigger;
 import org.jbpm.marshalling.impl.JBPMMessages;
 import org.jbpm.marshalling.impl.ProtobufProcessMarshaller;
+import org.jbpm.process.core.timer.impl.GlobalTimerService;
 import org.jbpm.process.core.timer.impl.RegisteredTimerServiceDelegate;
 import org.jbpm.process.instance.InternalProcessRuntime;
 import org.jbpm.process.instance.ProcessInstance;
 import org.jbpm.process.instance.ProcessRuntimeImpl;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.time.SessionClock;
+import org.jbpm.workflow.instance.NodeInstanceContainer;
+import org.jbpm.workflow.instance.node.TimerNodeInstance;
 import org.kie.internal.runtime.StatefulKnowledgeSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,10 +62,11 @@ import org.slf4j.LoggerFactory;
  */
 public class TimerManager {
 
+    
     private static final Logger logger = LoggerFactory.getLogger(TimerManager.class);
 
-    private long timerId = 0;
-
+    private long timerId;
+  
     private InternalKnowledgeRuntime kruntime;
     private TimerService timerService;
     private Map<Long, TimerInstance> timers = new ConcurrentHashMap<Long, TimerInstance>();
@@ -76,7 +82,7 @@ public class TimerManager {
         try {
             kruntime.startOperation();
 
-            timer.setId(++timerId);
+            timer.setId(getTimerId(processInstance));
             timer.setProcessInstanceId(processInstance.getId());
             timer.setSessionId(((KieSession) kruntime).getIdentifier());
             timer.setActivated(new Date());
@@ -101,6 +107,15 @@ public class TimerManager {
         } finally {
             kruntime.endOperation();
         }
+    }
+
+    private long getTimerId(ProcessInstance processInstance) {
+        Object manager = kruntime.getEnvironment().get("RuntimeManager");
+        if (processInstance instanceof NodeInstanceContainer && manager != null && !manager.getClass().getSimpleName().equals("PerProcessInstanceRuntimeManager")) {
+            ((NodeInstanceContainer)processInstance).getNodeInstances(true).stream().filter(TimerNodeInstance.class::isInstance).map(TimerNodeInstance.class::cast)
+               .map(TimerNodeInstance::getTimerId).max(Comparator.comparingLong(Long::longValue)).filter(l -> l > timerId).ifPresent(l -> timerId=l);
+        }
+        return ++timerId;
     }
 
     public void registerTimer(final TimerInstance timer, String processId, Map<String, Object> params) {
@@ -161,13 +176,19 @@ public class TimerManager {
         timers.put(timer.getId(), timer);
     }
 
-    public void cancelTimer(long timerId) {
+    public void cancelTimer(long processInstnaceId, long timerId) {
 		try {
 			kruntime.startOperation();
 
 			TimerInstance timer = timers.remove(timerId);
 			if (timer != null) {
 				timerService.removeJob(timer.getJobHandle());
+			} else if (timerService instanceof GlobalTimerService){
+			    // second try if the cache here is not in sync
+			    ((GlobalTimerService) timerService).removeJobByTimerId(processInstnaceId, timerId);
+			} else if (timerService instanceof RegisteredTimerServiceDelegate) {
+	             // second try if it is wrapped and the cache is not in sync
+	             ((GlobalTimerService) ((RegisteredTimerServiceDelegate) timerService).getTimerService()).removeJobByTimerId(processInstnaceId, timerId);
 			}
 		} finally {
 			kruntime.endOperation();
@@ -237,6 +258,8 @@ public class TimerManager {
 
     public static class ProcessTimerInputMarshaller implements TimersInputMarshaller {
 
+        private boolean disableInputMarshallerTimerRegistration = Boolean.getBoolean("org.jbpm.timer.disableUnmarshallerRegistration"); 
+
         public void deserialize(MarshallerReaderContext inCtx, Timer timer) {
             JBPMMessages.ProcessTimer ptimer = timer.getExtension(JBPMMessages.procTimer);
 
@@ -251,7 +274,7 @@ public class TimerManager {
             TimerManager tm = ((InternalProcessRuntime) inCtx.getWorkingMemory().getProcessRuntime()).getTimerManager();
 
             // check if the timer instance is not already registered to avoid duplicated timers
-            if (!tm.getTimerMap().containsKey(timerInstance.getId())) {
+            if (!tm.getTimerMap().containsKey(timerInstance.getId()) && !disableInputMarshallerTimerRegistration) {
                 ProcessJobContext pctx = new ProcessJobContext(timerInstance, trigger, processInstanceId,
                         inCtx.getWorkingMemory().getKnowledgeRuntime(), false);
                 Date date = trigger.hasNextFireTime();
@@ -347,7 +370,8 @@ public class TimerManager {
                 if (ctx.getTrigger().hasNextFireTime() == null) {
                     ctx.getTimer().setPeriod(0);
                 }
-                ((ProcessRuntimeImpl)kruntime.getProcessRuntime()).startProcess(ctx.getProcessId(), ctx.getParamaeters(), "timer");
+
+                ((ProcessRuntimeImpl)kruntime.getProcessRuntime()).startProcess(ctx.getProcessId(), ctx.getParamaeters(), "timer-" + ctx.getTimer().getName());
 
                 if (ctx.getTimer().getPeriod() == 0) {
                     tm.getTimerMap().remove(ctx.getTimer().getId());
@@ -375,7 +399,7 @@ public class TimerManager {
         private JobHandle jobHandle;
         private Long sessionId;
         
-        private boolean newTimer;
+        private boolean isNew;
 
         public ProcessJobContext(final TimerInstance timer, final Trigger trigger, final Long processInstanceId,
                 final InternalKnowledgeRuntime kruntime) {
@@ -384,17 +408,17 @@ public class TimerManager {
             this.processInstanceId = processInstanceId;
             this.kruntime = kruntime;
             this.sessionId = timer.getSessionId();
-            this.newTimer = true;
+            this.isNew = true;
         }
         
         public ProcessJobContext(final TimerInstance timer, final Trigger trigger, final Long processInstanceId,
-                final InternalKnowledgeRuntime kruntime, boolean newTimer) {
+                final InternalKnowledgeRuntime kruntime, boolean isNew) {
             this.timer = timer;
             this.trigger = trigger;
             this.processInstanceId = processInstanceId;
             this.kruntime = kruntime;
             this.sessionId = timer.getSessionId();
-            this.newTimer = newTimer;
+            this.isNew = isNew;
         }
 
         public Long getProcessInstanceId() {
@@ -433,9 +457,10 @@ public class TimerManager {
         public InternalWorkingMemory getWorkingMemory() {
             return kruntime instanceof InternalWorkingMemory ? (InternalWorkingMemory)kruntime : null;
         }
-        
-        public boolean isNewTimer() {
-            return newTimer;
+
+        @Override
+        public boolean isNew() {
+            return isNew;
         }
     }
 
@@ -469,7 +494,7 @@ public class TimerManager {
         }
 
         @Override
-        public boolean isNewTimer() {
+        public boolean isNew() {
             return false;
         }
 

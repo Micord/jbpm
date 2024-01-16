@@ -584,8 +584,13 @@ public class ProcessRuntimeImpl implements InternalProcessRuntime {
 		return kruntime.getWorkItemManager();
 	}
 
+    public void signalEventKieSession(String type, Object event) {
+        processInstanceManager.loadKnowledgeRuntimeProcessInstances();
+        signalManager.signalEventKieSession((KieSession) kruntime, type, event);
+    }
+
 	public void signalEvent(String type, Object event) {
-		signalManager.signalEvent(type, event);
+	    signalManager.signalEvent(type, event);
 	}
 
 	public void signalEvent(String type, Object event, long processInstanceId) {
@@ -659,7 +664,7 @@ public class ProcessRuntimeImpl implements InternalProcessRuntime {
                     } else {
                         timerInstance = createTimerInstance(startNode.getTimer(), kruntime);    
                     }
-                    timerInstance.setName(startNode.getName());
+                    timerInstance.setName((String) startNode.getMetaData("UniqueId"));
                     timerManager.registerTimer(timerInstance, processId, null);
                 }
             }
@@ -751,12 +756,11 @@ public class ProcessRuntimeImpl implements InternalProcessRuntime {
         }
         
         public void execute(InternalWorkingMemory workingMemory) {
-            
-            signalEvent(type, event);
+            signalEventKieSession(type, event);
         }
 
         public void execute(InternalKnowledgeRuntime kruntime) {
-            signalEvent(type, event);
+            signalEventKieSession(type, event);
         }
      
         public Action serialize(MarshallerWriteContext context) throws IOException {

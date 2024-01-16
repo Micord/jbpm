@@ -81,6 +81,11 @@ public class JpaProcessPersistenceContext extends JpaPersistenceContext
         }
     }
 
+    @Override
+    public void evict(PersistentProcessInstance processInstanceInfo) {
+        getEntityManager().detach(processInstanceInfo);
+    }
+
     /**
      * This method is used by the {@link JPASignalManager} in order to load {@link ProcessInstance} instances
      * into the {@link ProcessInstanceManager} cache so that they can then be signalled. 
@@ -123,7 +128,7 @@ public class JpaProcessPersistenceContext extends JpaPersistenceContext
             }
             return correlationKeyInfo;
         } catch (PersistenceException e) {
-            throw new RuntimeException(correlationKeyInfo + " already exists", e);
+            throw new RuntimeException(correlationKeyInfo + " failed to persist", e);
         }
     }
 
@@ -147,5 +152,11 @@ public class JpaProcessPersistenceContext extends JpaPersistenceContext
             return null;
         }
     }
-    
+
+    @Override
+    public List<Long> findAllProcessInstanceInfo() {
+        EntityManager em = getEntityManager();
+        return em.createQuery("SELECT o.id FROM ProcessInstanceInfo o", Long.class).getResultList();
+    }
+
 }

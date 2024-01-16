@@ -71,6 +71,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
+import static org.kie.internal.runtime.conf.AuditMode.JPA;
 import static org.kie.scanner.KieMavenRepository.getKieMavenRepository;
 
 public class UserTaskServiceImplTest extends AbstractKieServicesBaseTest {
@@ -94,7 +96,7 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         processes.add("repo/processes/general/NoFormNameHumanTask.bpmn");
         processes.add("repo/processes/general/BPMN2-UserTaskImageVar.bpmn2");
         
-        InternalKieModule kJar1 = createKieJar(ks, releaseId, processes);
+        InternalKieModule kJar1 = createKJAR(ks, releaseId, processes);
         File pom = new File("target/kmodule", "pom.xml");
         pom.getParentFile().mkdir();
         try {
@@ -115,6 +117,10 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         units.add(deploymentUnit);
     	assertNotNull(processService);
 
+    }
+
+    protected InternalKieModule createKJAR(KieServices ks, ReleaseId releaseId, List<String> processes) {
+        return createKieJar(ks, releaseId, processes);
     }
     
     @After
@@ -328,7 +334,7 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
     	task = runtimeDataService.getTaskById(taskId);
     	assertNotNull(task);
     	assertEquals(Status.Ready.toString(), task.getStatus());
-    	assertEquals("", task.getActualOwner());
+    	assertTrue(task.getActualOwner() == null || task.getActualOwner().isEmpty());
     }
     
     @Test
@@ -683,6 +689,8 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
     
     @Test
     public void testGetTaskOfAbortedProcess() {
+        skipIfAuditModeIsNotJPA();
+        
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument.noform");
         assertNotNull(processInstanceId);
         List<Long> taskIds = runtimeDataService.getTasksByProcessInstanceId(processInstanceId);
@@ -706,7 +714,7 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         assertTrue(StringUtils.isEmpty(((InternalTask)taskInstance).getFormName()));
       
     }
-    
+
     @Test
     public void testUpdateTask() {
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
@@ -748,6 +756,8 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
     
     @Test
     public void testUpdateTaskWithData() {
+        skipIfAuditModeIsNotJPA();
+        
         TaskAuditService taskAuditService = getTaskAuditService();
 
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
@@ -866,6 +876,8 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
     
     @Test
     public void testProcessWithLazyLoadedVariable() {
+        skipIfAuditModeIsNotJPA();
+        
         identityProvider.setName("john");
         Image newImage = new Image("test");
         Map<String, Object> params = new HashMap<>();
@@ -918,6 +930,8 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
 
     @Test
     public void testTaskOperationWithUserOrWithIdentityProvider() {
+        skipIfAuditModeIsNotJPA();
+        
         processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "org.jbpm.writedocument");
         assertNotNull(processInstanceId);
     
@@ -936,7 +950,8 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         assertNotNull(auditTasks);
         assertEquals(3, auditTasks.size());
         assertEquals(TaskEvent.TaskEventType.ADDED, auditTasks.get(0).getType());
-        assertEquals("org.jbpm.writedocument", auditTasks.get(0).getUserId());
+        String defaultUserName = identityProvider.getName();
+        assertEquals(defaultUserName, auditTasks.get(0).getUserId());
         assertEquals(TaskEvent.TaskEventType.ACTIVATED, auditTasks.get(1).getType());
         assertEquals(TaskEvent.TaskEventType.STARTED, auditTasks.get(2).getType());
         assertEquals("salaboy", auditTasks.get(2).getUserId());
@@ -948,7 +963,7 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         assertNotNull(auditTasks);
         assertEquals(4, auditTasks.size());
         assertEquals(TaskEvent.TaskEventType.ADDED, auditTasks.get(0).getType());
-        assertEquals("org.jbpm.writedocument", auditTasks.get(0).getUserId());
+        assertEquals(defaultUserName, auditTasks.get(0).getUserId());
         assertEquals(TaskEvent.TaskEventType.ACTIVATED, auditTasks.get(1).getType());
         assertEquals(TaskEvent.TaskEventType.STARTED, auditTasks.get(2).getType());
         assertEquals("salaboy", auditTasks.get(2).getUserId());
@@ -963,7 +978,7 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         assertNotNull(auditTasks);
         assertEquals(5, auditTasks.size());
         assertEquals(TaskEvent.TaskEventType.ADDED, auditTasks.get(0).getType());
-        assertEquals("org.jbpm.writedocument", auditTasks.get(0).getUserId());
+        assertEquals(defaultUserName, auditTasks.get(0).getUserId());
         assertEquals(TaskEvent.TaskEventType.ACTIVATED, auditTasks.get(1).getType());
         assertEquals(TaskEvent.TaskEventType.STARTED, auditTasks.get(2).getType());
         assertEquals("salaboy", auditTasks.get(2).getUserId());
@@ -972,7 +987,7 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         assertEquals(TaskEvent.TaskEventType.UPDATED, auditTasks.get(4).getType());
         assertEquals("salaboy", auditTasks.get(4).getUserId());
     
-        identityProvider.setName("testUser");
+        identityProvider.setName(defaultUserName);
         processService.abortProcessInstance(processInstanceId);
         processInstanceId = null;
     
@@ -1006,6 +1021,15 @@ private static final Logger logger = LoggerFactory.getLogger(KModuleDeploymentSe
         UserTaskInstanceDesc task = runtimeDataService.getTaskById(taskId);
         assertNotNull(task);
         assertEquals(Status.Ready.toString(), task.getStatus());
-        assertCorrelationAndProcess(task, processInstanceId);
+        if (isJPAAuditMode())
+          assertCorrelationAndProcess(task, processInstanceId);
+    }
+    
+    protected void skipIfAuditModeIsNotJPA() {
+        assumeTrue("skip if audit mode is not JPA", isJPAAuditMode());
+    }
+    
+    protected boolean isJPAAuditMode() {
+        return true;
     }
 }

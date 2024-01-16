@@ -535,7 +535,7 @@ public class ProcessServiceImpl implements ProcessService, VariablesAware {
                 @Override
                 public Object execute(org.kie.api.runtime.Context context) {
                     KieSession ksession = ((RegistryContext) context).lookup( KieSession.class );
-                    WorkflowProcessInstance pi = (WorkflowProcessInstance) ksession.getProcessInstance(processInstanceId);
+                    WorkflowProcessInstance pi = (WorkflowProcessInstance) ksession.getProcessInstance(processInstanceId, true);
                     if (pi == null) {
                         throw new ProcessInstanceNotFoundException("Process instance with id " + processInstanceId + " was not found");
                     }
@@ -615,7 +615,7 @@ public class ProcessServiceImpl implements ProcessService, VariablesAware {
         RuntimeEngine engine = manager.getRuntimeEngine(ProcessInstanceIdContext.get(processInstanceId));
         try {
             KieSession ksession = engine.getKieSession();
-            ProcessInstance processInstance = ksession.getProcessInstance(processInstanceId);
+            ProcessInstance processInstance = ksession.getProcessInstance(processInstanceId, true);
             Collection<String> activeSignals = new ArrayList<>();
 
             if (processInstance != null) {

@@ -23,6 +23,8 @@ public class NodeLeftCountDownProcessEventListener extends NodeCountDownProcessE
     
     private boolean reactOnBeforeNodeLeft = false;
     
+    private int countAfter = 0;
+    
     public NodeLeftCountDownProcessEventListener() {
         
     }
@@ -39,6 +41,7 @@ public class NodeLeftCountDownProcessEventListener extends NodeCountDownProcessE
     @Override
     public void afterNodeLeft(ProcessNodeLeftEvent event) {
         if (nodeName.equals(event.getNodeInstance().getNodeName())) {
+            countAfter++;
             countDown();
         }
     }
@@ -48,5 +51,9 @@ public class NodeLeftCountDownProcessEventListener extends NodeCountDownProcessE
         if (reactOnBeforeNodeLeft && nodeName.equals(event.getNodeInstance().getNodeName())) {
             countDown();
         }
+    }
+    
+    public int getCountAfter() {
+        return countAfter;
     }
 }

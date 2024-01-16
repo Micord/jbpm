@@ -16,10 +16,7 @@
 
 package org.jbpm.process.audit;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.ServiceLoader;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -40,7 +37,12 @@ import org.jbpm.process.audit.variable.ProcessIndexerManager;
 import org.jbpm.process.instance.ProcessInstance;
 import org.jbpm.workflow.instance.NodeInstance;
 import org.jbpm.workflow.instance.impl.NodeInstanceImpl;
+import org.jbpm.workflow.instance.impl.WorkflowProcessInstanceImpl;
 import org.kie.api.event.KieRuntimeEvent;
+import org.jbpm.process.core.context.variable.Variable;
+import org.jbpm.process.core.context.variable.VariableScope;
+import org.jbpm.process.core.impl.ProcessImpl;
+import org.kie.api.event.process.ProcessAsyncNodeScheduledEvent;
 import org.kie.api.event.process.ProcessCompletedEvent;
 import org.kie.api.event.process.ProcessEventListener;
 import org.kie.api.event.process.ProcessNodeLeftEvent;
@@ -59,7 +61,7 @@ import org.slf4j.LoggerFactory;
  * Enables history log via JPA.
  * 
  */
-public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter {
+public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter implements AuditLoggerArchiveTreat{
 
     private static final Logger logger = LoggerFactory.getLogger(JPAWorkingMemoryDbLogger.class);
     
@@ -81,14 +83,14 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter {
         if (processRuntime != null) {
             processRuntime.addEventListener( (ProcessEventListener) this );
         }
-        initArchiveLoggerProvider();
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
     
     public JPAWorkingMemoryDbLogger(KieSession session) {
     	Environment env = session.getEnvironment();
         internalSetIsJTA(env);
         session.addEventListener(this);
-        initArchiveLoggerProvider();
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
     /*
      * end of backward compatibility
@@ -96,28 +98,23 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter {
 
     public JPAWorkingMemoryDbLogger(EntityManagerFactory emf) {
         this.emf = emf;
-        initArchiveLoggerProvider();
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
     
     public JPAWorkingMemoryDbLogger() { 
         // default constructor when this is used with a persistent KieSession
-        initArchiveLoggerProvider();
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
         
     public JPAWorkingMemoryDbLogger(EntityManagerFactory emf, Environment env) {
         this.emf = emf;
         internalSetIsJTA(env);
-        initArchiveLoggerProvider();
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
 
     public JPAWorkingMemoryDbLogger(Environment env) {
         internalSetIsJTA(env);
-        initArchiveLoggerProvider();
-    }
-
-    private void initArchiveLoggerProvider() {
-        archiveLoggerProvider = new ArrayList<>();
-        ServiceLoader.load(ArchiveLoggerProvider.class).forEach(e -> archiveLoggerProvider.add(e));
+        archiveLoggerProvider = initArchiveLoggerProvider();
     }
 
     private void internalSetIsJTA(Environment env) { 
@@ -132,7 +129,13 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter {
         NodeInstanceLog log = (NodeInstanceLog) builder.buildEvent(event);
         setNodeInstanceMetadata(event.getNodeInstance(), METADATA_NODEINSTANCE_LOG, log);
         persist(log, event);
+    }
 
+    @Override
+    protected void nodeScheduled(ProcessAsyncNodeScheduledEvent event) {
+        NodeInstanceLog log = (NodeInstanceLog) builder.buildEvent(event);
+        setNodeInstanceMetadata(event.getNodeInstance(), METADATA_NODEINSTANCE_LOG, log);
+        persist(log, event);
     }
 
     @Override
@@ -148,6 +151,27 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter {
         List<org.kie.api.runtime.manager.audit.VariableInstanceLog> variables = indexManager.index(getBuilder(), event);
         setProcessInstanceMetadata(event.getProcessInstance(), METADATA_VARIABLEINSTANCE_LOG, variables);
         variables.forEach(log -> persist(log, event));
+
+        // we check if there is a need to flush the description
+        VariableScope variableScope = (VariableScope) ((ProcessImpl) event.getProcessInstance().getProcess()).getDefaultContext(VariableScope.VARIABLE_SCOPE);
+        Variable variable = variableScope.findVariable(event.getVariableId());
+        if (variable != null && variable.hasTag("process_description")) {
+            EntityManager em = getEntityManager(event);
+            Object tx = joinTransaction(em);
+
+            List<ProcessInstanceLog> result = em.createQuery("from ProcessInstanceLog as log where log.processInstanceId = :piId and log.end is null")
+                    .setParameter("piId", event.getProcessInstance().getId())
+                    .getResultList();
+
+            if (result != null && !result.isEmpty()) {
+                ProcessInstanceLog log = result.get(0);
+                WorkflowProcessInstanceImpl workflow = (WorkflowProcessInstanceImpl) event.getProcessInstance();
+                workflow.setDescription(null);
+                log.setProcessInstanceDescription(workflow.getDescription());
+                em.merge(log);
+            }
+            leaveTransaction(em, tx);
+        }
     }
 
     @Override
@@ -167,18 +191,22 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter {
         ProcessInstanceLog log = (ProcessInstanceLog) getProcessInstanceMetadata(event.getProcessInstance(), METADATA_PROCESSINTANCE_LOG);
         if (log == null) {
             List<ProcessInstanceLog> result = em.createQuery("from ProcessInstanceLog as log where log.processInstanceId = :piId and log.end is null")
-                                                .setParameter("piId", processInstanceId).getResultList();
+                                                .setParameter("piId", processInstanceId)
+                                                .getResultList();
             if (result != null && result.size() != 0) {
                 log = result.get(result.size() - 1);
             }
         }
         if (log != null) {
             log = (ProcessInstanceLog) builder.buildEvent(event, log);
-            setProcessInstanceMetadata(event.getProcessInstance(), METADATA_PROCESSINTANCE_LOG, log);
-            em.merge(log);
+
             // archive everything
             final ProcessInstanceLog logToArchive = log;
             this.archiveLoggerProvider.stream().forEach(archiver -> archiver.archive(em, logToArchive));
+
+            setProcessInstanceMetadata(event.getProcessInstance(), METADATA_PROCESSINTANCE_LOG, log);
+            em.merge(log);
+
         }
         leaveTransaction(em, tx);
     }
@@ -410,5 +438,7 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter {
         	return null;
         }
     }
+
+
 
 }

@@ -67,6 +67,14 @@ public class TestPersistenceContextBase {
     protected Properties dataSourceProperties;
     protected final DatabaseType databaseType;
 
+    public EntityManagerFactory getEntityManagerFactory() {
+        return entityManagerFactory;
+    }
+
+    public JtaTransactionManager getTransactionManager() {
+        return transactionManager;
+    }
+
     public TestPersistenceContextBase() {
         this.dataSourceProperties = PersistenceUtil.getDatasourceProperties();
         this.databaseType = TestsUtil.getDatabaseType(dataSourceProperties);
@@ -141,7 +149,7 @@ public class TestPersistenceContextBase {
     public void executeScripts(final File scriptsRootFolder, ScriptFilter scriptFilter,
                                DataSource dataSource, String defaultSchema) throws IOException, SQLException {
         final File[] sqlScripts = TestsUtil.getDDLScriptFilesByDatabaseType(scriptsRootFolder, databaseType, scriptFilter);
-        if (sqlScripts.length == 0 && scriptFilter.hasOption(Option.DISALLOW_EMTPY_RESULTS)) {
+        if (sqlScripts.length == 0 && scriptFilter.hasOption(Option.DISALLOW_EMPTY_RESULTS)) {
             throw new RuntimeException("No create sql files found for db type "
                                                + databaseType + " in folder " + scriptsRootFolder.getAbsolutePath());
         }
@@ -158,9 +166,9 @@ public class TestPersistenceContextBase {
                     logger.debug("query {} ", command);
                     final PreparedStatement statement = preparedStatement(connection, command);
                     executeStatement(scriptFilter.hasOption(Option.THROW_ON_SCRIPT_ERROR), statement);
+                    connection.commit();
                 }
             }
-            connection.commit();
         } catch (SQLException ex) {
             connection.rollback();
             throw new RuntimeException(ex.getMessage(), ex);

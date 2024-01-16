@@ -383,7 +383,7 @@ public class MVELLifeCycleManager implements LifeCycleManager {
                     break;
                 }
                 case Suspend: {
-                	taskEventSupport.fireBeforeTaskSuspended(task, context);
+                	taskEventSupport.fireBeforeTaskSuspended(task, context, data);
                     break;
                 }
 
@@ -414,6 +414,7 @@ public class MVELLifeCycleManager implements LifeCycleManager {
                 case Delegate: {                	
                     // This is a really bad hack to execut the correct behavior
                     ((InternalTaskData) task.getTaskData()).setStatus(Status.Reserved);
+                    persistenceContext.updateTask(task);
                     taskEventSupport.fireAfterTaskDelegated(task, context);
                     break;
                 }
@@ -457,12 +458,11 @@ public class MVELLifeCycleManager implements LifeCycleManager {
                     break;
                 }    
                 case Suspend: {
-                	taskEventSupport.fireAfterTaskSuspended(task, context);
+                	taskEventSupport.fireAfterTaskSuspended(task, context, data);
                     break;
                 }
                 
             }
-            
             getExecutionErrorHandler().processed(task);
         } catch (RuntimeException re) {
             throw re;

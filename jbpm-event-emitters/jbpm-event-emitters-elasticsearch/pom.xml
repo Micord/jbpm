@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm-event-emitters</artifactId>
-    <version>7.58.0.Final-Micord.5</version>
+    <version>7.74.1.Final</version>
   </parent>
   <artifactId>jbpm-event-emitters-elasticsearch</artifactId>
   <name>jBPM :: Event Emitters :: ElasticSearch</name>
@@ -66,6 +66,11 @@
     </dependency>
     <dependency>
       <groupId>org.jbpm</groupId>
+      <artifactId>jbpm-bpmn2</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jbpm</groupId>
       <artifactId>jbpm-test-util</artifactId>
       <scope>test</scope>
     </dependency>
@@ -86,8 +91,8 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.jboss.spec.javax.servlet</groupId>
-      <artifactId>jboss-servlet-api_3.1_spec</artifactId>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -102,8 +107,8 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.jboss.spec.javax.annotation</groupId>
-      <artifactId>jboss-annotations-api_1.2_spec</artifactId>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -124,6 +129,11 @@
     <dependency>
       <groupId>org.jboss.narayana.jta</groupId>
       <artifactId>narayana-jta</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss</groupId>
+      <artifactId>jboss-transaction-spi-jakarta</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

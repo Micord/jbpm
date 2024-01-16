@@ -16,16 +16,20 @@
 
 package org.jbpm.test.functional;
 
+import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
+
 import org.jbpm.test.JbpmTestCase;
+import org.jbpm.test.domain.Address;
 import org.junit.Test;
 import org.kie.api.runtime.manager.audit.VariableInstanceLog;
 import org.kie.api.runtime.process.ProcessInstance;
+import org.kie.api.runtime.process.WorkflowProcessInstance;
 import org.kie.internal.KieInternalServices;
 import org.kie.internal.process.CorrelationAwareProcessRuntime;
 import org.kie.internal.process.CorrelationKey;
@@ -36,6 +40,8 @@ public class CorrelationKeyTest extends JbpmTestCase {
     private static final String PROCESS = "org.jbpm.test.functional.CorrelationKey";
     private static final String VARIABLE_ID = "procVar";
     private static final String VARIABLE_VALUE = "procVarValue";
+    private static final String INT_VARIABLE_ID = "intVar";
+    private static final String COMPLEX_VARIABLE_ID = "complexVar";
 
     private static final String SIMPLE_KEY = "mySimpleCorrelationKey";
     private static final List<String> COMPOSED_KEY = Arrays.asList("firstPartOfKey", "secondPartOfKey");
@@ -46,7 +52,6 @@ public class CorrelationKeyTest extends JbpmTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-
         keyFactory = KieInternalServices.Factory.get().newCorrelationKeyFactory();
         ksession = (CorrelationAwareProcessRuntime) createKSession("org/jbpm/test/functional/CorrelationKey.bpmn2");
     }
@@ -85,7 +90,7 @@ public class CorrelationKeyTest extends JbpmTestCase {
             Assertions.fail("Not unique correlation key used. Exception should have been thrown.");
         } catch (RuntimeException ex) {
             ex.printStackTrace();
-            Assertions.assertThat(ex.getMessage()).contains("already exists");
+            Assertions.assertThat(ex.getMessage()).contains("failed to persist");
         }
     }
 
@@ -101,7 +106,7 @@ public class CorrelationKeyTest extends JbpmTestCase {
             Assertions.fail("Not unique correlation key used. Exception should have been thrown.");
         } catch (RuntimeException ex) {
             ex.printStackTrace();
-            Assertions.assertThat(ex.getMessage()).contains("already exists");
+            Assertions.assertThat(ex.getMessage()).contains("failed to persist");
         }
     }
 
@@ -162,4 +167,52 @@ public class CorrelationKeyTest extends JbpmTestCase {
         ProcessInstance processInstance2 = ksession.startProcess(PROCESS, key2, null);
         assertProcessInstanceActive(processInstance2.getId());
     }
+
+    @Test
+    public void testCreateProcessInstanceDefaultValue() {
+        CorrelationKey key = keyFactory.newCorrelationKey(SIMPLE_KEY);
+
+        Map<String, Object> parameters = new HashMap<String, Object>();
+
+        WorkflowProcessInstance processInstance = (WorkflowProcessInstance) ksession.startProcess(PROCESS, key,
+                parameters);
+
+        assertEquals("defaultProc", processInstance.getVariable(VARIABLE_ID));
+        assertEquals(Integer.valueOf(1), processInstance.getVariable(INT_VARIABLE_ID));
+
+    }
+
+    @Test
+    public void testCreateProcessInstanceWithDefaultValueAndParams() {
+        CorrelationKey key = keyFactory.newCorrelationKey(SIMPLE_KEY);
+
+        Map<String, Object> parameters = new HashMap<String, Object>();
+
+        parameters.put(VARIABLE_ID, VARIABLE_VALUE);
+        WorkflowProcessInstance processInstance = (WorkflowProcessInstance) ksession.startProcess(PROCESS, key,
+                parameters);
+       
+        assertEquals(VARIABLE_VALUE, processInstance.getVariable(VARIABLE_ID));
+        assertEquals(Integer.valueOf(1), processInstance.getVariable(INT_VARIABLE_ID));
+
+    }
+
+    @Test
+    public void testCreateProcessInstanceComplexTypeDefaultValue() {
+        
+        Address address = new Address();
+        address.setStreet("abc");
+        address.setNumber(29);
+        address.setCity("def");
+       
+        CorrelationKey key = keyFactory.newCorrelationKey(SIMPLE_KEY);
+
+        Map<String, Object> parameters = new HashMap<String, Object>();
+       
+        WorkflowProcessInstance processInstance = (WorkflowProcessInstance) ksession.startProcess(PROCESS, key,
+                parameters);
+        assertEquals(address,processInstance.getVariable(COMPLEX_VARIABLE_ID));
+
+    }
+
 }

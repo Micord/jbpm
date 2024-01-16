@@ -74,9 +74,7 @@ public class NodeInstanceLog implements Serializable, AuditEvent, org.kie.api.ru
     @Column(nullable=true)
     private Integer slaCompliance;
 
-    @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "end_date")
-    private Date end;
+    private String observation;
 
     public NodeInstanceLog() {
     }
@@ -92,14 +90,6 @@ public class NodeInstanceLog implements Serializable, AuditEvent, org.kie.api.ru
         this.date = new Date();
     }
 	
-    public Date getEnd() {
-        return end;
-    }
-
-    public void setEnd(Date end) {
-        this.end = end;
-    }
-
 	public Integer getType() {
 		return type;
 	}
@@ -165,8 +155,18 @@ public class NodeInstanceLog implements Serializable, AuditEvent, org.kie.api.ru
 	}
 
     public String toString() {
-        return (type == 0 ? "Triggered " : "Left ") + "Node Instance '" + 
-        	processId + "#" + nodeId + "' (" + nodeName + ") [" + processInstanceId + "#" + nodeInstanceId + "]";
+        String action = null;
+        switch(type) {
+            case TYPE_ABORTED: action = "Aborted"; break;
+            case TYPE_ASYNC_ENTER: action = "Async Enter"; break;
+            case TYPE_ENTER: action = "Triggered"; break;
+            case TYPE_ERROR: action = "Error"; break;
+            case TYPE_EXIT: action = "Left"; break;
+            case TYPE_OBSOLETE: action = "Obsolete"; break;
+            case TYPE_SKIPPED: action = "Skipped"; break;
+        }
+        return action + " Node Instance '" + 
+        	processId + "#" + nodeId + "' (" + nodeName + ") [" + processInstanceId + "#" + nodeInstanceId + "]" + ((observation != null) ? observation : "");
     }
     
 	@Override
@@ -335,5 +335,12 @@ public class NodeInstanceLog implements Serializable, AuditEvent, org.kie.api.ru
     public void setSlaCompliance(Integer slaCompliance) {
         this.slaCompliance = slaCompliance;
     }
-  	
+
+    public String getObservation() {
+        return observation;
+    }
+
+    public void setObservation(String observation) {
+        this.observation = observation;
+    }
 }

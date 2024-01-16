@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JPASignalManager extends DefaultSignalManager {
+
     private static final String ASYNC_SIGNAL_PREFIX = "ASYNC-";
     private static final Logger logger = LoggerFactory.getLogger(JPASignalManager.class);
 
@@ -66,8 +67,8 @@ public class JPASignalManager extends DefaultSignalManager {
                 logger.warn("Signal should be sent asynchronously but there is no executor service available, continuing sync...");
             }
         }
-        
-        
+
+
         for ( long id : processInstancesToSignalList ) {
             try {
                 getKnowledgeRuntime().getProcessInstance( id );
@@ -75,12 +76,11 @@ public class JPASignalManager extends DefaultSignalManager {
                 // IllegalStateException can be thrown when using RuntimeManager
                 // and invalid ksession was used for given context
             } catch (RuntimeException e) {
-                logger.warn("Exception when loading process instance for signal '{}', instance with id {} will not be signaled",
-                        e.getMessage(), id);
+                logger.warn("Exception when loading process instance for signal '{}', instance with id {} will not be signaled", e.getMessage(), id);
             }
         }
-        super.signalEvent( actualSignalType,
-                           event );
+        super.signalEvent( actualSignalType,  event );
+
     }
 
 }

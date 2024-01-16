@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.apache.commons.io.input.ClassLoaderObjectInputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.drools.core.common.DroolsObjectInputStream;
 import org.jbpm.executor.AsyncJobException;
 import org.jbpm.executor.entities.ErrorInfo;
 import org.jbpm.executor.entities.RequestInfo;
@@ -110,8 +111,9 @@ public abstract class AbstractAvailableJobsExecutor {
                     if (reqData != null) {
                         ObjectInputStream in = null;
                         try {
-                            in = new ClassLoaderObjectInputStream(cl, new ByteArrayInputStream(reqData));
+                            in = new DroolsObjectInputStream(new ByteArrayInputStream(reqData), cl);
                             ctx = (CommandContext) in.readObject();
+                            updateProcessInfoInContext(request, ctx);
                         } catch (IOException e) {                        
                             logger.warn("Exception while serializing context data", e);
                             return;
@@ -291,7 +293,9 @@ public abstract class AbstractAvailableJobsExecutor {
                 requestInfo.setTime(nextScheduleTime);
                 requestInfo.setMessage("Rescheduled reoccurring job");
                 requestInfo.setDeploymentId((String)ctx.getData("deploymentId"));
-                requestInfo.setProcessInstanceId((Long)ctx.getData("processInstanceId"));
+                if (ctx.getData("processInstanceId") != null) {
+                    requestInfo.setProcessInstanceId(((Number) ctx.getData("processInstanceId")).longValue());
+                }
                 requestInfo.setOwner((String)ctx.getData("owner"));
                 if (ctx.getData("retries") != null) {
                     requestInfo.setRetries(Integer.valueOf(String.valueOf(ctx.getData("retries"))));

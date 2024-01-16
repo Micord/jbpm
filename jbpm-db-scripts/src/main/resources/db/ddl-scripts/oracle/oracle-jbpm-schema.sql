@@ -30,7 +30,6 @@
         taskId number(19,0),
         workItemId number(19,0),
         lastModificationDate timestamp,
-        end_date timestamp,
         primary key (id)
     );
 
@@ -46,7 +45,6 @@
         taskName varchar2(255 char),
         userId varchar2(255 char),
         OPTLOCK number(10,0),
-        end_date timestamp,
         primary key (pk)
     );
 
@@ -100,6 +98,17 @@
         OWNER_ID varchar2(255 char),
         OPTLOCK number(10,0),
         primary key (mappingId)
+    );
+
+    create table TimerMappingInfo (
+    	id number(19,0) not null, 
+    	externalTimerId varchar2(255 char), 
+    	kieSessionId number(19,0) not null, 
+    	processInstanceId number(19,0), 
+    	timerId number(19,0), 
+    	uuid varchar2(255 char) not null, 
+    	info blob,
+    	primary key (id)
     );
 
     create table CorrelationKeyInfo (
@@ -218,7 +227,7 @@
         workItemId number(19,0),
         nodeContainerId varchar2(255 char),
         referenceId number(19,0),
-        end_date timestamp,
+        observation varchar2(255 char),
         primary key (id)
     );
 
@@ -418,7 +427,7 @@
         workItemId number(19,0),
         correlationKey varchar(255),
         processType number(1,0),
-        end_date timestamp,
+        currentOwner varchar2(255),
         primary key (id)
     );
 
@@ -444,7 +453,6 @@
         value varchar2(255 char),
         variableId varchar2(255 char),
         variableInstanceId varchar2(255 char),
-        end_date timestamp,
         primary key (id)
     );
 
@@ -737,6 +745,8 @@
 
     create sequence CONTEXT_MAPPING_INFO_ID_SEQ;
 
+    create sequence TIMER_MAPPING_INFO_ID_SEQ;
+
     create sequence CORRELATION_KEY_ID_SEQ;
 
     create sequence CORRELATION_PROP_ID_SEQ;
@@ -837,12 +847,14 @@
     create index IDX_TaskEvent_taskId on TaskEvent (taskId);
     create index IDX_TaskEvent_processInstanceId on TaskEvent (processInstanceId);
 
-    create index IDX_EventTypes_element ON EventTypes(element);
+    create index IDX_EventTypes_IdElement ON EventTypes(InstanceId,element);
 
     create index IDX_CMI_Context ON ContextMappingInfo(CONTEXT_ID);    
     create index IDX_CMI_KSession ON ContextMappingInfo(KSESSION_ID);    
     create index IDX_CMI_Owner ON ContextMappingInfo(OWNER_ID);
-    
+
+    create unique index IDX_TMI_KSessionUUID on TimerMappingInfo (kieSessionId, uuid);
+
     create index IDX_RequestInfo_status ON RequestInfo(status);
     create index IDX_RequestInfo_timestamp ON RequestInfo(timestamp);
     create index IDX_RequestInfo_owner ON RequestInfo(owner);
@@ -894,3 +906,9 @@
     create index IDX_TaskVariableImpl_taskId on TaskVariableImpl(taskId);
     create index IDX_TaskVariableImpl_pInstId on TaskVariableImpl(processInstanceId);
     create index IDX_TaskVariableImpl_processId on TaskVariableImpl(processId);
+
+    create index IDX_CaseRoleAssignLog_caseId on CaseRoleAssignmentLog(caseId);
+    create index IDX_CaseRoleAssignLog_processInstanceId on CaseRoleAssignmentLog(processInstanceId);
+
+    create index IDX_CaseFileDataLog_caseId on CaseFileDataLog(caseId);
+    create index IDX_CaseFileDataLog_itemName on CaseFileDataLog(itemName);

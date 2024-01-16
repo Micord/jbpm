@@ -25,12 +25,18 @@ public interface ProcessPersistenceContext
     extends
     PersistenceContext {
 
+    List<Long> findAllProcessInstanceInfo();
+
     PersistentProcessInstance persist(PersistentProcessInstance processInstanceInfo);
     
     PersistentCorrelationKey persist(PersistentCorrelationKey correlationKeyInfo);
     
     PersistentProcessInstance findProcessInstanceInfo(Long processId);
     
+    default void evict(PersistentProcessInstance processInstanceInfo) {
+        
+    }
+
     void remove(PersistentProcessInstance processInstanceInfo);
 
     List<Long> getProcessInstancesWaitingForEvent(String type);

@@ -121,6 +121,14 @@ public interface RuntimeDataService {
      */
     Collection<ProcessInstanceDesc> getProcessInstancesByDeploymentId(String deploymentId, List<Integer> states, QueryContext queryContext);
 
+	/**
+	 * Returns the count of process instances found for given deployment id and statuses.
+	 * @param deploymentId The deployment id of the runtime.
+	 * @param states A list of possible state (int) values that the {@link ProcessInstance} can have.
+	 * @return A count of process instances that match the given criteria (deploymentId and states).
+	 */
+	Long countProcessInstancesByDeploymentId(String deploymentId, List<Integer> states);
+
     /**
      * Returns process instance descriptions found for given processInstanceId if found otherwise null. At the same time it will
      * fetch all active tasks (in status: Ready, Reserved, InProgress) to provide information what user task is keeping instance
@@ -239,7 +247,15 @@ public interface RuntimeDataService {
      */
     Collection<NodeInstanceDesc> getProcessInstanceHistoryCompleted(long processInstanceId, QueryContext queryContext);
 
-    /**
+	/**
+	 * Returns trace of all passed (include completed, skipped, aborted, OBSOLETE) for given process instance id
+	 * @param processInstanceId unique identifier of process instance
+	 * @param queryContext control parameters for the result e.g. sorting, paging
+	 * @return
+	 */
+	Collection<NodeInstanceDesc> getProcessInstanceHistoryFinished(long processInstanceId, QueryContext queryContext);
+
+	/**
      * Returns complete trace of all executed (completed) and active nodes for given process instance id
      * @param processInstanceId The id of the process used to start the process instance.
      * @param queryContext control parameters for the result e.g. sorting, paging

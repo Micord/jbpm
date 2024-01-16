@@ -328,8 +328,12 @@ public class CommandBasedTaskService implements InternalTaskService, EventServic
 	}
 
 	public void suspend(long taskId, String userId) {
-		executor.execute(new SuspendTaskCommand(taskId, userId));
+		this.suspend(taskId, userId, Collections.emptyMap());
 	}
+
+    public void suspend(long taskId, String userId, Map<String, Object> parameters) {
+        executor.execute(new SuspendTaskCommand(taskId, userId, parameters));
+    }
 
 	public void nominate(long taskId, String userId,
 			List<OrganizationalEntity> potentialOwners) {
@@ -588,7 +592,7 @@ public class CommandBasedTaskService implements InternalTaskService, EventServic
 
     @Override
     public long addContentFromUser(long taskId, String userId, Map<String, Object> params) {
-        return executor.execute(new AddContentCommand(taskId, userId, params));
+        return addOutputContentFromUser(taskId, userId, params);
     }
 
 	@Override

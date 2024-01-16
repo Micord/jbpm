@@ -30,7 +30,6 @@
         taskId int8,
         workItemId int8,
         lastModificationDate timestamp,
-        end_date timestamp,
         primary key (id)
     );
 
@@ -46,7 +45,6 @@
         taskName varchar(255),
         userId varchar(255),
         OPTLOCK int4,
-        end_date timestamp,
         primary key (pk)
     );
 
@@ -100,6 +98,17 @@
         OWNER_ID varchar(255),
         OPTLOCK int4,
         primary key (mappingId)
+    );
+
+    create table TimerMappingInfo (
+    	id int8 not null, 
+    	externalTimerId varchar(255), 
+    	kieSessionId int8 not null, 
+    	processInstanceId int8,
+    	timerId int8, 
+    	uuid varchar(255) not null,
+    	info oid,
+    	primary key (id)
     );
 
     create table CorrelationKeyInfo (
@@ -218,7 +227,7 @@
         workItemId int8,
         nodeContainerId varchar(255),
         referenceId int8,
-        end_date timestamp,
+        observation varchar(255),
         primary key (id)
     );
 
@@ -418,7 +427,7 @@
         workItemId int8,
         correlationKey varchar(255),
         processType int4,
-        end_date timestamp,
+        currentOwner varchar(255),
         primary key (id)
     );
 
@@ -444,7 +453,6 @@
         value varchar(255),
         variableId varchar(255),
         variableInstanceId varchar(255),
-        end_date timestamp,
         primary key (id)
     );
 
@@ -737,6 +745,8 @@
 
     create sequence CONTEXT_MAPPING_INFO_ID_SEQ;
 
+    create sequence TIMER_MAPPING_INFO_ID_SEQ;
+
     create sequence CORRELATION_KEY_ID_SEQ;
 
     create sequence CORRELATION_PROP_ID_SEQ;
@@ -838,12 +848,14 @@
     create index IDX_TaskEvent_taskId on TaskEvent (taskId);
     create index IDX_TaskEvent_processInstanceId on TaskEvent (processInstanceId);
 
-    create index IDX_EventTypes_element ON EventTypes(element);
+    create index IDX_EventTypes_IdElement ON EventTypes(InstanceId,element);
 
     create index IDX_CMI_Context ON ContextMappingInfo(CONTEXT_ID);    
     create index IDX_CMI_KSession ON ContextMappingInfo(KSESSION_ID);    
     create index IDX_CMI_Owner ON ContextMappingInfo(OWNER_ID);
-    
+
+    create unique index IDX_TMI_KSessionUUID on TimerMappingInfo (kieSessionId, uuid);
+
     create index IDX_RequestInfo_status ON RequestInfo(status);
     create index IDX_RequestInfo_timestamp ON RequestInfo(timestamp); -- remove this index on PostgreSQLPlus as it does not allow timestamp in column list 
     create index IDX_RequestInfo_owner ON RequestInfo(owner);
@@ -895,3 +907,10 @@
     create index IDX_TaskVariableImpl_taskId on TaskVariableImpl(taskId);
     create index IDX_TaskVariableImpl_pInstId on TaskVariableImpl(processInstanceId);
     create index IDX_TaskVariableImpl_processId on TaskVariableImpl(processId);
+
+    create index IDX_CaseRoleAssignLog_caseId on CaseRoleAssignmentLog(caseId);
+    create index IDX_CaseRoleAssignLog_processInstanceId on CaseRoleAssignmentLog(processInstanceId);
+
+    create index IDX_CaseFileDataLog_caseId on CaseFileDataLog(caseId);
+    create index IDX_CaseFileDataLog_itemName on CaseFileDataLog(itemName);
+    

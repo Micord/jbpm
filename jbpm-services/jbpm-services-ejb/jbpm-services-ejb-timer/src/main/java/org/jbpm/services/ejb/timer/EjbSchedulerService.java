@@ -16,10 +16,19 @@
 
 package org.jbpm.services.ejb.timer;
 
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
+import javax.ejb.Timer;
+import javax.ejb.TimerHandle;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 
 import org.drools.core.time.InternalSchedulerService;
 import org.drools.core.time.Job;
@@ -28,6 +37,10 @@ import org.drools.core.time.JobHandle;
 import org.drools.core.time.TimerService;
 import org.drools.core.time.Trigger;
 import org.drools.core.time.impl.TimerJobInstance;
+import org.drools.persistence.api.TransactionManager;
+import org.drools.persistence.api.TransactionManagerFactory;
+import org.drools.persistence.api.TransactionSynchronization;
+import org.drools.persistence.jta.JtaTransactionManager;
 import org.jbpm.process.core.timer.GlobalSchedulerService;
 import org.jbpm.process.core.timer.JobNameHelper;
 import org.jbpm.process.core.timer.NamedJobContext;
@@ -35,12 +48,17 @@ import org.jbpm.process.core.timer.SchedulerServiceInterceptor;
 import org.jbpm.process.core.timer.impl.DelegateSchedulerServiceInterceptor;
 import org.jbpm.process.core.timer.impl.GlobalTimerService;
 import org.jbpm.process.core.timer.impl.GlobalTimerService.GlobalJobHandle;
-import org.jbpm.process.instance.timer.TimerManager.ProcessJobContext;
+import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
+import org.jbpm.runtime.manager.impl.jpa.TimerMappingInfo;
+import org.kie.internal.runtime.manager.InternalRuntimeManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class EjbSchedulerService implements GlobalSchedulerService {
-    
-    private static final Boolean TRANSACTIONAL = Boolean.parseBoolean(System.getProperty("org.jbpm.ejb.timer.tx", "false"));
+    private static final Logger logger = LoggerFactory.getLogger(EjbSchedulerService.class);
+
+    private static final Boolean TRANSACTIONAL = Boolean.parseBoolean(System.getProperty("org.jbpm.ejb.timer.tx", "true"));
 
 	private AtomicLong idCounter = new AtomicLong();
 	private TimerService globalTimerService;
@@ -58,8 +76,11 @@ public class EjbSchedulerService implements GlobalSchedulerService {
 		TimerJobInstance jobInstance = null;
 		// check if given timer job is marked as new timer meaning it was never scheduled before, 
 		// if so skip the check by timer name as it has no way to exist
-		if (!isNewTimer(ctx)) {
-    		jobInstance = scheduler.getTimerByName(jobName);
+		if (!ctx.isNew()) {
+		    jobInstance = getTimerJobInstance(jobName);
+		    if (jobInstance == null) {
+		        jobInstance = scheduler.getTimerByName(jobName);
+		    }
     		if (jobInstance != null) {
     			return jobInstance.getJobHandle();
     		}
@@ -76,18 +97,126 @@ public class EjbSchedulerService implements GlobalSchedulerService {
 		return jobHandle;
 	}
 
-	@Override
-	public boolean removeJob(JobHandle jobHandle) {
-		
-		boolean result = scheduler.removeJob(jobHandle);
-	
-		return result;
-	}
+    @Override
+    public boolean removeJob(JobHandle jobHandle) {
+        String uuid = ((EjbGlobalJobHandle) jobHandle).getUuid();
+        final Timer ejbTimer = getEjbTimer(getTimerMappinInfo(uuid));
+        if (TRANSACTIONAL && ejbTimer == null) {
+            // this situation needs to be avoided as it should not happen
+            return false;
+        }
+        JtaTransactionManager tm = (JtaTransactionManager) TransactionManagerFactory.get().newTransactionManager();
+        try {
+            tm.registerTransactionSynchronization(new TransactionSynchronization() {
+                @Override
+                public void beforeCompletion() {
+                }
 
-	@Override
-	public void internalSchedule(TimerJobInstance timerJobInstance) {
-		scheduler.internalSchedule(timerJobInstance);
-	}
+                @Override
+                public void afterCompletion(int status) {
+                    if (status == TransactionManager.STATUS_COMMITTED) {
+                        logger.debug("remove job {} after commited", jobHandle);
+                        scheduler.removeJob(jobHandle, ejbTimer);
+                    }
+                }
+                
+            });
+            logger.debug("register tx to remove job {}", jobHandle);
+            return true;
+        } catch (Exception e) {
+            logger.debug("remove job {} outside tx", jobHandle);
+            return scheduler.removeJob(jobHandle, ejbTimer);
+        }
+    }
+
+    private TimerJobInstance getTimerJobInstance (String uuid) {
+        return unwrapTimerJobInstance(getEjbTimer(getTimerMappinInfo(uuid)));
+    }
+
+
+    @Override
+    public TimerJobInstance getTimerJobInstance(long processInstanceId, long timerId) {
+        return unwrapTimerJobInstance(getEjbTimer(getTimerMappinInfo(processInstanceId, timerId)));
+    }
+
+    private Timer getEjbTimer(TimerMappingInfo timerMappingInfo) {
+        try {
+            if(timerMappingInfo == null || timerMappingInfo.getInfo() == null) {
+                return null;
+            }
+            byte[] data = timerMappingInfo.getInfo();
+            return ((TimerHandle) new ObjectInputStream(new ByteArrayInputStream(data)).readObject()).getTimer();
+        } catch (Exception e) {
+            logger.warn("wast not able to deserialize info field from timer info for uuid");
+            return null;
+        }
+    }
+
+    private TimerMappingInfo getTimerMappinInfo(String uuid) {
+        return getTimerMappingInfo(em -> em.createQuery("SELECT o FROM TimerMappingInfo o WHERE o.uuid = :uuid", TimerMappingInfo.class).setParameter("uuid", uuid).getResultList());
+    }
+
+    private TimerMappingInfo getTimerMappinInfo(long processInstanceId, long timerId) {
+        return getTimerMappingInfo(em -> 
+            em.createQuery("SELECT o FROM TimerMappingInfo o WHERE o.timerId = :timerId AND o.processInstanceId = :processInstanceId", TimerMappingInfo.class)
+                .setParameter("processInstanceId", processInstanceId)
+                .setParameter("timerId", timerId)
+                .getResultList()
+        );
+    }
+
+    private TimerMappingInfo getTimerMappingInfo(Function<EntityManager, List<TimerMappingInfo>> func) {
+        InternalRuntimeManager manager = ((GlobalTimerService) globalTimerService).getRuntimeManager();
+        String pu = ((InternalRuntimeManager) manager).getDeploymentDescriptor().getPersistenceUnit();
+        EntityManagerFactory emf = EntityManagerFactoryManager.get().getOrCreate(pu);
+        EntityManager em = emf.createEntityManager();
+        JtaTransactionManager tm = (JtaTransactionManager) TransactionManagerFactory.get().newTransactionManager();
+        boolean txOwner = false;
+        try {
+            if (tm != null  && tm.getStatus() == TransactionManager.STATUS_ROLLEDBACK) {
+                txOwner = tm.begin();
+            }
+            List<TimerMappingInfo> info = func.apply(em);
+            if (!info.isEmpty()) {
+                return info.get(0);
+            } else {
+                return null;
+            }
+            
+        } catch (Exception ex) {
+            logger.warn("Error getting mapping info ",ex);
+            return null;
+        } finally {
+            if (tm != null) {
+                tm.commit(txOwner);
+            }
+            em.close();
+        }
+    }
+
+    private TimerJobInstance unwrapTimerJobInstance(Timer timer) {
+        try {
+            if (timer == null) {
+                return null;
+            }
+            Serializable info = timer.getInfo();
+            EjbTimerJob job = (EjbTimerJob) info;
+            TimerJobInstance handle = job.getTimerJobInstance();
+            return handle;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public void invalidate(JobHandle jobHandle) {
+        scheduler.evictCache(jobHandle);
+    }
+
+    @Override
+    public void internalSchedule(TimerJobInstance timerJobInstance) {
+        scheduler.internalSchedule(timerJobInstance);
+    }
 
 	@Override
 	public void initScheduler(TimerService timerService) {
@@ -135,15 +264,4 @@ public class EjbSchedulerService implements GlobalSchedulerService {
     protected String getJobName(JobContext ctx, long id) {
            return JobNameHelper.getJobName(ctx, id);
 	}
-	
-   private boolean isNewTimer(JobContext ctx) {
-
-        boolean isNewTimer = true;
-        if (ctx instanceof ProcessJobContext) {
-            ProcessJobContext processCtx = (ProcessJobContext) ctx;
-            isNewTimer = processCtx.isNewTimer();
-        }
-        return isNewTimer;
-    }
-
 }
