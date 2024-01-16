@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm-services</artifactId>
-    <version>7.74.1.Final</version>
+    <version>7.74.1.Final-Micord.1</version>
   </parent>
   <artifactId>jbpm-services-cdi</artifactId>
   <name>jBPM :: CDI Services</name>
@@ -40,7 +40,7 @@
       <groupId>org.jbpm</groupId>
       <artifactId>jbpm-human-task-core</artifactId>
     </dependency>
-    
+
     <dependency>
       <groupId>org.jbpm</groupId>
       <artifactId>jbpm-human-task-audit</artifactId>
@@ -81,19 +81,19 @@
         </exclusion>
       </exclusions>
     </dependency>
-    
+
     <dependency>
       <groupId>jakarta.ejb</groupId>
       <artifactId>jakarta.ejb-api</artifactId>
       <scope>provided</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>jakarta.transaction</groupId>
       <artifactId>jakarta.transaction-api</artifactId>
       <scope>provided</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>jakarta.jms</groupId>
       <artifactId>jakarta.jms-api</artifactId>
@@ -158,7 +158,7 @@
       <artifactId>jbpm-runtime-manager</artifactId>
       <type>test-jar</type>
       <scope>test</scope>
-    </dependency>        
+    </dependency>
     <dependency>
       <groupId>org.jbpm</groupId>
       <artifactId>jbpm-kie-services</artifactId>
@@ -239,7 +239,7 @@
 
     <plugins>
       <plugin>
-      <!-- we need to fork always as we have mixture of both arquillian tests and regular 
+      <!-- we need to fork always as we have mixture of both arquillian tests and regular
     and to avoid clashing between them as both need to setup data source and bound it to JNDI -->
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
