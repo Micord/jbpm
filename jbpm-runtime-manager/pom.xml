@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm</artifactId>
-    <version>7.58.0.Final-Micord.5</version>
+    <version>7.58.0.Final-Micord.6</version>
   </parent>
 
   <artifactId>jbpm-runtime-manager</artifactId>
@@ -11,7 +11,7 @@
 
   <name>jBPM :: RuntimeManager</name>
   <description>jBPM RuntimeManager</description>
-  
+
   <properties>
     <java.module.name>org.jbpm.runtime.manager</java.module.name>
   </properties>
@@ -82,7 +82,7 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
-    
+
     <!-- cdi -->
     <dependency>
       <groupId>org.jboss.spec.javax.el</groupId>
@@ -122,7 +122,7 @@
         </exclusion>
       </exclusions>
     </dependency>
-    
+
     <!-- Test -->
     <dependency>
       <groupId>org.jbpm</groupId>
@@ -185,7 +185,7 @@
       <exclusions>
         <exclusion>
            <groupId>javax.activation</groupId>
-           <artifactId>javax.activation-api</artifactId> 
+           <artifactId>javax.activation-api</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -199,7 +199,7 @@
       <artifactId>narayana-jta</artifactId>
       <scope>test</scope>
     </dependency>
-  
+
   <!--  byteman deps for testing -->
     <dependency>
       <groupId>org.jboss.byteman</groupId>
@@ -220,9 +220,9 @@
       <groupId>org.jboss.byteman</groupId>
       <artifactId>byteman-bmunit</artifactId>
       <scope>test</scope>
-     </dependency>    
+     </dependency>
   </dependencies>
-  
+
   <build>
     <testResources>
       <testResource>

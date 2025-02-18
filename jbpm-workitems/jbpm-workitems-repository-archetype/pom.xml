@@ -5,7 +5,7 @@
   <parent>
     <artifactId>jbpm-workitems</artifactId>
     <groupId>org.jbpm</groupId>
-    <version>7.58.0.Final-Micord.5</version>
+    <version>7.58.0.Final-Micord.6</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 

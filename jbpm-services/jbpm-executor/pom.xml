@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm-services</artifactId>
-    <version>7.58.0.Final-Micord.5</version>
+    <version>7.58.0.Final-Micord.6</version>
   </parent>
 
   <artifactId>jbpm-executor</artifactId>
@@ -28,7 +28,7 @@
     </dependency>
     <dependency>
       <groupId>org.jbpm</groupId>
-      <artifactId>jbpm-services-api</artifactId>      
+      <artifactId>jbpm-services-api</artifactId>
     </dependency>
 
     <dependency>
@@ -82,7 +82,7 @@
         </exclusion>
       </exclusions>
     </dependency>
-    
+
     <dependency>
       <groupId>commons-collections</groupId>
       <artifactId>commons-collections</artifactId>
@@ -110,7 +110,7 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
-    
+
     <!-- support for JMS based executor -->
     <dependency>
       <groupId>org.jboss.spec.javax.jms</groupId>
@@ -150,7 +150,7 @@
       <exclusions>
         <exclusion>
            <groupId>javax.activation</groupId>
-           <artifactId>javax.activation-api</artifactId> 
+           <artifactId>javax.activation-api</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -187,7 +187,7 @@
       <artifactId>jbpm-audit</artifactId>
       <optional>true</optional>
     </dependency>
-    
+
     <!-- Test: jms -->
     <dependency>
       <groupId>org.hornetq</groupId>
@@ -244,7 +244,7 @@
         <filtering>true</filtering>
       </testResource>
     </testResources>
-   
+
      <plugins>
      <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -254,7 +254,7 @@
           </annotationProcessors>
         </configuration>
       </plugin>
-      
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>

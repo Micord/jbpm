@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm-persistence</artifactId>
-    <version>7.58.0.Final-Micord.5</version>
+    <version>7.58.0.Final-Micord.6</version>
   </parent>
 
   <artifactId>jbpm-persistence-jpa</artifactId>
@@ -52,7 +52,7 @@
     <dependency>
       <groupId>org.drools</groupId>
       <artifactId>drools-persistence-api</artifactId>
-    </dependency> 
+    </dependency>
     <dependency>
       <groupId>javax.persistence</groupId>
       <artifactId>javax.persistence-api</artifactId>
@@ -60,7 +60,7 @@
     <dependency>
       <groupId>org.hibernate</groupId>
       <artifactId>hibernate-core</artifactId>
-      <scope>provided</scope>      
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jbpm</groupId>
@@ -72,12 +72,12 @@
       <artifactId>kie-test-util</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
     </dependency>
-    
+
     <!-- OSGI -->
     <dependency>
       <groupId>org.osgi</groupId>
@@ -89,12 +89,12 @@
       <artifactId>org.osgi.compendium</artifactId>
       <scope>provided</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
-    
+
     <!-- Test -->
     <dependency>
       <groupId>org.jbpm</groupId>
@@ -211,7 +211,7 @@
               org.drools.persistence.jta,
               org.drools.persistence.map,
               org.jbpm.marshalling.impl,
-              org.jbpm.persistence.api,              
+              org.jbpm.persistence.api,
               org.jbpm.persistence.api.integration,
               org.jbpm.persistence.api.integration.base,
               org.jbpm.persistence.api.integration.model,
@@ -235,7 +235,7 @@
               org.kie.api.runtime.process,
               org.kie.internal.command,
               org.kie.internal.jaxb,
-              org.kie.internal.process,              
+              org.kie.internal.process,
               org.kie.internal.runtime.manager,
               org.kie.internal.runtime.manager.context,
               org.slf4j
@@ -253,7 +253,7 @@
         </configuration>
       </plugin>
       <plugin>
-        <!--  ensure that db files are deleted before _any_ run 
+        <!--  ensure that db files are deleted before _any_ run
               otherwise we get tests failing because of leftover db's -->
         <artifactId>maven-clean-plugin</artifactId>
         <configuration>
