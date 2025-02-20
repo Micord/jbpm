@@ -17,9 +17,9 @@
 package org.jbpm.process.audit;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -65,6 +65,7 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter {
 
     private static final ServiceLoader<ArchiveLoggerProvider> ARCHIVE_LOGGER_PROVIDERS = ServiceLoader.load(
         ArchiveLoggerProvider.class);
+    private static final ReentrantLock ARCHIVE_LOGGER_LOCK = new ReentrantLock(true);
 
     private static final String[] KNOWN_UT_JNDI_KEYS = new String[] {"UserTransaction", "java:jboss/UserTransaction", System.getProperty("jbpm.ut.jndi.lookup")};
 
@@ -75,6 +76,7 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter {
 
     private ProcessIndexerManager indexManager = ProcessIndexerManager.get();
     private List<ArchiveLoggerProvider> archiveLoggerProvider;
+
     /*
      * for backward compatibility
      */
@@ -120,7 +122,12 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter {
 
     private void initArchiveLoggerProvider() {
         archiveLoggerProvider = new ArrayList<>();
-        ARCHIVE_LOGGER_PROVIDERS.forEach(e -> archiveLoggerProvider.add(e));
+        ARCHIVE_LOGGER_LOCK.lock();
+        try {
+            ARCHIVE_LOGGER_PROVIDERS.forEach(e -> archiveLoggerProvider.add(e));
+        }finally {
+            ARCHIVE_LOGGER_LOCK.unlock();
+        }
     }
 
     private void internalSetIsJTA(Environment env) {
