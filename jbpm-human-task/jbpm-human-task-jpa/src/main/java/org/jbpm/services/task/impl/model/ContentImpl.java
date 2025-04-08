@@ -30,6 +30,7 @@ import javax.persistence.Lob;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
+import org.hibernate.annotations.Type;
 import org.kie.internal.task.api.model.InternalContent;
 
 @Entity
@@ -43,6 +44,7 @@ public class ContentImpl implements InternalContent {
     
     @Lob
     @Column(length=2147483647)
+    @Type(type = "org.hibernate.type.BinaryType")
     private byte[] content;
     
     public ContentImpl() {

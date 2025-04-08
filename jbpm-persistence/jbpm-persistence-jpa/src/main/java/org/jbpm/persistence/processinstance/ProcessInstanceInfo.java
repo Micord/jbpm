@@ -46,6 +46,7 @@ import org.drools.serialization.protobuf.PersisterHelper;
 import org.drools.serialization.protobuf.ProtobufMarshaller;
 import org.drools.serialization.protobuf.ProtobufMarshallerReaderContext;
 import org.drools.serialization.protobuf.ProtobufProcessMarshallerWriteContext;
+import org.hibernate.annotations.Type;
 import org.jbpm.marshalling.impl.JBPMMessages;
 import org.jbpm.marshalling.impl.ProcessInstanceMarshaller;
 import org.jbpm.marshalling.impl.ProcessMarshallerRegistry;
@@ -77,6 +78,7 @@ public class ProcessInstanceInfo implements PersistentProcessInstance {
     
     @Lob
     @Column(length=2147483647)
+    @Type(type = "org.hibernate.type.BinaryType")
     byte[]                                    processInstanceByteArray;
 
     @ElementCollection
