@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jbpm.bpmn2;
+package ru.micord.webbpm.jbpm.validation.exception;
 
 /**
  * @author Evgeny Malkov

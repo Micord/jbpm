@@ -95,8 +95,8 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.jbpm</groupId>
-      <artifactId>jbpm-bpmn2</artifactId>
+      <groupId>ru.micord</groupId>
+      <artifactId>webbpm-jbpm-validation</artifactId>
     </dependency>
     <dependency>
       <groupId>org.kie</groupId>

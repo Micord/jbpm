@@ -23,7 +23,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import ru.micord.webbpm.jbpm.validation.exception.BpmnNodeIllegalArgumentException;
 import org.jbpm.process.core.context.variable.Mappable;
 import org.jbpm.process.core.event.EventTransformer;
 import org.jbpm.process.core.timer.Timer;

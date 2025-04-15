@@ -22,6 +22,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>ru.micord</groupId>
+      <artifactId>webbpm-jbpm-validation</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.drools</groupId>
       <artifactId>drools-compiler</artifactId>
     </dependency>

@@ -35,7 +35,7 @@ import org.jbpm.bpmn2.core.DataStore;
 import org.jbpm.bpmn2.core.Definitions;
 import org.jbpm.bpmn2.core.Error;
 import org.jbpm.bpmn2.core.ItemDefinition;
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import ru.micord.webbpm.jbpm.validation.exception.BpmnNodeIllegalArgumentException;
 import org.jbpm.compiler.xml.XmlProcessReader;
 import org.jbpm.process.core.ContextContainer;
 import org.jbpm.process.core.Work;

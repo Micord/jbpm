@@ -131,6 +131,7 @@
 <!--        <module>jbpm-container-test</module>-->
         <module>jbpm-event-emitters</module>
         <module>jbpm-xes</module>
+        <module>webbpm-jbpm-validation</module>
     </modules>
 
     <build>
@@ -176,8 +177,8 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.jbpm</groupId>
-                <artifactId>jbpm-bpmn2</artifactId>
+                <groupId>ru.micord</groupId>
+                <artifactId>webbpm-jbpm-validation</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

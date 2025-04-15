@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import ru.micord.webbpm.jbpm.validation.exception.BpmnNodeIllegalArgumentException;
 import org.jbpm.process.core.event.EventFilter;
 import org.jbpm.process.core.event.EventTransformer;
 import org.jbpm.process.core.event.EventTypeFilter;
