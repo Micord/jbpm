@@ -14,7 +14,7 @@
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm</artifactId>
     <packaging>pom</packaging>
-    <version>7.58.0.Final-Micord.8</version>
+    <version>7.58.0.Final-Micord.9-SNAPSHOT</version>
     <name>jBPM :: Multiproject</name>
     <description>jBPM: a Business Process Management (BPM) Suite</description>
     <url>http://www.jboss.org/jbpm/</url>
@@ -180,6 +180,11 @@
                 <groupId>ru.micord</groupId>
                 <artifactId>webbpm-jbpm-validation</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.drools</groupId>
+                <artifactId>drools-persistence-jpa</artifactId>
+                <version>7.58.0.Final-Micord.9-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>simple-jndi</groupId>
