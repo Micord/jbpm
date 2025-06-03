@@ -16,7 +16,13 @@
 
 package org.jbpm.process.audit;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.ServiceLoader;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -59,21 +65,27 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Enables history log via JPA.
- * 
+ *
  */
 public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter implements AuditLoggerArchiveTreat{
 
     private static final Logger logger = LoggerFactory.getLogger(JPAWorkingMemoryDbLogger.class);
-    
+
+    private static final List<ArchiveLoggerProvider> ARCHIVE_LOGGER_PROVIDERS = StreamSupport.stream(
+            Spliterators.spliteratorUnknownSize(
+                ServiceLoader.load(ArchiveLoggerProvider.class).iterator(), Spliterator.ORDERED), false)
+        .collect(Collectors.toList());
+
     private static final String[] KNOWN_UT_JNDI_KEYS = new String[] {"UserTransaction", "java:jboss/UserTransaction", System.getProperty("jbpm.ut.jndi.lookup")};
-    
+
     private boolean isJTA = true;
     private boolean sharedEM = false;
-    
+
     private EntityManagerFactory emf;
-    
+
     private ProcessIndexerManager indexManager = ProcessIndexerManager.get();
     private List<ArchiveLoggerProvider> archiveLoggerProvider;
+
     /*
      * for backward compatibility
      */
@@ -83,14 +95,14 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
         if (processRuntime != null) {
             processRuntime.addEventListener( (ProcessEventListener) this );
         }
-        archiveLoggerProvider = initArchiveLoggerProvider();
+        initArchiveLoggerProvider();
     }
-    
+
     public JPAWorkingMemoryDbLogger(KieSession session) {
     	Environment env = session.getEnvironment();
         internalSetIsJTA(env);
         session.addEventListener(this);
-        archiveLoggerProvider = initArchiveLoggerProvider();
+        initArchiveLoggerProvider();
     }
     /*
      * end of backward compatibility
@@ -98,32 +110,37 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
 
     public JPAWorkingMemoryDbLogger(EntityManagerFactory emf) {
         this.emf = emf;
-        archiveLoggerProvider = initArchiveLoggerProvider();
+        initArchiveLoggerProvider();
     }
-    
-    public JPAWorkingMemoryDbLogger() { 
+
+    public JPAWorkingMemoryDbLogger() {
         // default constructor when this is used with a persistent KieSession
-        archiveLoggerProvider = initArchiveLoggerProvider();
+        initArchiveLoggerProvider();
     }
-        
+
     public JPAWorkingMemoryDbLogger(EntityManagerFactory emf, Environment env) {
         this.emf = emf;
         internalSetIsJTA(env);
-        archiveLoggerProvider = initArchiveLoggerProvider();
+        initArchiveLoggerProvider();
     }
 
     public JPAWorkingMemoryDbLogger(Environment env) {
         internalSetIsJTA(env);
-        archiveLoggerProvider = initArchiveLoggerProvider();
+        initArchiveLoggerProvider();
     }
 
-    private void internalSetIsJTA(Environment env) { 
+    private void initArchiveLoggerProvider() {
+        archiveLoggerProvider = new ArrayList<>();
+        archiveLoggerProvider.addAll(ARCHIVE_LOGGER_PROVIDERS);
+    }
+
+    private void internalSetIsJTA(Environment env) {
         Boolean bool = (Boolean) env.get("IS_JTA_TRANSACTION");
         if (bool != null) {
         	isJTA = bool.booleanValue();
         }
     }
-    
+
     @Override
     protected void nodeEnter(ProcessNodeTriggeredEvent event) {
         NodeInstanceLog log = (NodeInstanceLog) builder.buildEvent(event);
@@ -210,7 +227,7 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
         }
         leaveTransaction(em, tx);
     }
-    
+
     @Override
     protected void slaProcessInstanceViolated(SLAViolatedEvent event) {
         // SLA violation for process instance
@@ -240,7 +257,7 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
         Object tx = joinTransaction(em);
         long nodeInstanceId = event.getNodeInstance().getId();
         long processInstanceId = event.getProcessInstance().getId();
-        
+
         NodeInstanceLog log = (NodeInstanceLog) getNodeInstanceMetadata(event.getNodeInstance(), METADATA_NODEINSTANCE_LOG);
         if (log == null) {
             List<NodeInstanceLog> result = em.createQuery("from NodeInstanceLog as log where log.nodeInstanceId = :niId and log.processInstanceId = :piId and log.type = 0")
@@ -267,39 +284,39 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
     }
 
     /**
-     * This method persists the entity given to it. 
+     * This method persists the entity given to it.
      * </p>
-     * This method also makes sure that the entity manager used for persisting the entity, joins the existing JTA transaction. 
+     * This method also makes sure that the entity manager used for persisting the entity, joins the existing JTA transaction.
      * @param entity An entity to be persisted.
      */
-    private void persist(Object entity, KieRuntimeEvent event) { 
+    private void persist(Object entity, KieRuntimeEvent event) {
         EntityManager em = getEntityManager(event);
         Object tx = joinTransaction(em);
         em.persist(entity);
         leaveTransaction(em, tx);
     }
-    
+
     /**
-     * This method creates a entity manager. 
+     * This method creates a entity manager.
      */
     private EntityManager getEntityManager(KieRuntimeEvent event) {
-        
+
         Environment env = event.getKieRuntime().getEnvironment();
-        
+
         /**
          * It's important to set the sharedEM flag with _every_ operation
          * otherwise, there are situations where:
          * 1. it can be set to "true"
          * 2. something can happen
-         * 3. the "true" value can no longer apply 
+         * 3. the "true" value can no longer apply
          * (I've seen this in debugging logs.. )
          */
         sharedEM = false;
-        if( emf != null ) { 
+        if( emf != null ) {
            return emf.createEntityManager();
         } else if (env != null) {
             EntityManagerFactory emf = (EntityManagerFactory) env.get(EnvironmentName.ENTITY_MANAGER_FACTORY);
-            
+
             // first check active transaction if it contains entity manager
             EntityManager em = getEntityManagerFromTransaction(env);
 
@@ -317,7 +334,7 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
             if (emf != null) {
                 return emf.createEntityManager();
             }
-        } 
+        }
         throw new RuntimeException("Could not find or create a new EntityManager!");
     }
 
@@ -327,18 +344,18 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
             EntityManager em = (EntityManager) txm.getResource(EnvironmentName.CMD_SCOPED_ENTITY_MANAGER);
             return em;
         }
-        
+
         return null;
     }
 
     /**
      * This method opens a new transaction, if none is currently running, and joins the entity manager/persistence context
-     * to that transaction. 
-     * @param em The entity manager we're using. 
-     * @return {@link UserTransaction} If we've started a new transaction, then we return it so that it can be closed. 
-     * @throws NotSupportedException 
-     * @throws SystemException 
-     * @throws Exception if something goes wrong. 
+     * to that transaction.
+     * @param em The entity manager we're using.
+     * @return {@link UserTransaction} If we've started a new transaction, then we return it so that it can be closed.
+     * @throws NotSupportedException
+     * @throws SystemException
+     * @throws Exception if something goes wrong.
      */
     private Object joinTransaction(EntityManager em) {
         boolean newTx = false;
@@ -350,29 +367,29 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
 	        } catch (TransactionRequiredException e) {
 				ut = findUserTransaction();
 				try {
-					if( ut != null && ut.getStatus() == Status.STATUS_NO_TRANSACTION ) { 
+					if( ut != null && ut.getStatus() == Status.STATUS_NO_TRANSACTION ) {
 		                ut.begin();
 		                newTx = true;
 		                // since new transaction was started em must join it
 		                em.joinTransaction();
-		            } 
+		            }
 				} catch(Exception ex) {
 					throw new IllegalStateException("Unable to find or open a transaction: " + ex.getMessage(), ex);
 				}
-				
+
 				if (!newTx) {
 	            	// rethrow TransactionRequiredException if UserTransaction was not found or started
 	            	throw e;
 	            }
 			}
-	       
-	        if( newTx ) { 
+
+	        if( newTx ) {
 	            return ut;
 	        }
-        } 
-//        else { 
+        }
+//        else {
 //            EntityTransaction tx = em.getTransaction();
-//            if( ! tx.isActive() ) { 
+//            if( ! tx.isActive() ) {
 //               tx.begin();
 //               return tx;
 //            }
@@ -381,36 +398,36 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
     }
 
     /**
-     * This method closes the entity manager and transaction. It also makes sure that any objects associated 
-     * with the entity manager/persistence context are detached. 
+     * This method closes the entity manager and transaction. It also makes sure that any objects associated
+     * with the entity manager/persistence context are detached.
      * </p>
-     * Obviously, if the transaction returned by the {@link #joinTransaction(EntityManager)} method is null, 
+     * Obviously, if the transaction returned by the {@link #joinTransaction(EntityManager)} method is null,
      * nothing is done with the transaction parameter.
      * @param em The entity manager.
      * @param ut The (user) transaction.
      */
     private void leaveTransaction(EntityManager em, Object transaction) {
-        if( isJTA ) { 
-            try { 
-                if( transaction != null ) { 
+        if( isJTA ) {
+            try {
+                if( transaction != null ) {
                     // There's a tx running, close it.
                     ((UserTransaction) transaction).commit();
                 }
-            } catch(Exception e) { 
+            } catch(Exception e) {
                 logger.error("Unable to commit transaction: ", e);
             }
-        } else { 
-            if( transaction != null ) { 
+        } else {
+            if( transaction != null ) {
                 ((EntityTransaction) transaction).commit();
             }
         }
-        
+
 
         if (!sharedEM) {
-            try {  
+            try {
                 em.flush();
-                em.close(); 
-            } catch( Exception e ) { 
+                em.close();
+            } catch( Exception e ) {
                 logger.error("Unable to close created EntityManager: {}", e.getMessage(), e);
             }
         }
@@ -422,7 +439,7 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
             context = new InitialContext();
             return (UserTransaction) context.lookup( "java:comp/UserTransaction" );
         } catch ( NamingException ex ) {
-        	
+
         	for (String utLookup : KNOWN_UT_JNDI_KEYS) {
         		if (utLookup != null) {
 		        	try {
@@ -430,7 +447,7 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
 		        		return ut;
 					} catch (NamingException e) {
 						logger.debug("User Transaction not found in JNDI under {}", utLookup);
-						
+
 					}
         		}
         	}
