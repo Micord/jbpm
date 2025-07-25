@@ -17,9 +17,9 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * Operation.Exit
@@ -50,6 +50,6 @@ public class ExitTaskCommand extends UserGroupCallbackTaskCommand<Void> {
         context.set("local:groups", groupIds);
     	context.getTaskInstanceService().exit(taskId, userId);
     	return null;
-        
+
     }
 }

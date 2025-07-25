@@ -17,23 +17,23 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
-*Operation.Delegate 
-        : [ new OperationCommand().{ 
+*Operation.Delegate
+        : [ new OperationCommand().{
                 status = [ Status.Ready ],
                 allowed = [ Allowed.PotentialOwner, Allowed.BusinessAdministrator  ],
-                addTargetUserToPotentialOwners = true,            
+                addTargetUserToPotentialOwners = true,
                 newStatus = Status.Ready,
                 exec = Operation.Claim
             },
-            new OperationCommand().{ 
+            new OperationCommand().{
                 status = [ Status.Reserved, Status.InProgress ],
                 allowed = [ Allowed.Owner, Allowed.BusinessAdministrator ],
-                addTargetUserToPotentialOwners = true,                         
+                addTargetUserToPotentialOwners = true,
                 newStatus = Status.Ready,
                 exec = Operation.Claim
             } ],
@@ -43,13 +43,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class DelegateTaskCommand extends UserGroupCallbackTaskCommand<Void> {
 
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 5656199063761548979L;
 
 	public DelegateTaskCommand() {
 	}
-	
+
     public DelegateTaskCommand(long taskId, String userId, String targetEntityId) {
         this.taskId = taskId;
         this.userId = userId;
@@ -64,6 +64,6 @@ public class DelegateTaskCommand extends UserGroupCallbackTaskCommand<Void> {
         context.set("local:groups", groupIds);
     	context.getTaskInstanceService().delegate(taskId, userId, targetEntityId);
     	return null;
-           
+
     }
 }

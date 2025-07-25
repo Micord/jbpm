@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.runtime.manager.impl.AbstractRuntimeManager;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
@@ -74,31 +74,31 @@ import org.kie.internal.task.api.UserGroupCallback;
 
 @RunWith(Parameterized.class)
 public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
-    
+
     @Parameters(name = "Strategy : {0}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {     
-                 {"singleton"}, 
+        return Arrays.asList(new Object[][] {
+                 {"singleton"},
                  {"request"},
                  {"processinstance"},
                  {"case"}
            });
     }
-    
+
     private String strategy;
-       
+
     public ExecutionErrorHandlingRuntimeManagerTest(String strategy) {
         this.strategy = strategy;
     }
-    
+
     private PoolingDataSourceWrapper pds;
     private UserGroupCallback userGroupCallback;
     private EntityManagerFactory emf;
     private RuntimeManager manager;
-    
-    @Rule 
+
+    @Rule
     public TestName testName = new TestName();
-    
+
     @Before
     public void setup() {
         TestUtil.cleanupSingletonSessionId();
@@ -108,11 +108,11 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         properties.setProperty("mary", "HR");
         properties.setProperty("john", "HR");
         userGroupCallback = new JBossUserGroupCallbackImpl(properties);
-        
+
         createRuntimeManager();
         CountExecutionErrorListener.reset();
     }
-    
+
     @After
     public void teardown() {
         if (manager != null) {
@@ -121,9 +121,9 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         EntityManagerFactoryManager.get().clear();
         pds.close();
     }
-    
+
     private void createRuntimeManager() {
-        RuntimeEnvironment environment = createEnvironment();        
+        RuntimeEnvironment environment = createEnvironment();
         if ("singleton".equals(strategy)) {
             manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment, "first");
         } else if ("processinstance".equals(strategy)) {
@@ -133,16 +133,16 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         } else if ("case".equals(strategy)) {
             manager = RuntimeManagerFactory.Factory.get().newPerCaseRuntimeManager(environment, "first");
         }
-        assertNotNull(manager);        
+        assertNotNull(manager);
     }
-    
+
     @Test
     public void testBasicScriptFailure() {
-            
+
         RuntimeEngine runtime1 = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
         KieSession ksession1 = runtime1.getKieSession();
-        assertNotNull(ksession1);                 
-        
+        assertNotNull(ksession1);
+
         try {
             ksession1.startProcess("BrokenScriptTask");
             fail("Start process should fail due to broken script");
@@ -150,113 +150,113 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
             // expected
         }
         manager.disposeRuntimeEngine(runtime1);
-       
+
         ExecutionErrorManager errorManager = ((AbstractRuntimeManager) manager).getExecutionErrorManager();
         ExecutionErrorStorage storage = errorManager.getStorage();
-        
+
         List<ExecutionError> errors = storage.list(0, 10);
         assertNotNull(errors);
         assertEquals(1, errors.size());
         assertExecutionError(errors.get(0), "Process", "BrokenScriptTask", "Hello");
         assertEquals(1, CountExecutionErrorListener.getCount().intValue());
     }
-    
+
     @Test
     public void testScriptFailureAfterUserTask() {
-        
+
         RuntimeEngine runtime1 = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
         KieSession ksession1 = runtime1.getKieSession();
-        assertNotNull(ksession1);                 
-        
+        assertNotNull(ksession1);
+
         ProcessInstance pi = ksession1.startProcess("UserTaskWithRollback");
-        
+
         manager.disposeRuntimeEngine(runtime1);
-        
+
         runtime1 = manager.getRuntimeEngine(ProcessInstanceIdContext.get(pi.getId()));
         ksession1 = runtime1.getKieSession();
-        
+
         TaskService taskService = runtime1.getTaskService();
         List<TaskSummary> tasks = taskService.getTasksAssignedAsPotentialOwner("john", "en-UK");
         assertEquals(1, tasks.size());
-        
+
         long taskId = tasks.get(0).getId();
-        
+
         taskService.start(taskId, "john");
-        
+
         Map<String, Object> results = new HashMap<>();
         results.put("output1", "rollback");
-        
+
         try {
             taskService.complete(taskId, "john", results);
             fail("Complete task should fail due to broken script");
         } catch (Throwable e) {
             // expected
         }
-                 
+
         manager.disposeRuntimeEngine(runtime1);
-       
+
         ExecutionErrorManager errorManager = ((AbstractRuntimeManager) manager).getExecutionErrorManager();
         ExecutionErrorStorage storage = errorManager.getStorage();
-        
+
         List<ExecutionError> errors = storage.list(0, 10);
         assertNotNull(errors);
         assertEquals(1, errors.size());
         assertExecutionError(errors.get(0), "Process", "UserTaskWithRollback", "Script Task 1");
         assertEquals(1, CountExecutionErrorListener.getCount().intValue());
     }
-    
-    
+
+
 
     @SuppressWarnings("unchecked")
     @Test
     public void testUserTaskFailure() {
-        
+
         RuntimeEngine runtime1 = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
         KieSession ksession1 = runtime1.getKieSession();
-        assertNotNull(ksession1);                 
-        
+        assertNotNull(ksession1);
+
         ksession1.startProcess("UserTaskWithRollback");
-        
+
         TaskService taskService = runtime1.getTaskService();
         List<TaskSummary> tasks = taskService.getTasksAssignedAsPotentialOwner("john", "en-UK");
         assertEquals(1, tasks.size());
-        
+
         long taskId = tasks.get(0).getId();
-        
+
         try {
             ((EventService<TaskLifeCycleEventListener>)taskService).registerTaskEventListener(new DefaultTaskEventListener(){
 
                 @Override
                 public void afterTaskStartedEvent(TaskEvent event) {
                     throw new TaskExecutionException("On purpose");
-                }                
-            });            
-            
+                }
+            });
+
             taskService.start(taskId, "john");
             fail("Start task should fail due to broken script");
         } catch (Throwable e) {
             // expected
         }
-                 
+
         manager.disposeRuntimeEngine(runtime1);
-       
+
         ExecutionErrorManager errorManager = ((AbstractRuntimeManager) manager).getExecutionErrorManager();
         ExecutionErrorStorage storage = errorManager.getStorage();
-        
+
         List<ExecutionError> errors = storage.list(0, 10);
         assertNotNull(errors);
-        assertEquals(1, errors.size());        
+        assertEquals(1, errors.size());
         assertExecutionError(errors.get(0), "Task", "UserTaskWithRollback", "Hello");
         assertEquals(1, CountExecutionErrorListener.getCount().intValue());
     }
-        
+
     @Test
     public void testDataBaseFailureInMemoryStorage() {
-            
+
         RuntimeEngine runtime1 = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
         KieSession ksession1 = runtime1.getKieSession();
-        assertNotNull(ksession1);                 
-        
+        assertNotNull(ksession1);
+
         ksession1.addEventListener(new DefaultProcessEventListener(){
 
             @Override
@@ -264,7 +264,7 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
                emf.close();
             }
         });
-        
+
         try {
             ksession1.startProcess("UserTaskWithRollback");
             fail("Start process should fail due to data base error");
@@ -278,54 +278,54 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
             // expected to fail for some strategies due to data source being down
             expectedErrors++;
         }
-       
+
         ExecutionErrorManager errorManager = ((AbstractRuntimeManager) manager).getExecutionErrorManager();
         ExecutionErrorStorage storage = errorManager.getStorage();
-        
+
         List<ExecutionError> errors = storage.list(0, 10);
         assertNotNull(errors);
         assertTrue(errors.size() >= expectedErrors);
         assertExecutionError(errors.get(0), "DB", "UserTaskWithRollback", "Hello");
         assertEquals(expectedErrors, CountExecutionErrorListener.getCount().intValue());
     }
-    
+
     @Test
     public void testFailureAfterUserTaskNoWorkItemHandler() {
-        
+
         RuntimeEngine runtime1 = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
         KieSession ksession1 = runtime1.getKieSession();
-        assertNotNull(ksession1);                 
-        
+        assertNotNull(ksession1);
+
         ProcessInstance pi = ksession1.startProcess("UserTaskWithCustomTask");
-        
+
         manager.disposeRuntimeEngine(runtime1);
-        
+
         runtime1 = manager.getRuntimeEngine(ProcessInstanceIdContext.get(pi.getId()));
         ksession1 = runtime1.getKieSession();
-        
+
         TaskService taskService = runtime1.getTaskService();
         List<TaskSummary> tasks = taskService.getTasksAssignedAsPotentialOwner("john", "en-UK");
         assertEquals(1, tasks.size());
-        
+
         long taskId = tasks.get(0).getId();
-        
+
         taskService.start(taskId, "john");
-        
+
         Map<String, Object> results = new HashMap<>();
         results.put("output1", "rollback");
-        
+
         try {
             taskService.complete(taskId, "john", results);
             fail("Complete task should fail due to no work item handler found error");
         } catch (Throwable e) {
             // expected
         }
-                 
+
         manager.disposeRuntimeEngine(runtime1);
-       
+
         ExecutionErrorManager errorManager = ((AbstractRuntimeManager) manager).getExecutionErrorManager();
         ExecutionErrorStorage storage = errorManager.getStorage();
-        
+
         List<ExecutionError> errors = storage.list(0, 10);
         assertNotNull(errors);
         assertEquals(1, errors.size());
@@ -334,43 +334,43 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         assertTrue(errorMessage.contains("Could not find work item handler for Manual Task"));
         assertEquals(1, CountExecutionErrorListener.getCount().intValue());
     }
-    
+
     private RuntimeEnvironment createEnvironment() {
-        
+
         ExecutionErrorStorage storage = new ExecutionErrorStorage() {
-            
+
             private List<ExecutionError> errors = new ArrayList<>();
             @Override
             public ExecutionError store(ExecutionError error) {
                 this.errors.add(error);
                 return error;
             }
-            
+
             @Override
             public List<ExecutionError> listByProcessInstance(Long processInstanceId, Integer page, Integer pageSize) {
                 return errors;
             }
-            
+
             @Override
             public List<ExecutionError> listByDeployment(String deploymentId, Integer page, Integer pageSize) {
                 return errors;
             }
-            
+
             @Override
             public List<ExecutionError> listByActivity(String activityName, Integer page, Integer pageSize) {
                 return errors;
             }
-            
+
             @Override
             public List<ExecutionError> list(Integer page, Integer pageSize) {
                 return errors;
             }
-            
+
             @Override
-            public ExecutionError get(String errorId) {                
+            public ExecutionError get(String errorId) {
                 return errors.stream().filter(err -> err.getErrorId().equals(errorId)).findFirst().get();
             }
-            
+
             @Override
             public void acknowledge(String user, String... errorIds) {
                 for (String errorId : errorIds) {
@@ -381,7 +381,7 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
                 }
             }
         };
-        
+
         RuntimeEnvironmentBuilder environmentBuilder = RuntimeEnvironmentBuilder.Factory.get()
                 .newDefaultBuilder()
                 .entityManagerFactory(emf)
@@ -389,15 +389,15 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-BrokenScriptTask.bpmn2"), ResourceType.BPMN2)
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-UserTaskWithRollback.bpmn2"), ResourceType.BPMN2)
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-UserTaskCustomTask.bpmn2"), ResourceType.BPMN2);
-        
+
         if (testName.getMethodName().contains("InMemoryStorage")) {
             environmentBuilder.addEnvironmentEntry("ExecutionErrorStorage", storage);
         }
-        
+
         return environmentBuilder.get();
     }
-    
-    private void assertExecutionError(ExecutionError error, String type, String processId, String activityName) {        
+
+    private void assertExecutionError(ExecutionError error, String type, String processId, String activityName) {
         assertNotNull(error);
         assertEquals(type, error.getType());
         assertEquals(processId, error.getProcessId());
@@ -407,7 +407,7 @@ public class ExecutionErrorHandlingRuntimeManagerTest extends AbstractBaseTest {
         assertNotNull(error.getErrorMessage());
         assertNotNull(error.getActivityId());
         assertNotNull(error.getProcessInstanceId());
-        
+
         assertNull(error.getAcknowledgedAt());
         assertNull(error.getAcknowledgedBy());
         assertFalse(error.isAcknowledged());

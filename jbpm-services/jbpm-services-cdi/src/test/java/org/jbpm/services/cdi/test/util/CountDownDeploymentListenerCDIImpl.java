@@ -16,8 +16,8 @@
 
 package org.jbpm.services.cdi.test.util;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 
 import org.jbpm.kie.services.test.objects.CountDownDeploymentListener;
 import org.jbpm.services.api.DeploymentEvent;
@@ -32,7 +32,7 @@ public class CountDownDeploymentListenerCDIImpl extends CountDownDeploymentListe
     public CountDownDeploymentListenerCDIImpl() {
         super();
     }
-    
+
     public CountDownDeploymentListenerCDIImpl(int threads) {
         super(threads);
     }
@@ -56,5 +56,5 @@ public class CountDownDeploymentListenerCDIImpl extends CountDownDeploymentListe
     public void onDeactivate(@Observes@Deactivate DeploymentEvent event) {
         super.onDeactivate(event);
     }
-    
+
 }

@@ -22,21 +22,21 @@ import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 
-import javax.persistence.Basic;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Embedded;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Version;
+import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import org.jbpm.services.task.impl.model.DeadlinesImpl;
 import org.jbpm.services.task.impl.model.DelegationImpl;
@@ -63,7 +63,7 @@ public class TaskImpl {
     @GeneratedValue(strategy = GenerationType.AUTO, generator="taskIdSeq")
     @Column(name = "id")
     private Long                 id = 0L;
-    
+
     @Version
     @Column(name = "OPTLOCK")
     private int                  version;
@@ -102,14 +102,14 @@ public class TaskImpl {
     @Enumerated(EnumType.STRING)
     // Default Behaviour
     private SubTasksStrategy subTaskStrategy = SubTasksStrategy.NoAction;
-    
+
     private String               taskType;
-    
+
     private String               formName;
-    
+
     @Basic
     private Short archived = 0;
-    
+
 
     public TaskImpl() {
     }
@@ -130,7 +130,7 @@ public class TaskImpl {
         } else {
             out.writeBoolean(false);
         }
-        
+
         if ( peopleAssignments != null ) {
             out.writeBoolean( true );
             peopleAssignments.writeExternal( out );
@@ -171,11 +171,11 @@ public class TaskImpl {
         names = CollectionUtils.readI18NTextList( in );
         subjects = CollectionUtils.readI18NTextList( in );
         descriptions = CollectionUtils.readI18NTextList( in );
-        
+
         if (in.readBoolean()) {
             subTaskStrategy = SubTasksStrategy.valueOf(in.readUTF());
         }
-        
+
         if ( in.readBoolean() ) {
             peopleAssignments = new PeopleAssignmentsImpl();
             peopleAssignments.readExternal( in );
@@ -197,7 +197,7 @@ public class TaskImpl {
         }
 
     }
-    
+
     public Long getId() {
         return id;
     }
@@ -220,7 +220,7 @@ public class TaskImpl {
             this.archived = (archived == true) ? new Short("1") : new Short("0");
         }
     }
-    
+
     public int getVersion() {
         return this.version;
     }
@@ -304,7 +304,7 @@ public class TaskImpl {
     public void setFormName(String formName) {
         this.formName = formName;
     }
-    
+
     @Override
     public int hashCode() {
         final int prime = 31;

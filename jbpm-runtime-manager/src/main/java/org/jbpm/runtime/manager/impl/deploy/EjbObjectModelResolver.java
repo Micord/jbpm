@@ -22,7 +22,7 @@ import java.util.Map;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.kie.api.KieServices;
 import org.kie.api.runtime.manager.RuntimeManager;
@@ -35,13 +35,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EjbObjectModelResolver extends ReflectionObjectModelResolver {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(EjbObjectModelResolver.class);
-	
+
 	public static final String ID = "ejb";
-	
+
 	private Map<String, Class<?>> knownContextParamMapping = new HashMap<String, Class<?>>();
-	
+
 	public EjbObjectModelResolver() {
 		knownContextParamMapping.put("entityManagerFactory", EntityManagerFactory.class);
 		knownContextParamMapping.put("runtimeManager", RuntimeManager.class);
@@ -78,16 +78,16 @@ public class EjbObjectModelResolver extends ReflectionObjectModelResolver {
 			// process parameter instances
 			Class<?>[] parameterTypes = new Class<?>[model.getParameters().size()];
 			Object[] paramInstances = new Object[model.getParameters().size()];
-			
+
 			int index = 0;
 			for (Object param : model.getParameters()) {
-				
+
 				if (param instanceof ObjectModel) {
 					logger.debug("Parameter is of type ObjectModel (id: {}), trying to create instance based on that model",
 							((ObjectModel) param).getIdentifier());
 					Class<?> paramclazz = getClassObject(((ObjectModel)param).getIdentifier(), cl);
 					parameterTypes[index] = paramclazz;
-					
+
 					paramInstances[index] = getInstance(((ObjectModel)param), cl, contextParams);
 				} else {
 					if (contextParams.containsKey(param)) {
@@ -101,7 +101,7 @@ public class EjbObjectModelResolver extends ReflectionObjectModelResolver {
 						paramInstances[index] = contextValue;
 					} else {
 						if (param.toString().startsWith("jndi:")) {
-							
+
 							logger.debug("Parameter is jndi lookup type - {}", param);
 							// remove the jndi: prefix
 							String lookupName = param.toString().substring(5);
@@ -112,19 +112,19 @@ public class EjbObjectModelResolver extends ReflectionObjectModelResolver {
 							} catch (NamingException e) {
 								throw new IllegalArgumentException("Unable to look up object from jndi using name " + lookupName, e);
 							}
-							
+
 						} else {
-						
+
 							logger.debug("Parameter is simple type (string) - {}", param);
 							parameterTypes[index] = param.getClass();
 							paramInstances[index] = param;
 						}
 					}
 				}
-				
+
 				index++;
 			}
-			try {	
+			try {
 				logger.debug("Creating instance of class {} with parameter types {} and parameter instances {}",
 						clazz, parameterTypes, paramInstances);
 				Constructor<?> constructor = clazz.getConstructor(parameterTypes);
@@ -135,7 +135,7 @@ public class EjbObjectModelResolver extends ReflectionObjectModelResolver {
 			}
 		}
 		logger.debug("Created instance : {}", instance);
-		
+
 		if (manager != null && instance instanceof Cacheable) {
 			manager.getCacheManager().add(instance.getClass().getName(), instance);
 		}

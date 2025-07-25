@@ -18,7 +18,7 @@ package org.jbpm.executor;
 import java.util.List;
 import java.util.UUID;
 
-import javax.persistence.Persistence;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.executor.impl.ExecutorImpl;
 import org.jbpm.executor.impl.ExecutorServiceImpl;

@@ -19,7 +19,7 @@ package org.jbpm.runtime.manager.impl.error.filters;
 import java.sql.SQLException;
 import java.util.Date;
 
-import javax.transaction.RollbackException;
+import jakarta.transaction.RollbackException;
 
 import org.jbpm.process.instance.impl.ProcessInstanceImpl;
 import org.kie.api.runtime.process.NodeInstance;

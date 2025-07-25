@@ -24,8 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 import org.assertj.core.api.Assertions;
 import org.jbpm.services.task.HumanTaskServicesBaseTest;
@@ -375,7 +375,7 @@ public abstract class TaskAuditBaseTest extends HumanTaskServicesBaseTest {
                               true,
                               "Updated Description {From: '' to: 'new description'}");
     }
-    
+
     private void testLongTaskDescription(String oldDescription,
             String newDescription,
             String expectedDescription,
@@ -408,8 +408,8 @@ public abstract class TaskAuditBaseTest extends HumanTaskServicesBaseTest {
         }
     }
 
-    
-    
+
+
     @Test
     public void testLongTaskDescriptionUpdateFromEmpty() {
         System.setProperty("org.jbpm.ht.task.description.length", "255");

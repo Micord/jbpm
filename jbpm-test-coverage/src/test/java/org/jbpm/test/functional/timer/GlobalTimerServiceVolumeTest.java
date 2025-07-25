@@ -30,9 +30,9 @@ import java.util.Map;
 import java.util.Properties;
 
 import javax.naming.InitialContext;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import jakarta.transaction.UserTransaction;
 
 import org.drools.core.command.SingleSessionCommandService;
 import org.drools.core.command.impl.CommandBasedStatefulKnowledgeSession;
@@ -219,14 +219,14 @@ public class GlobalTimerServiceVolumeTest extends TimerBaseTest {
         if (timerService != null) {
             if (timerService instanceof GlobalTimerService) {
                 jobs = ((GlobalTimerService) timerService).getTimerJobsPerSession();
-                
+
                 timers = ((GlobalTimerService) timerService).getTimerJobFactoryManager().getTimerJobInstances();
             }
         }
 
         assertNotNull("Jobs should not be null as number of timers have been created", jobs);
         assertEquals("There should be no jobs in the global timer service", 0, jobs.size());
-        
+
         assertNotNull("Timer instances should not be null as number of timers have been created", timers);
         assertEquals("There should be no timer instances in the global timer service manager", 0, timers.size());
 

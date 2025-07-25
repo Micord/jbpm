@@ -19,16 +19,16 @@ package org.jbpm.runtime.manager.impl.jpa;
 import java.io.Serializable;
 import java.util.Date;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.Lob;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Lob;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
 
 import org.kie.internal.runtime.error.ExecutionError;
 
@@ -39,15 +39,15 @@ import org.kie.internal.runtime.error.ExecutionError;
 public class ExecutionErrorInfo extends ExecutionError implements Serializable {
 
 	private static final long serialVersionUID = 6669858787722894023L;
-	
+
     private final int ERROR_LOG_LENGTH = Integer.parseInt(System.getProperty("org.kie.jbpm.error.log.length", "255"));
 
 	private Long id;
 
     public ExecutionErrorInfo() {
-        
+
     }
-    
+
     public ExecutionErrorInfo(String errorId, String type, String deploymentId, Long processInstanceId, String processId, Long activityId, String activityName, Long jobId, String errorMessage, String error, Date errorDate, Long initActivityId) {
         super();
         this.errorId = errorId;
@@ -60,7 +60,7 @@ public class ExecutionErrorInfo extends ExecutionError implements Serializable {
         this.jobId = jobId;
         this.error = error;
         this.errorDate = errorDate;
-        this.acknowledged = new Short("0");
+        this.acknowledged = 0;
         this.initActivityId = initActivityId;
         this.setErrorMessage(errorMessage);
     }
@@ -71,15 +71,15 @@ public class ExecutionErrorInfo extends ExecutionError implements Serializable {
     public Long getId() {
         return id;
     }
-    
+
     public void setId(Long id) {
         this.id = id;
     }
-    
+
     @Column(name="ERROR_ID")
     public String getErrorId() {
         return this.errorId;
-    }    
+    }
 
     @Column(name="ERROR_TYPE")
     @Override
@@ -98,7 +98,7 @@ public class ExecutionErrorInfo extends ExecutionError implements Serializable {
     public Long getProcessInstanceId() {
         return super.getProcessInstanceId();
     }
-    
+
     @Column(name="ACTIVITY_ID")
     @Override
     public Long getActivityId() {
@@ -129,7 +129,7 @@ public class ExecutionErrorInfo extends ExecutionError implements Serializable {
 
     @Column(name="ERROR_ACK")
     @Override
-    protected Short getAcknowledged() {
+    public Short getAcknowledged() {
         return super.getAcknowledged();
     }
 
@@ -140,7 +140,7 @@ public class ExecutionErrorInfo extends ExecutionError implements Serializable {
     }
 
     @Column(name="ERROR_ACK_AT")
-    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     @Override
     public Date getAcknowledgedAt() {
         return super.getAcknowledgedAt();
@@ -159,16 +159,16 @@ public class ExecutionErrorInfo extends ExecutionError implements Serializable {
     }
 
     @Column(name="ERROR_DATE")
-    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     @Override
     public Date getErrorDate() {
         return super.getErrorDate();
     }
-  
+
     public void setErrorId(String errorId) {
         this.errorId = errorId;
     }
-    
+
     @Column(name="JOB_ID")
     @Override
     public Long getJobId() {
@@ -183,10 +183,10 @@ public class ExecutionErrorInfo extends ExecutionError implements Serializable {
 
     @Override
     public String toString() {
-        return "ExecutionErrorInfo [errorId=" + errorId + ", type=" + type + ", deploymentId=" + deploymentId + ", processInstanceId=" + processInstanceId + ", initActivityId=" + initActivityId + 
-                ", processId=" + processId + ", activityId=" + activityId + ", activityName=" + activityName + ", errorMessage=" + errorMessage + 
+        return "ExecutionErrorInfo [errorId=" + errorId + ", type=" + type + ", deploymentId=" + deploymentId + ", processInstanceId=" + processInstanceId + ", initActivityId=" + initActivityId +
+                ", processId=" + processId + ", activityId=" + activityId + ", activityName=" + activityName + ", errorMessage=" + errorMessage +
                 ", acknowledged=" + acknowledged + "]";
-    } 
-	
-	
+    }
+
+
 }

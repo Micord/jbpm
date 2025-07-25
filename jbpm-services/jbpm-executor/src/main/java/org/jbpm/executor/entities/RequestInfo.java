@@ -22,22 +22,22 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.Lob;
-import javax.persistence.OneToMany;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Lob;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 
 import org.kie.api.executor.STATUS;
 
@@ -45,11 +45,11 @@ import org.kie.api.executor.STATUS;
 @Entity
 @Table(name = "RequestInfo", indexes = {@Index(name = "IDX_RequestInfo_status", columnList = "status"),
                                         @Index(name = "IDX_RequestInfo_owner", columnList = "owner")})
-@SequenceGenerator(name="requestInfoIdSeq", sequenceName="REQUEST_INFO_ID_SEQ")
+@SequenceGenerator(name="requestInfoIdSeq", sequenceName="REQUEST_INFO_ID_SEQ", allocationSize = 1)
 public class RequestInfo implements org.kie.internal.executor.api.RequestInfo, Serializable {
 
     private static final long serialVersionUID = 5823083735663566537L;
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="requestInfoIdSeq")
     private Long id;
@@ -68,11 +68,11 @@ public class RequestInfo implements org.kie.internal.executor.api.RequestInfo, S
     //Number of times that this request has been executed
     private int executions = 0;
     private String deploymentId;
-    // owning component of this request, meaning when set only same component can execute it 
+    // owning component of this request, meaning when set only same component can execute it
     private String owner;
     private int priority = 0;
     private Long processInstanceId;
-    
+
     @Lob
     @Column(length=2147483647)
     private byte[] requestData;
@@ -84,12 +84,12 @@ public class RequestInfo implements org.kie.internal.executor.api.RequestInfo, S
 
     public RequestInfo() {
     }
-    
-    
+
+
 
     public RequestInfo(Long id, int priority, Date time) {
         super();
-        this.id = id;        
+        this.id = id;
         this.priority = priority;
         this.time = time;
     }
@@ -128,7 +128,7 @@ public class RequestInfo implements org.kie.internal.executor.api.RequestInfo, S
         this.executions = executions;
     }
 
-    
+
     public String getCommandName() {
         return commandName;
     }
@@ -151,7 +151,7 @@ public class RequestInfo implements org.kie.internal.executor.api.RequestInfo, S
 
     public void setDeploymentId(String deploymentId) {
         this.deploymentId = deploymentId;
-    }    
+    }
 
     public String getMessage() {
         return message;
@@ -200,29 +200,29 @@ public class RequestInfo implements org.kie.internal.executor.api.RequestInfo, S
 	public void setOwner(String owner) {
 		this.owner = owner;
 	}
-	
+
     public int getPriority() {
         return priority;
     }
-    
+
     public void setPriority(int priority) {
         this.priority = priority;
     }
-    
+
     public Long getProcessInstanceId() {
         return processInstanceId;
     }
 
-    
+
     public void setProcessInstanceId(Long processInstanceId) {
         this.processInstanceId = processInstanceId;
     }
 
     @Override
     public String toString() {
-        return "RequestInfo{" + "id=" + id + ", time=" + time 
+        return "RequestInfo{" + "id=" + id + ", time=" + time
         		+ ", status=" + status + ", commandName=" + commandName + ", message=" + message + ", owner=" + owner
-        		+ ", key=" + key + ", requestData=" + requestData + ", responseData=" + responseData 
+        		+ ", key=" + key + ", requestData=" + requestData + ", responseData=" + responseData
         		+ ", error=" + errorInfo + '}';
     }
 
@@ -290,5 +290,5 @@ public class RequestInfo implements org.kie.internal.executor.api.RequestInfo, S
         hash = 79 * hash + Arrays.hashCode(this.responseData);
         hash = 79 * hash + (this.errorInfo != null ? this.errorInfo.hashCode() : 0);
         return hash;
-    }    
+    }
 }

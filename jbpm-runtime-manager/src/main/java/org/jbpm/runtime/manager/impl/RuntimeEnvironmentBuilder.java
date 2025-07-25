@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.drools.compiler.kie.builder.impl.KieContainerImpl;
@@ -198,7 +198,7 @@ public class RuntimeEnvironmentBuilder implements RuntimeEnvironmentBuilderFacto
         repository.resolveArtifact(releaseId.toExternalForm());
     	KieServices ks = KieServices.Factory.get();
     	KieContainer kieContainer = ks.newKieContainer(releaseId);
-    	
+
     	DeploymentDescriptorManager descriptorManager = new DeploymentDescriptorManager();
         List<DeploymentDescriptor> descriptorHierarchy = DeploymentDescriptorManagerUtil.getDeploymentDescriptorHierarchy(descriptorManager, kieContainer);
     	DeploymentDescriptorMerger merger = new DeploymentDescriptorMerger();
@@ -232,13 +232,13 @@ public class RuntimeEnvironmentBuilder implements RuntimeEnvironmentBuilderFacto
 			builder.entityManagerFactory(emf);
 			contaxtParams.put("entityManagerFactory", emf);
 		}
-		
+
 		// process object models that are globally configured (environment entries, session configuration)
 		for (NamedObjectModel model : descriptor.getEnvironmentEntries()) {
 			Object entry = getInstanceFromModel(model, kieContainer, contaxtParams);
 			builder.addEnvironmentEntry(model.getName(), entry);
 		}
-		
+
 		for (NamedObjectModel model : descriptor.getConfiguration()) {
 			Object entry = getInstanceFromModel(model, kieContainer, contaxtParams);
 			builder.addConfiguration(model.getName(), (String) entry);
@@ -253,12 +253,12 @@ public class RuntimeEnvironmentBuilder implements RuntimeEnvironmentBuilderFacto
 		// lastly add the main default strategy
 		mStrategies[index] = new SerializablePlaceholderResolverStrategy(ClassObjectMarshallingStrategyAcceptor.DEFAULT);
 		builder.addEnvironmentEntry(EnvironmentName.OBJECT_MARSHALLING_STRATEGIES, mStrategies);
-        
+
 		builder.addEnvironmentEntry("KieDeploymentDescriptor", descriptor)
 		.knowledgeBase(kbase)
 		.classLoader(kieContainer.getClassLoader())
 		.registerableItemsFactory(new KModuleRegisterableItemsFactory(kieContainer, ksessionName));
-		
+
         return builder;
     }
 
@@ -475,9 +475,9 @@ public class RuntimeEnvironmentBuilder implements RuntimeEnvironmentBuilderFacto
 	public org.kie.api.runtime.manager.RuntimeEnvironmentBuilder newClasspathKmoduleDefaultBuilder(String kbaseName, String ksessionName) {
         return setupClasspathKmoduleBuilder( KieServices.Factory.get().newKieClasspathContainer(), kbaseName, ksessionName );
 	}
-	
+
     protected static Object getInstanceFromModel(ObjectModel model, KieContainer kieContainer, Map<String, Object> contaxtParams) {
-    	ObjectModelResolver resolver = ObjectModelResolverProvider.get(model.getResolver());		
+    	ObjectModelResolver resolver = ObjectModelResolverProvider.get(model.getResolver());
 		return resolver.getInstance(model, kieContainer.getClassLoader(), contaxtParams);
     }
 }

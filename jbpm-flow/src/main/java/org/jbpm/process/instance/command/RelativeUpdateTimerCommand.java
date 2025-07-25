@@ -16,9 +16,9 @@
 
 package org.jbpm.process.instance.command;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.jbpm.process.instance.timer.TimerInstance;
 
@@ -52,7 +52,7 @@ public class RelativeUpdateTimerCommand extends UpdateTimerCommand {
         super(processInstanceId, timerId, delay);
     }
 
-    protected long calculateDelay(long delay, TimerInstance timer) {      
+    protected long calculateDelay(long delay, TimerInstance timer) {
         return delay * 1000;
     }
 }

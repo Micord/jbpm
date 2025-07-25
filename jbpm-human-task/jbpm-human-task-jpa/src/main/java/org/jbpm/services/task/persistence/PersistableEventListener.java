@@ -16,7 +16,7 @@
 
 package org.jbpm.services.task.persistence;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.kie.api.task.TaskLifeCycleEventListener;
 import org.kie.internal.task.api.TaskPersistenceContext;

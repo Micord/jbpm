@@ -20,11 +20,11 @@ import org.kie.api.task.model.Group;
 import org.kie.internal.task.api.TaskModelProvider;
 import org.kie.internal.task.api.model.InternalOrganizationalEntity;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 
 @XmlRootElement(name="add-group-command")
@@ -33,11 +33,11 @@ public class AddGroupCommand extends TaskCommand<Void> {
 
 	/** generated serial version UID */
     private static final long serialVersionUID = 8723206149543662492L;
-    
+
     @XmlElement
     @XmlSchemaType(name="string")
 	private String groupId;
-    
+
     public AddGroupCommand() {
     }
 
@@ -48,13 +48,13 @@ public class AddGroupCommand extends TaskCommand<Void> {
 
     public Void execute(Context cntxt) {
         TaskContext context = (TaskContext) cntxt;
-        
+
         Group group = TaskModelProvider.getFactory().newGroup();
         ((InternalOrganizationalEntity) group).setId(groupId);
-        
+
         context.getTaskIdentityService().addGroup(group);
         return null;
-    	 
+
     }
 
 	public String getGroupId() {
@@ -65,5 +65,5 @@ public class AddGroupCommand extends TaskCommand<Void> {
 		this.groupId = groupId;
 	}
 
-    
+
 }

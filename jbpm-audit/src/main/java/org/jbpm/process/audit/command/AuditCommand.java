@@ -15,9 +15,9 @@
  */
 package org.jbpm.process.audit.command;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlTransient;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.jbpm.process.audit.AuditLogService;
 import org.jbpm.process.audit.JPAAuditLogService;
@@ -32,16 +32,16 @@ public abstract class AuditCommand<T> implements ExecutableCommand<T> {
 
     @XmlTransient
     protected AuditLogService auditLogService = null;
-    
+
     public AuditCommand() {
 	}
-   
-    public void setAuditLogService(AuditLogService auditLogService) { 
+
+    public void setAuditLogService(AuditLogService auditLogService) {
         this.auditLogService = auditLogService;
     }
-    
-    protected void setLogEnvironment(Context cntxt) { 
-        if( auditLogService != null ) { 
+
+    protected void setLogEnvironment(Context cntxt) {
+        if( auditLogService != null ) {
             return;
         }
         if( ! (cntxt instanceof RegistryContext ) ) {
@@ -49,5 +49,5 @@ public abstract class AuditCommand<T> implements ExecutableCommand<T> {
         }
         this.auditLogService = new JPAAuditLogService( ((RegistryContext) cntxt).lookup( KieSession.class ).getEnvironment(), PersistenceStrategyType.KIE_SESSION);
     }
-    
+
 }

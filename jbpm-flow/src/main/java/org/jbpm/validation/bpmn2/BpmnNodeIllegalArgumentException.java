@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jbpm.bpmn2;
+package org.jbpm.validation.bpmn2;
 
 /**
  * @author Evgeny Malkov

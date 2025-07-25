@@ -18,11 +18,11 @@ package org.jbpm.services.cdi.test.util;
 
 import java.util.Properties;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.BeanManager;
-import javax.inject.Inject;
-import javax.persistence.EntityManagerFactory;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.runtime.manager.impl.ManagedAuditEventBuilderImpl;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
@@ -48,18 +48,18 @@ public class CDITestHelper {
     @Inject
     private BeanManager beanManager;
     private EntityManagerFactory emf;
-    
+
     @Inject
     @Kjar
     private DeploymentService deploymentService;
-    
-    
+
+
     @Produces
     @Singleton
     @PerRequest
     @PerProcessInstance
     public RuntimeEnvironment produceEnvironment(EntityManagerFactory emf) {
-        
+
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()
     			.newDefaultBuilder()
                 .entityManagerFactory(emf)
@@ -70,13 +70,13 @@ public class CDITestHelper {
                 .get();
         return environment;
     }
-    
+
     @Produces
     public EntityManagerFactory produceEntityManagerFactory() {
         if (this.emf == null) {
-        	this.emf = EntityManagerFactoryManager.get().getOrCreate("org.jbpm.domain"); 
+        	this.emf = EntityManagerFactoryManager.get().getOrCreate("org.jbpm.domain");
         }
-        
+
         return this.emf;
     }
 
@@ -89,7 +89,7 @@ public class CDITestHelper {
         properties.setProperty("katy", "HR,IT,Accounting,admins");
         return new JBossUserGroupCallbackImpl(properties);
     }
-    
+
     @Produces
     public TaskService produceTaskService() {
     	return HumanTaskServiceFactory.newTaskServiceConfigurator()
@@ -98,10 +98,10 @@ public class CDITestHelper {
 		.listener(new BAMTaskEventListener(true))
 		.getTaskService();
     }
-    
+
     @Produces
     public DeploymentService produceKjarDeployService() {
     	return deploymentService;
     }
-    
+
 }

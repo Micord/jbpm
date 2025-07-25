@@ -20,27 +20,27 @@ import org.drools.core.xml.jaxb.util.JaxbMapAdapter;
 import org.kie.api.runtime.Context;
 import org.kie.api.task.model.Task;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Map;
 
 @XmlRootElement(name="execute-task-rules-command")
 @XmlAccessorType(XmlAccessType.NONE)
 public class ExecuteTaskRulesCommand extends TaskCommand<Void> {
-	
+
 	private static final long serialVersionUID = 1852525453931482868L;
-	
+
 	@XmlElement
 	@XmlJavaTypeAdapter(JaxbMapAdapter.class)
 	protected Map<String, Object> data;
 	@XmlElement
 	@XmlSchemaType(name="string")
     protected String scope;
-    
+
     public ExecuteTaskRulesCommand() {
     }
 
@@ -58,13 +58,13 @@ public class ExecuteTaskRulesCommand extends TaskCommand<Void> {
 	public void setData(Map<String, Object> data) {
 		this.data = data;
 	}
-	
+
 	@Override
 	public Void execute(Context ctx ) {
-		
+
 		TaskContext context = (TaskContext) ctx;
 		Task task = context.getTaskQueryService().getTaskInstanceById(taskId);
-		
+
 		context.getTaskRuleService().executeRules(task, userId, data, scope);
 		return null;
 	}

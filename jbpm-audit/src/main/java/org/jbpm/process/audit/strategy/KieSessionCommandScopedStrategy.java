@@ -16,7 +16,7 @@
 
 package org.jbpm.process.audit.strategy;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.kie.api.runtime.Environment;
 import org.kie.api.runtime.EnvironmentName;

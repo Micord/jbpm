@@ -16,11 +16,11 @@
 
 package org.jbpm.process.instance.command;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 import org.jbpm.process.instance.impl.ProcessInstanceImpl;
 import org.kie.api.command.ExecutableCommand;
@@ -32,17 +32,17 @@ import org.kie.internal.command.RegistryContext;
 @XmlRootElement(name="update-process-command")
 @XmlAccessorType(XmlAccessType.NONE)
 public class UpdateProcessCommand implements ExecutableCommand<Void>, ProcessInstanceIdCommand {
-	
+
 	private static final long serialVersionUID = 6L;
 
 	@XmlElement
 	@XmlSchemaType(name="long")
 	private Long processInstanceId;
-	
+
 	@XmlElement
 	@XmlSchemaType(name="string")
     private String processXml;
-    
+
     public UpdateProcessCommand(Long processInstanceId, String processXml) {
     	this.processInstanceId = processInstanceId;
     	this.processXml = processXml;
@@ -75,9 +75,9 @@ public class UpdateProcessCommand implements ExecutableCommand<Void>, ProcessIns
         }
         return null;
     }
-	
+
 	public String toString() {
-		return "((ProcessInstanceImpl) ksession.getProcessInstance(" 
+		return "((ProcessInstanceImpl) ksession.getProcessInstance("
 			+ processInstanceId + ")).setProcessXml(" + processXml + ");";
 	}
 }

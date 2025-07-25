@@ -16,11 +16,11 @@
 
 package org.jbpm.kie.services.impl;
 
-import javax.annotation.PostConstruct;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import javax.persistence.EntityManagerFactory;
+import jakarta.annotation.PostConstruct;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageListener;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.process.audit.jms.AsyncAuditLogReceiver;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
@@ -32,41 +32,41 @@ import org.slf4j.LoggerFactory;
 public class CompositeAsyncAuditLogReceiver implements MessageListener {
 
     private static final Logger logger = LoggerFactory.getLogger(CompositeAsyncAuditLogReceiver.class);
-    
+
     private EntityManagerFactory entityManagerFactory;
-    
+
     private MessageListener processLogsReceiver;
     private MessageListener taskLogReceiver;
-    
+
     private MessageListener caseInstanceLogReceiver;
-    
-    
+
+
     public CompositeAsyncAuditLogReceiver() {
     }
-    
+
     public CompositeAsyncAuditLogReceiver(EntityManagerFactory emf) {
-        this.entityManagerFactory = emf;        
+        this.entityManagerFactory = emf;
     }
-    
+
     @PostConstruct
     public void init() {
         if (entityManagerFactory == null) {
-            this.entityManagerFactory = EntityManagerFactoryManager.get().getOrCreate("org.jbpm.domain"); 
+            this.entityManagerFactory = EntityManagerFactoryManager.get().getOrCreate("org.jbpm.domain");
         }
         this.processLogsReceiver = new AsyncAuditLogReceiver(entityManagerFactory);
         this.taskLogReceiver = new AsyncTaskLifeCycleEventReceiver(entityManagerFactory);
         this.caseInstanceLogReceiver = createCaseEventReceiver();
-        
+
     }
-    
+
     @Override
     public void onMessage(Message message) {
-       
+
         logger.debug("Audit log message received {}", message);
         try {
             String logType = message.getStringProperty("LogType");
             logger.debug("LogType property on message set to {}", logType);
-            
+
             if ("Process".equals(logType)) {
                 processLogsReceiver.onMessage(message);
             } else if ("Task".equals(logType)) {
@@ -76,26 +76,26 @@ public class CompositeAsyncAuditLogReceiver implements MessageListener {
             } else {
                 logger.warn("Unexpected message {} with log type {}, consuming and ignoring", message, logType);
             }
-            
+
         } catch (JMSException e) {
             logger.error("Unexpected JMS exception while processing audit log message", e);
         }
 
     }
-    
+
     /*
      * Helper methods
      */
-    
+
     @SuppressWarnings("unchecked")
     protected MessageListener createCaseEventReceiver() {
         try {
             Class<MessageListener> caseEventReceiverClass = (Class<MessageListener>) Class.forName("org.jbpm.casemgmt.impl.jms.AsyncCaseInstanceAuditEventReceiver");
-            
+
             return caseEventReceiverClass.getConstructor(EntityManagerFactory.class).newInstance(entityManagerFactory);
         } catch (Exception e) {
             logger.debug("No message listener found for case instance event receiver", e);
-            
+
             return null;
         }
     }

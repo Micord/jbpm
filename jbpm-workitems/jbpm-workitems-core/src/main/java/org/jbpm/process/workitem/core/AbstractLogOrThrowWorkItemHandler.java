@@ -18,7 +18,7 @@ package org.jbpm.process.workitem.core;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.persistence.PersistenceException;
+import jakarta.persistence.PersistenceException;
 
 import org.jbpm.bpmn2.handler.WorkItemHandlerRuntimeException;
 import org.jbpm.workflow.instance.node.WorkItemNodeInstance;

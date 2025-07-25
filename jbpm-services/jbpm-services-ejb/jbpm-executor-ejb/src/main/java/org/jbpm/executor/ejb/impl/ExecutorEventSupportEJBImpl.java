@@ -23,9 +23,9 @@ import java.io.ObjectOutput;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.ConcurrencyManagementType;
-import javax.ejb.Singleton;
+import jakarta.ejb.ConcurrencyManagement;
+import jakarta.ejb.ConcurrencyManagementType;
+import jakarta.ejb.Singleton;
 
 import org.jbpm.executor.AsynchronousJobListener;
 import org.jbpm.executor.impl.event.ExecutorEventSupport;

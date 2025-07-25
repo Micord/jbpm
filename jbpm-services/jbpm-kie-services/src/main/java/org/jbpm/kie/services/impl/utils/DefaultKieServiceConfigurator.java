@@ -16,7 +16,7 @@
 
 package org.jbpm.kie.services.impl.utils;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.kie.services.impl.AdvanceRuntimeDataServiceImpl;
 import org.jbpm.kie.services.impl.FormManagerService;

@@ -22,11 +22,11 @@ import org.kie.api.runtime.Context;
 import org.kie.api.task.model.TaskSummary;
 import org.kie.internal.command.ProcessInstanceIdCommand;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -41,11 +41,11 @@ public class GetCurrentTxTasksCommand extends TaskCommand<List<TaskSummary>> imp
 	@XmlElement(required=true)
 	@XmlSchemaType(name="long")
 	private Long processInstanceId;
-	
+
 	public GetCurrentTxTasksCommand() {
-	   // default constructor 
+	   // default constructor
 	}
-	
+
 	public GetCurrentTxTasksCommand(Long processInstanceId) {
 		this.processInstanceId = processInstanceId;
 	}
@@ -74,5 +74,5 @@ public class GetCurrentTxTasksCommand extends TaskCommand<List<TaskSummary>> imp
         }
         return tasks;
 	}
-	
+
 }

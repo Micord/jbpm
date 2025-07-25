@@ -19,7 +19,7 @@ package org.jbpm.test.services;
 import java.util.List;
 import java.util.ServiceLoader;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
 import org.jbpm.services.api.AdvanceRuntimeDataService;

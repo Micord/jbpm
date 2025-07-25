@@ -22,8 +22,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.drools.persistence.api.TransactionManager;
 import org.drools.persistence.api.TransactionManagerFactory;
@@ -35,16 +35,16 @@ import org.kie.internal.runtime.error.ExecutionErrorStorage;
 
 
 public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
-  
+
     private static String SPRING_TM_CLASSNAME = "org.springframework.transaction.support.AbstractPlatformTransactionManager";
-    
+
     private static String KIE_SPRING_TM_CLASSNAME = "org.kie.spring.persistence.KieSpringTransactionManager";
-    
-    private EntityManagerFactory emf;       
+
+    private EntityManagerFactory emf;
     private TransactionManager txm;
-    
+
     public DefaultExecutionErrorStorage(Environment environment) {
-        
+
         this.emf = (EntityManagerFactory) environment.get(EnvironmentName.ENTITY_MANAGER_FACTORY);
         // if there is no entity manager factory, running with in memory settings so error handling is deactivated
         if (this.emf != null) {
@@ -58,7 +58,7 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
             return error;
         }
         return call((EntityManager em) -> {
-            
+
             ExecutionErrorInfo errorEntity = new ExecutionErrorInfo(
                     error.getErrorId(),
                     error.getType(),
@@ -73,7 +73,7 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
                     error.getErrorDate(),
                     error.getInitActivityId()
                     );
-            
+
             em.persist(errorEntity);
             return error;
         });
@@ -87,7 +87,7 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
         }
         int startPosition = page * pageSize;
         return call((EntityManager em) -> {
-          
+
             return em.createQuery("from ExecutionErrorInfo")
                 .setFirstResult(startPosition)
                 .setMaxResults(pageSize)
@@ -102,7 +102,7 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
             return null;
         }
         return (ExecutionError) call((EntityManager em) -> {
-            
+
             return em.createQuery("from ExecutionErrorInfo where errorId =:errorId")
                 .setParameter("errorId", errorId)
                 .getSingleResult();
@@ -115,20 +115,20 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
             return;
         }
         call((EntityManager em) -> {
-            
+
             for (String errorId : errorIds) {
                 ExecutionError error = (ExecutionError) em.createQuery("from ExecutionErrorInfo where errorId =:errorId")
                     .setParameter("errorId", errorId)
                     .getSingleResult();
-                
+
                 error.setAcknowledged(true);
                 error.setAcknowledgedBy(user);
                 error.setAcknowledgedAt(new Date());
-                
+
                 em.merge(error);
-                
+
             }
-            
+
             return null;
         });
     }
@@ -141,7 +141,7 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
         }
         int startPosition = page * pageSize;
         return call((EntityManager em) -> {
-          
+
             return em.createQuery("from ExecutionErrorInfo where processInstanceId =:processInstanceId")
                 .setParameter("processInstanceId", processInstanceId)
                 .setFirstResult(startPosition)
@@ -158,7 +158,7 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
         }
         int startPosition = page * pageSize;
         return call((EntityManager em) -> {
-          
+
             return em.createQuery("from ExecutionErrorInfo where activityName =:activityName")
                 .setParameter("activityName", activityName)
                 .setFirstResult(startPosition)
@@ -175,7 +175,7 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
         }
         int startPosition = page * pageSize;
         return call((EntityManager em) -> {
-          
+
             return em.createQuery("from ExecutionErrorInfo where deploymentId =:deploymentId")
                 .setParameter("deploymentId", deploymentId)
                 .setFirstResult(startPosition)
@@ -183,13 +183,13 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
                 .getResultList();
         });
     }
-    
+
    /*
     * Helper methods
     */
-    
+
     protected <R> R call(Function<EntityManager, R> function) {
-        
+
         boolean transactionOwner = false;
         transactionOwner = txm.begin();
         EntityManager em = emf.createEntityManager();
@@ -205,7 +205,7 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
             em.close();
         }
     }
-    
+
 
     protected TransactionManager getTransactionManager(Environment environment) {
         Object tx = environment.get(EnvironmentName.TRANSACTION_MANAGER);
@@ -223,9 +223,9 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
             }
         }
         return TransactionManagerFactory.get().newTransactionManager(environment);
-        
+
     }
-    
+
     protected boolean isSpringTransactionManager( Class<?> clazz ) {
         if ( SPRING_TM_CLASSNAME.equals(clazz.getName()) ) {
             return true;
@@ -237,12 +237,12 @@ public class DefaultExecutionErrorStorage implements ExecutionErrorStorage {
         }
         return false;
     }
-    
+
     protected boolean isActive() {
         if (this.emf != null && this.txm != null) {
             return true;
         }
-        
+
         return false;
     }
 }

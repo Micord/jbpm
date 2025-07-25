@@ -19,7 +19,7 @@ package org.jbpm.test.functional.timer;
 import java.util.Arrays;
 import java.util.Collection;
 
-import javax.persistence.Persistence;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.process.core.timer.impl.QuartzSchedulerService;
 import org.junit.After;

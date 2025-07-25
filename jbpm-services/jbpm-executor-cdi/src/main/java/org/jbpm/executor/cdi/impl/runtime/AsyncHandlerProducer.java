@@ -19,7 +19,7 @@ package org.jbpm.executor.cdi.impl.runtime;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.jbpm.executor.commands.PrintOutCommand;
 import org.jbpm.executor.impl.wih.AsyncWorkItemHandler;
@@ -44,7 +44,7 @@ public class AsyncHandlerProducer implements WorkItemHandlerProducer {
         if (executorService != null) {
             handlers.put("async",new AsyncWorkItemHandler(executorService, PrintOutCommand.class.getName()));
         }
-        
+
         return handlers;
     }
 

@@ -18,12 +18,15 @@ package org.jbpm.test.persistence.scripts.quartzdialects;
 
 import java.sql.Types;
 
-import org.hibernate.dialect.PostgreSQL95Dialect;
+import org.hibernate.dialect.PostgreSQLDialect;
 
-public class PostgreSQLCustomDialect extends PostgreSQL95Dialect {
+public class PostgreSQLCustomDialect extends PostgreSQLDialect {
 
-    public PostgreSQLCustomDialect() {
-        registerColumnType(Types.BLOB, "bytea");
+    @Override
+    protected String columnType(int sqlTypeCode) {
+        if (sqlTypeCode == Types.BLOB) {
+            return "bytea";
+        }
+        return super.columnType(sqlTypeCode);
     }
-
 }

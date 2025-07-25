@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.services.task.impl.factories.TaskFactory;
 import org.kie.test.util.db.PoolingDataSourceWrapper;
@@ -41,25 +41,25 @@ import org.slf4j.LoggerFactory;
 
 
 public class UserGroupInvocationTest extends HumanTaskServicesBaseTest {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(UserGroupInvocationTest.class);
 
 	private PoolingDataSourceWrapper pds;
 	private EntityManagerFactory emf;
 	protected CountInvokeUserGroupCallback callback;
-	
+
 	@Before
 	public void setup() {
 		pds = setupPoolingDataSource();
 		emf = Persistence.createEntityManagerFactory( "org.jbpm.services.task" );
 		callback = new CountInvokeUserGroupCallback();
-		
+
 		this.taskService = (InternalTaskService) HumanTaskServiceFactory.newTaskServiceConfigurator()
 												.entityManagerFactory(emf)
 												.userGroupCallback(callback)
 												.getTaskService();
 	}
-	
+
 	@After
 	public void clean() {
 		if (emf != null) {
@@ -69,7 +69,7 @@ public class UserGroupInvocationTest extends HumanTaskServicesBaseTest {
 			pds.close();
 		}
 	}
-	
+
     @Test
     public void testAddStartCompleteUserAssignment() {
 
@@ -87,9 +87,9 @@ public class UserGroupInvocationTest extends HumanTaskServicesBaseTest {
         assertEquals(3, callback.getExistsUserCounter());
         assertEquals(0, callback.getExistsGroupCounter());
         assertEquals(0, callback.getGetGroupCounter());
-        
+
         callback.reset();
-        
+
         long taskId = task.getId();
 
         taskService.start(taskId, "Darth Vader");
@@ -100,7 +100,7 @@ public class UserGroupInvocationTest extends HumanTaskServicesBaseTest {
         assertEquals(1, callback.getExistsUserCounter());
         assertEquals(0, callback.getExistsGroupCounter());
         assertEquals(1, callback.getGetGroupCounter());
-        
+
         callback.reset();
         Task task1 = taskService.getTaskById(taskId);
         assertEquals(Status.InProgress, task1.getTaskData().getStatus());
@@ -118,7 +118,7 @@ public class UserGroupInvocationTest extends HumanTaskServicesBaseTest {
         assertEquals(Status.Completed, task2.getTaskData().getStatus());
         assertEquals("Darth Vader", task2.getTaskData().getActualOwner().getId());
     }
-    
+
     @Test
     public void testAddStartCompleteGroupAssignment() {
 
@@ -136,11 +136,11 @@ public class UserGroupInvocationTest extends HumanTaskServicesBaseTest {
         assertEquals(1, callback.getExistsUserCounter());
         assertEquals(2, callback.getExistsGroupCounter());
         assertEquals(0, callback.getGetGroupCounter());
-        
+
         callback.reset();
-        
+
         long taskId = task.getId();
-        
+
         taskService.claim(taskId, "Darth Vader");
         logger.debug("Callback invokation {}", callback.getExistsUserCounter());
         logger.debug("Callback invokation {}", callback.getExistsGroupCounter());
@@ -149,7 +149,7 @@ public class UserGroupInvocationTest extends HumanTaskServicesBaseTest {
         assertEquals(1, callback.getExistsUserCounter());
         assertEquals(0, callback.getExistsGroupCounter());
         assertEquals(1, callback.getGetGroupCounter());
-        
+
         callback.reset();
 
         taskService.start(taskId, "Darth Vader");
@@ -160,7 +160,7 @@ public class UserGroupInvocationTest extends HumanTaskServicesBaseTest {
         assertEquals(1, callback.getExistsUserCounter());
         assertEquals(0, callback.getExistsGroupCounter());
         assertEquals(1, callback.getGetGroupCounter());
-        
+
         callback.reset();
         Task task1 = taskService.getTaskById(taskId);
         assertEquals(Status.InProgress, task1.getTaskData().getStatus());
@@ -178,13 +178,13 @@ public class UserGroupInvocationTest extends HumanTaskServicesBaseTest {
         assertEquals(Status.Completed, task2.getTaskData().getStatus());
         assertEquals("Darth Vader", task2.getTaskData().getActualOwner().getId());
     }
-    
+
     protected class CountInvokeUserGroupCallback implements UserGroupCallback {
 
     	private int existsUserCounter = 0;
     	private int existsGroupCounter = 0;
     	private int getGroupCounter = 0;
-    	
+
 		@Override
 		public boolean existsUser(String userId) {
 			existsUserCounter++;
@@ -217,12 +217,12 @@ public class UserGroupInvocationTest extends HumanTaskServicesBaseTest {
 		public int getGetGroupCounter() {
 			return getGroupCounter;
 		}
-		
+
 		public void reset() {
 			this.existsUserCounter = 0;
 			this.existsGroupCounter = 0;
 			this.getGroupCounter = 0;
 		}
-    	
+
     }
 }

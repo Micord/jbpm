@@ -24,8 +24,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.process.core.timer.GlobalSchedulerService;
 import org.jbpm.process.core.timer.impl.QuartzSchedulerService;
@@ -59,27 +59,27 @@ import static org.junit.Assert.assertTrue;
 /**
  * This test is dedicated to quartz scheduler service as it is controlled
  * by  org.quartz.properties system property, runtime manager will be bootstrapped
- * based on this property if not given ThreadPoolSchedulerService will be used which is default 
+ * based on this property if not given ThreadPoolSchedulerService will be used which is default
  *
  */
 public class MultipleTimerServicesTest extends TimerBaseTest {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(MultipleTimerServicesTest.class);
 
     private RuntimeEnvironment environmentM1;
     private RuntimeEnvironment environmentM2;
-    
+
     private RuntimeManager managerM1;
     private RuntimeManager managerM2;
-    
+
     private int managerType = 1;
-    
+
     private EntityManagerFactory emf;
     private EntityManagerFactory emf2;
-    
+
     protected GlobalSchedulerService globalScheduler1;
     protected GlobalSchedulerService globalScheduler2;
-    
+
     protected RuntimeManager getManager(RuntimeEnvironment environment, String id) {
         if (managerType ==1) {
             return RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment, id);
@@ -89,7 +89,7 @@ public class MultipleTimerServicesTest extends TimerBaseTest {
             throw new IllegalArgumentException("Invalid runtime maanger type");
         }
     }
-    
+
     @Before
     public void setup() throws IOException, SQLException {
         Collection<String> runtimeManagerIds = RuntimeManagerRegistry.get().getRegisteredIdentifiers();
@@ -103,13 +103,13 @@ public class MultipleTimerServicesTest extends TimerBaseTest {
         cleanupSingletonSessionId();
         emf = Persistence.createEntityManagerFactory("org.jbpm.test.persistence");
         emf2 = Persistence.createEntityManagerFactory("org.jbpm.test.persistence");
-        
+
         globalScheduler1 = new QuartzSchedulerService();
         globalScheduler2 = new QuartzSchedulerService();
         ((QuartzSchedulerService)globalScheduler1).forceShutdown();
         ((QuartzSchedulerService)globalScheduler2).forceShutdown();
     }
-    
+
     @After
     public void cleanup() throws IOException, SQLException {
         try {
@@ -133,19 +133,19 @@ public class MultipleTimerServicesTest extends TimerBaseTest {
             }
         }
     }
-    
+
     @Test(timeout=60000)
     public void testGlobalTimerServiceOnIndependentProcessInstanceManager() throws Exception {
         managerType = 2;
-        
+
         testGlobalTimerServiceOnIndependentManager();
     }
-    
+
     public void testGlobalTimerServiceOnIndependentManager() throws Exception {
 
         NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("timer", 3);
         NodeLeftCountDownProcessEventListener countDownListener2 = new NodeLeftCountDownProcessEventListener("timer", 3);
-        
+
         // prepare listener to assert results
         final List<Long> timerExporations = new ArrayList<Long>();
         ProcessEventListener listenerM1 = new DefaultProcessEventListener(){
@@ -157,9 +157,9 @@ public class MultipleTimerServicesTest extends TimerBaseTest {
                     timerExporations.add(event.getProcessInstance().getId());
                 }
             }
-            
+
         };
-        
+
         final List<Long> timerExporations2 = new ArrayList<Long>();
         ProcessEventListener listenerM2 = new DefaultProcessEventListener(){
 
@@ -170,9 +170,9 @@ public class MultipleTimerServicesTest extends TimerBaseTest {
                     timerExporations2.add(event.getProcessInstance().getId());
                 }
             }
-            
+
         };
-        
+
         environmentM1 = RuntimeEnvironmentBuilder.Factory.get()
     			.newDefaultBuilder()
     			.entityManagerFactory(emf)
@@ -188,21 +188,21 @@ public class MultipleTimerServicesTest extends TimerBaseTest {
                 .registerableItemsFactory(new TestRegisterableItemsFactory(listenerM2, countDownListener2))
                 .schedulerService(globalScheduler2)
                 .get();
-        
+
         managerM1 = getManager(environmentM1, "one");
 
         RuntimeEngine runtimeM1 = managerM1.getRuntimeEngine(ProcessInstanceIdContext.get());
         KieSession ksessionM1 = runtimeM1.getKieSession();
-        
+
         managerM2 = getManager(environmentM2, "two");
 
         RuntimeEngine runtimeM2 = managerM2.getRuntimeEngine(ProcessInstanceIdContext.get());
         KieSession ksessionM2 = runtimeM2.getKieSession();
-        
-        
+
+
         ProcessInstance processInstanceM1 = ksessionM1.startProcess("IntermediateCatchEvent");
         assertTrue(processInstanceM1.getState() == ProcessInstance.STATE_ACTIVE);
-        
+
         ProcessInstance processInstanceM2 = ksessionM2.startProcess("IntermediateCatchEvent");
         assertTrue(processInstanceM2.getState() == ProcessInstance.STATE_ACTIVE);
         // now wait for 1 second for first timer to trigger
@@ -211,18 +211,18 @@ public class MultipleTimerServicesTest extends TimerBaseTest {
         // dispose session to force session to be reloaded on timer expiration
         managerM1.disposeRuntimeEngine(runtimeM1);
         managerM2.disposeRuntimeEngine(runtimeM2);
-        
+
         countDownListener.waitTillCompleted();
         countDownListener2.waitTillCompleted();
-        
+
         countDownListener.reset(1);
         countDownListener2.reset(1);
-        
+
         try {
             runtimeM1 = managerM1.getRuntimeEngine(ProcessInstanceIdContext.get(processInstanceM1.getId()));
             ksessionM1 = runtimeM1.getKieSession();
-            
-            processInstanceM1 = ksessionM1.getProcessInstance(processInstanceM1.getId());        
+
+            processInstanceM1 = ksessionM1.getProcessInstance(processInstanceM1.getId());
             assertNull(processInstanceM1);
         } catch (SessionNotFoundException e) {
             // expected in PerProcessInstance manager
@@ -230,8 +230,8 @@ public class MultipleTimerServicesTest extends TimerBaseTest {
         try {
             runtimeM2 = managerM2.getRuntimeEngine(ProcessInstanceIdContext.get(processInstanceM2.getId()));
             ksessionM2 = runtimeM2.getKieSession();
-            
-            processInstanceM2 = ksessionM2.getProcessInstance(processInstanceM2.getId());        
+
+            processInstanceM2 = ksessionM2.getProcessInstance(processInstanceM2.getId());
             assertNull(processInstanceM2);
         } catch (SessionNotFoundException e) {
             // expected in PerProcessInstance manager
@@ -239,31 +239,31 @@ public class MultipleTimerServicesTest extends TimerBaseTest {
         // let's wait to ensure no more timers are expired and triggered
         countDownListener.waitTillCompleted(3000);
         countDownListener2.waitTillCompleted(3000);
-   
+
 
         managerM1.disposeRuntimeEngine(runtimeM1);
         managerM2.disposeRuntimeEngine(runtimeM2);
-        
+
         assertEquals(3, timerExporations.size());
         assertEquals(3, timerExporations2.size());
-        
+
 
     }
-    
+
     public static void cleanupSingletonSessionId() {
         File tempDir = new File(System.getProperty("java.io.tmpdir"));
         if (tempDir.exists()) {
-            
+
             String[] jbpmSerFiles = tempDir.list(new FilenameFilter() {
-                
+
                 @Override
                 public boolean accept(File dir, String name) {
-                    
+
                     return name.endsWith("-jbpmSessionId.ser");
                 }
             });
             for (String file : jbpmSerFiles) {
-                
+
                 new File(tempDir, file).delete();
             }
         }

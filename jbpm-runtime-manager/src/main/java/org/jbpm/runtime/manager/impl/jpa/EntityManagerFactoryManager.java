@@ -18,8 +18,8 @@ package org.jbpm.runtime.manager.impl.jpa;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 public class EntityManagerFactoryManager {
 

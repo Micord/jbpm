@@ -30,7 +30,7 @@ import org.junit.runner.RunWith;
 import org.kie.api.runtime.Context;
 import org.kie.api.task.TaskService;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -92,11 +92,11 @@ public class CustomHumanTaskServiceTest extends AbstractKieServicesBaseTest {
                 .addPackage("org.jbpm.kie.services.impl.audit")
                 .addPackage("org.jbpm.kie.services.impl.form")
                 .addPackage("org.jbpm.kie.services.impl.form.provider")
-                .addPackage("org.jbpm.kie.services.impl.query")  
-                .addPackage("org.jbpm.kie.services.impl.query.mapper")  
-                .addPackage("org.jbpm.kie.services.impl.query.persistence")  
-                .addPackage("org.jbpm.kie.services.impl.query.preprocessor")  
-                
+                .addPackage("org.jbpm.kie.services.impl.query")
+                .addPackage("org.jbpm.kie.services.impl.query.mapper")
+                .addPackage("org.jbpm.kie.services.impl.query.persistence")
+                .addPackage("org.jbpm.kie.services.impl.query.preprocessor")
+
                 .addPackage("org.jbpm.services.cdi")
                 .addPackage("org.jbpm.services.cdi.impl")
                 .addPackage("org.jbpm.services.cdi.impl.form")

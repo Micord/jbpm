@@ -126,8 +126,8 @@
     	<artifactId>h2</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-entitymanager</artifactId>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-core</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>

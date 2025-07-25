@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.naming.InitialContext;
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 
 import org.drools.persistence.jta.JtaTransactionManager;
 import org.jbpm.process.instance.impl.demo.SystemOutWorkItemHandler;

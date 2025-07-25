@@ -21,8 +21,8 @@ import static java.lang.annotation.RetentionPolicy.*;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import javax.enterprise.inject.Alternative;
-import javax.inject.Qualifier;
+import jakarta.enterprise.inject.Alternative;
+import jakarta.inject.Qualifier;
 
 /**
  * Used to inject a custom HumanTaskServiceProducer.

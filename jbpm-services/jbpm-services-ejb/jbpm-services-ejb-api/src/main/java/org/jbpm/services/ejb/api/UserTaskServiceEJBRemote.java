@@ -16,7 +16,7 @@
 
 package org.jbpm.services.ejb.api;
 
-import javax.ejb.Remote;
+import jakarta.ejb.Remote;
 
 import org.jbpm.services.api.UserTaskService;
 

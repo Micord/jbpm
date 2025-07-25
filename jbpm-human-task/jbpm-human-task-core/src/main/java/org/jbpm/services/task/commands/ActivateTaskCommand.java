@@ -17,9 +17,9 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * Operation.Activate : [ new OperationCommand().{ status = [ Status.Created ],
@@ -34,7 +34,7 @@ public class ActivateTaskCommand extends UserGroupCallbackTaskCommand<Void> {
 
 	public ActivateTaskCommand() {
 	}
-	
+
     public ActivateTaskCommand(long taskId, String userId) {
         this.taskId = taskId;
         this.userId = userId;
@@ -45,11 +45,11 @@ public class ActivateTaskCommand extends UserGroupCallbackTaskCommand<Void> {
         doCallbackUserOperation(userId, context, true);
         groupIds = doUserGroupCallbackOperation(userId, null, context);
         context.set("local:groups", groupIds);
-        
+
         context.getTaskInstanceService().activate(taskId, userId);
         return null;
     }
-    
+
     public String toString() {
     	return "taskService.activate(" + taskId + ", " + userId + ");";
     }

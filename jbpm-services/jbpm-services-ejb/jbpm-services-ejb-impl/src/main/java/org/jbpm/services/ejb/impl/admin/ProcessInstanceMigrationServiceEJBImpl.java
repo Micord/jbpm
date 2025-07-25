@@ -16,9 +16,9 @@
 
 package org.jbpm.services.ejb.impl.admin;
 
-import javax.ejb.Stateless;
-import javax.ejb.TransactionManagement;
-import javax.ejb.TransactionManagementType;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionManagement;
+import jakarta.ejb.TransactionManagementType;
 
 import org.jbpm.kie.services.impl.admin.ProcessInstanceMigrationServiceImpl;
 import org.jbpm.services.ejb.api.admin.ProcessInstanceMigrationServiceEJBLocal;

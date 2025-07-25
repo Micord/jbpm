@@ -23,7 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 
-import javax.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBContext;
 
 import org.jbpm.kie.services.impl.jaxb.Child;
 import org.jbpm.kie.services.impl.jaxb.GrandChild;

@@ -16,11 +16,11 @@
 
 package org.jbpm.kie.services.impl.cmd;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 import org.jbpm.process.instance.impl.ProcessInstanceImpl;
 import org.kie.api.command.ExecutableCommand;
@@ -33,14 +33,14 @@ import org.kie.internal.command.RegistryContext;
 @XmlAccessorType(XmlAccessType.NONE)
 @XmlRootElement(name="start-process-instance-with-parent-command")
 public class StartProcessInstanceWithParentCommand implements ExecutableCommand<ProcessInstance>, ProcessInstanceIdCommand {
-    
+
     /** Generated serial version UID */
     private static final long serialVersionUID = 7634752111656248015L;
-   
+
     @XmlAttribute(required = true)
     @XmlSchemaType(name="long")
     private Long processInstanceId;
-    
+
     @XmlAttribute(required = true)
     @XmlSchemaType(name="long")
     private Long parentProcessInstanceId;
@@ -79,7 +79,7 @@ public class StartProcessInstanceWithParentCommand implements ExecutableCommand<
         if( parentProcessInstanceId > 0 ) {
             ((ProcessInstanceImpl) processInstance).setMetaData("ParentProcessInstanceId", parentProcessInstanceId);
         }
-    
+
         return ksession.startProcessInstance(processInstanceId.longValue());
     }
 }

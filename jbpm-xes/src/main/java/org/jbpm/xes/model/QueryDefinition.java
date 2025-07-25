@@ -16,7 +16,7 @@
 
 package org.jbpm.xes.model;
 
-import javax.xml.bind.annotation.*;
+import jakarta.xml.bind.annotation.*;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(name = "query-definition")

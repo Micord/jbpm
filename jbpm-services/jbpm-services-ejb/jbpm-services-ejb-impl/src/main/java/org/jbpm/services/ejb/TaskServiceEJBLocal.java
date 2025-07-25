@@ -16,7 +16,7 @@
 
 package org.jbpm.services.ejb;
 
-import javax.ejb.Local;
+import jakarta.ejb.Local;
 
 import org.kie.api.task.TaskService;
 import org.kie.internal.task.api.InternalTaskService;

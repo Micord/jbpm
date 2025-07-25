@@ -19,7 +19,7 @@ package org.jbpm.test.container.archive.ejbservices;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.inject.Produces;
 
 import org.kie.internal.identity.IdentityProvider;
 

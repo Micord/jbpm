@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.executor.ExecutorServiceFactory;
 import org.jbpm.executor.impl.ExecutorServiceImpl;

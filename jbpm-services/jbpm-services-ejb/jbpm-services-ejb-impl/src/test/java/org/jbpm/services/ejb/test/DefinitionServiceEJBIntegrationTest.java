@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import javax.ejb.EJB;
+import jakarta.ejb.EJB;
 
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -60,10 +60,10 @@ public class DefinitionServiceEJBIntegrationTest extends AbstractTestSupport {
 		war.addPackage("org.jbpm.services.ejb.test"); // test cases
 		// deploy test kjar
 		deployKjar();
-		
+
 		return war;
 	}
-	
+
 	protected static void deployKjar() {
 		KieServices ks = KieServices.Factory.get();
         ReleaseId releaseId = ks.newReleaseId(GROUP_ID, ARTIFACT_ID, VERSION);
@@ -75,7 +75,7 @@ public class DefinitionServiceEJBIntegrationTest extends AbstractTestSupport {
         processes.add("processes/import.bpmn");
         processes.add("processes/callactivity.bpmn");
         processes.add("processes/itemrefissue.bpmn");
-        
+
         InternalKieModule kJar1 = createKieJar(ks, releaseId, processes);
         File pom = new File("target/kmodule", "pom.xml");
         pom.getParentFile().mkdir();
@@ -84,14 +84,14 @@ public class DefinitionServiceEJBIntegrationTest extends AbstractTestSupport {
             fs.write(getPom(releaseId).getBytes());
             fs.close();
         } catch (Exception e) {
-            
+
         }
         KieMavenRepository repository = getKieMavenRepository();
         repository.installArtifact(releaseId, kJar1, pom);
 	}
-	
+
 	private List<DeploymentUnit> units = new ArrayList<DeploymentUnit>();
-	
+
     @After
     public void cleanup() {
 
@@ -107,151 +107,151 @@ public class DefinitionServiceEJBIntegrationTest extends AbstractTestSupport {
 
 	@EJB
 	private DefinitionServiceEJBLocal bpmn2Service;
-	
+
 	@EJB
 	private DeploymentServiceEJBLocal deploymentService;
-	
+
     @Test
     public void testHumanTaskProcess() throws IOException {
-      
+
         assertNotNull(deploymentService);
-        
+
         DeploymentUnit deploymentUnit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);
-        
+
         deploymentService.deploy(deploymentUnit);
         units.add(deploymentUnit);
-      
+
         String processId = "org.jbpm.writedocument";
-        
+
 
         Collection<UserTaskDefinition> processTasks = bpmn2Service.getTasksDefinitions(deploymentUnit.getIdentifier(), processId);
-        
+
         assertEquals(3, processTasks.size());
         Map<String, String> processData = bpmn2Service.getProcessVariables(deploymentUnit.getIdentifier(), processId);
-        
+
         assertEquals(3, processData.keySet().size());
         Map<String, String> taskInputMappings = bpmn2Service.getTaskInputMappings(deploymentUnit.getIdentifier(), processId, "Write a Document" );
-        
+
         assertEquals(3, taskInputMappings.keySet().size());
-        
+
         Map<String, String> taskOutputMappings = bpmn2Service.getTaskOutputMappings(deploymentUnit.getIdentifier(), processId, "Write a Document" );
-        
+
         assertEquals(1, taskOutputMappings.keySet().size());
-        
+
         Map<String, Collection<String>> associatedEntities = bpmn2Service.getAssociatedEntities(deploymentUnit.getIdentifier(), processId);
-        
+
         assertEquals(3, associatedEntities.keySet().size());
-        
-        
+
+
     }
-    
+
     @Test
     public void testHiringProcessData() throws IOException {
-      
+
         assertNotNull(deploymentService);
-        
+
         DeploymentUnit deploymentUnit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);
-        
+
         deploymentService.deploy(deploymentUnit);
         units.add(deploymentUnit);
-      
+
         String processId = "hiring";
-        
+
 
         Collection<UserTaskDefinition> processTasks = bpmn2Service.getTasksDefinitions(deploymentUnit.getIdentifier(), processId);
-        
+
         assertEquals(4, processTasks.size());
         Map<String, String> processData = bpmn2Service.getProcessVariables(deploymentUnit.getIdentifier(), processId);
-        
+
         assertEquals(9, processData.keySet().size());
         Map<String, String> taskInputMappings = bpmn2Service.getTaskInputMappings(deploymentUnit.getIdentifier(), processId, "HR Interview" );
-        
+
         assertEquals(4, taskInputMappings.keySet().size());
         assertEquals("java.lang.String", taskInputMappings.get("TaskName"));
         assertEquals("Object", taskInputMappings.get("GroupId"));
         assertEquals("Object", taskInputMappings.get("Comment"));
         assertEquals("String", taskInputMappings.get("in_name"));
-        
+
         Map<String, String> taskOutputMappings = bpmn2Service.getTaskOutputMappings(deploymentUnit.getIdentifier(), processId, "HR Interview" );
-        
+
         assertEquals(4, taskOutputMappings.keySet().size());
         assertEquals("String", taskOutputMappings.get("out_name"));
         assertEquals("Integer", taskOutputMappings.get("out_age"));
         assertEquals("String", taskOutputMappings.get("out_mail"));
         assertEquals("Integer", taskOutputMappings.get("out_score"));
-        
+
         Map<String, Collection<String>> associatedEntities = bpmn2Service.getAssociatedEntities(deploymentUnit.getIdentifier(), processId);
-        
+
         assertEquals(4, associatedEntities.keySet().size());
-        
+
         Map<String, String> allServiceTasks = bpmn2Service.getServiceTasks(deploymentUnit.getIdentifier(), processId);
         assertEquals(2, allServiceTasks.keySet().size());
-        
-        
+
+
     }
-    
+
     @Test
     public void testFindReusableSubProcesses() {
-      
+
         assertNotNull(deploymentService);
-        
+
         DeploymentUnit deploymentUnit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);
-        
+
         deploymentService.deploy(deploymentUnit);
         units.add(deploymentUnit);
-        
+
         String theString = "ParentProcess";
-        
+
         assertNotNull(theString);
         Collection<String> reusableProcesses = bpmn2Service.getReusableSubProcesses(deploymentUnit.getIdentifier(), theString);
         assertNotNull(reusableProcesses);
         assertEquals(1, reusableProcesses.size());
-        
+
         assertEquals("signal", reusableProcesses.iterator().next());
     }
-    
+
     @Test
     public void itemRefIssue(){
         assertNotNull(deploymentService);
-        
+
         DeploymentUnit deploymentUnit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);
-        
+
         deploymentService.deploy(deploymentUnit);
         units.add(deploymentUnit);
-        
+
         String processId = "itemrefissue";
-        
+
 
         Map<String, String> processData = bpmn2Service.getProcessVariables(deploymentUnit.getIdentifier(), processId);
         assertNotNull(processData);
-        
+
     }
-    
+
     @Test
     public void testHumanTaskProcessBeforeAndAfterUndeploy() throws IOException {
-      
+
         assertNotNull(deploymentService);
-        
+
         DeploymentUnit deploymentUnit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);
-        
+
         deploymentService.deploy(deploymentUnit);
         units.add(deploymentUnit);
-      
+
         String processId = "org.jbpm.writedocument";
-        
+
         ProcessDefinition procDef = bpmn2Service.getProcessDefinition(deploymentUnit.getIdentifier(), processId);
         assertNotNull(procDef);
-        
+
         assertEquals(procDef.getId(), "org.jbpm.writedocument");
         assertEquals(procDef.getName(), "humanTaskSample");
         assertEquals(procDef.getKnowledgeType(), "PROCESS");
         assertEquals(procDef.getPackageName(), "defaultPackage");
         assertEquals(procDef.getType(), "RuleFlow");
         assertEquals(procDef.getVersion(), "1");
-        
+
         // now let's undeploy the unit
         deploymentService.undeploy(deploymentUnit);
-        
+
         procDef = bpmn2Service.getProcessDefinition(deploymentUnit.getIdentifier(), processId);
         assertNull(procDef);
     }

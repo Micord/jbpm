@@ -31,13 +31,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.Queue;
-import javax.jms.Session;
-import javax.jms.TextMessage;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
+import jakarta.jms.MessageProducer;
+import jakarta.jms.Queue;
+import jakarta.jms.Session;
+import jakarta.jms.TextMessage;
 
 import org.jbpm.casemgmt.api.audit.CaseFileData;
 import org.jbpm.casemgmt.api.auth.AuthorizationManager;
@@ -65,17 +65,17 @@ import com.thoughtworks.xstream.XStream;
 public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, Cacheable {
 
     private static final Logger logger = LoggerFactory.getLogger(AsyncCaseInstanceAuditEventProducer.class);
-    private ConnectionFactory connectionFactory;    
+    private ConnectionFactory connectionFactory;
     private Queue queue;
     private boolean transacted = true;
     private XStream xstream;
-    
+
     private CaseIndexerManager indexManager = CaseIndexerManager.get();
-    
+
     public AsyncCaseInstanceAuditEventProducer() {
         initXStream();
     }
-    
+
     private void initXStream() {
         if(xstream==null) {
             xstream = createTrustingXStream();
@@ -83,7 +83,7 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
             xstream.denyTypes(voidDeny);
         }
     }
-    
+
     public ConnectionFactory getConnectionFactory() {
         return connectionFactory;
     }
@@ -99,7 +99,7 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
     public void setQueue(Queue queue) {
         this.queue = queue;
     }
-    
+
     public boolean isTransacted() {
         return transacted;
     }
@@ -110,7 +110,7 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
 
     @Override
     public void afterCaseStarted(CaseStartEvent event) {
-        
+
         CaseFileInstance caseFile = event.getCaseFile();
         if (caseFile == null) {
             return;
@@ -120,15 +120,15 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
         if (caseRoleAssignments != null && !caseRoleAssignments.isEmpty()) {
             for (CaseRoleInstance roleAssignment : caseRoleAssignments) {
                 logger.debug("Role {} has following assignments {}", roleAssignment.getRoleName(), roleAssignment.getRoleAssignments());
-                
+
                 if (roleAssignment.getRoleAssignments() != null && !roleAssignment.getRoleAssignments().isEmpty()) {
-                    
+
                     roleAssignment.getRoleAssignments().forEach(entity -> {
                         CaseRoleAssignmentLog assignmentLog = new CaseRoleAssignmentLog(event.getProcessInstanceId(), event.getCaseId(), roleAssignment.getRoleName(), entity);
-                        
+
                         caseRoleAssignmentsLogs.add(assignmentLog);
                     });
-                    
+
                 }
             }
         } else {
@@ -136,34 +136,34 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
             CaseRoleAssignmentLog assignmentLog = new CaseRoleAssignmentLog(event.getProcessInstanceId(), event.getCaseId(), "*", TaskModelProvider.getFactory().newGroup(AuthorizationManager.PUBLIC_GROUP));
             caseRoleAssignmentsLogs.add(assignmentLog);
         }
-        
+
         Map<String, Object> initialData = caseFile.getData();
         List<CaseFileData> caseFileDataLogs = new ArrayList<>();
         if (!initialData.isEmpty()) {
-        
-        
+
+
             initialData.forEach((name, value) -> {
-                
+
                 if (value != null) {
-                    List<CaseFileData> indexedValues = indexManager.index(event, name, value); 
-                                                        
-                    caseFileDataLogs.addAll(indexedValues);                    
+                    List<CaseFileData> indexedValues = indexManager.index(event, name, value);
+
+                    caseFileDataLogs.addAll(indexedValues);
                 }
             });
         }
         sendMessage(AFTER_CASE_STARTED_EVENT_TYPE, new AuditCaseInstanceData(event.getCaseId(), caseFileDataLogs, caseRoleAssignmentsLogs), 8);
     }
-    
+
     @Override
     public void afterCaseReopen(CaseReopenEvent event) {
         List<CaseFileData> logs = updateCaseFileItems(event, event.getData(), event.getCaseId(), event.getCaseDefinitionId(), event.getUser());
-                
-        sendMessage(AFTER_CASE_REOPEN_EVENT_TYPE, new AuditCaseInstanceData(event.getProcessInstanceId(), event.getCaseId(), logs, null), 4);    
-    }    
+
+        sendMessage(AFTER_CASE_REOPEN_EVENT_TYPE, new AuditCaseInstanceData(event.getProcessInstanceId(), event.getCaseId(), logs, null), 4);
+    }
 
     @Override
     public void afterCaseRoleAssignmentAdded(CaseRoleAssignmentEvent event) {
-                
+
         CaseRoleAssignmentLog assignmentLog = new CaseRoleAssignmentLog(-1L, event.getCaseId(), event.getRole(), event.getEntity());
         sendMessage(AFTER_CASE_ROLE_ASSIGNMENT_ADDED_EVENT_TYPE, new AuditCaseInstanceData(event.getCaseId(), null, Collections.singletonList(assignmentLog)), 4);
 
@@ -171,16 +171,16 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
 
     @Override
     public void afterCaseRoleAssignmentRemoved(CaseRoleAssignmentEvent event) {
-        
+
         CaseRoleAssignmentLog assignmentLog = new CaseRoleAssignmentLog(-1L, event.getCaseId(), event.getRole(), event.getEntity());
-        
+
         sendMessage(AFTER_CASE_ROLE_ASSIGNMENT_REMOVED_EVENT_TYPE, new AuditCaseInstanceData(event.getCaseId(), null, Collections.singletonList(assignmentLog)), 4);
-    }   
+    }
 
     @Override
     public void afterCaseDataAdded(CaseDataEvent event) {
         List<CaseFileData> logs = updateCaseFileItems(event, event.getData(), event.getCaseId(), event.getDefinitionId(), event.getUser());
-        
+
         if (logs != null && !logs.isEmpty()) {
             sendMessage(AFTER_CASE_DATA_ADDED_EVENT_TYPE, new AuditCaseInstanceData(event.getCaseId(), logs, null), 4);
         }
@@ -192,7 +192,7 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
                 .stream()
                 .map(name -> new CaseFileDataLog(event.getCaseId(), event.getDefinitionId(), name))
                 .collect(Collectors.toList());
-        
+
         if (logs != null && !logs.isEmpty()) {
             sendMessage(AFTER_CASE_DATA_REMOVED_EVENT_TYPE, new AuditCaseInstanceData(event.getCaseId(), logs, null), 4);
         }
@@ -203,11 +203,11 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
         // no-op
     }
 
-    
+
     /*
      * Helper methods
      */
-    
+
     protected void sendMessage(Integer eventType, AuditCaseInstanceData eventData, int priority) {
         if (connectionFactory == null && queue == null) {
             throw new IllegalStateException("ConnectionFactory and Queue cannot be null");
@@ -223,7 +223,7 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
             TextMessage message = queueSession.createTextMessage(eventXml);
             message.setStringProperty("LogType", "Case");
             message.setIntProperty("EventType", eventType);
-            producer = queueSession.createProducer(queue);  
+            producer = queueSession.createProducer(queue);
             producer.setPriority(priority);
             producer.send(message);
         } catch (Exception e) {
@@ -236,7 +236,7 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
                     logger.warn("Error when closing producer", e);
                 }
             }
-            
+
             if (queueSession != null) {
                 try {
                     queueSession.close();
@@ -244,7 +244,7 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
                     logger.warn("Error when closing queue session", e);
                 }
             }
-            
+
             if (queueConnection != null) {
                 try {
                     queueConnection.close();
@@ -254,21 +254,21 @@ public class AsyncCaseInstanceAuditEventProducer implements CaseEventListener, C
             }
         }
     }
-    
+
     protected List<CaseFileData> updateCaseFileItems(CaseEvent event, Map<String, Object> addedData, String caseId, String caseDefinitionId, String user) {
-        
+
         if (addedData.isEmpty()) {
             return null;
         }
         List<CaseFileData> logs = new ArrayList<>();
-        
+
         addedData.forEach((name, value) -> {
-            
+
             if (value != null) {
-                List<CaseFileData> indexedValues = indexManager.index(event, name, value); 
-                
-                logs.addAll(indexedValues); 
-                
+                List<CaseFileData> indexedValues = indexManager.index(event, name, value);
+
+                logs.addAll(indexedValues);
+
             }
         });
         return logs;

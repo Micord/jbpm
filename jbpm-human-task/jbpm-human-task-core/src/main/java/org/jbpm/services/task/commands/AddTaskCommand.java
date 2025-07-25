@@ -17,12 +17,12 @@ package org.jbpm.services.task.commands;
 
 import java.util.Map;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.drools.core.xml.jaxb.util.JaxbMapAdapter;
 import org.jbpm.services.task.assignment.AssignmentService;
@@ -56,21 +56,21 @@ public class AddTaskCommand extends UserGroupCallbackTaskCommand<Long> {
 
 	@XmlElement
     private JaxbTask jaxbTask;
-    
+
     @XmlTransient
     private Task task;
-    
+
     @XmlJavaTypeAdapter(JaxbMapAdapter.class)
     @XmlElement(name="parameter")
     private Map<String, Object> params;
-    
+
     // TODO support ContentData marshalling
     @XmlTransient // remove and add @XmlElement when done
     private ContentData data;
-    
+
     public AddTaskCommand() {
     }
-  
+
 
     public AddTaskCommand(Task task, Map<String, Object> params) {
         setTask(task);
@@ -96,8 +96,8 @@ public class AddTaskCommand extends UserGroupCallbackTaskCommand<Long> {
     		taskImpl = task;
     	}
 	    initializeTask(taskImpl);
-	    context.getTaskRuleService().executeRules(taskImpl, userId, data != null?data:params, TaskRuleService.ADD_TASK_SCOPE);     
-        
+	    context.getTaskRuleService().executeRules(taskImpl, userId, data != null?data:params, TaskRuleService.ADD_TASK_SCOPE);
+
 	    ((InternalTaskData)taskImpl.getTaskData()).setTaskInputVariables(params);
         // use assignment service to directly assign actual owner if enabled
         AssignmentService assignmentService = AssignmentServiceProvider.get();
@@ -107,15 +107,15 @@ public class AddTaskCommand extends UserGroupCallbackTaskCommand<Long> {
         doCallbackOperationForPeopleAssignments((InternalPeopleAssignments) taskImpl.getPeopleAssignments(), context);
         doCallbackOperationForTaskData((InternalTaskData) taskImpl.getTaskData(), context);
         doCallbackOperationForTaskDeadlines(((InternalTask) taskImpl).getDeadlines(), context);
-        
+
 	    if (data != null) {
 	    	taskId = context.getTaskInstanceService().addTask(taskImpl, data);
         } else {
-            
+
         	taskId = context.getTaskInstanceService().addTask(taskImpl, params);
         }
         DeadlineSchedulerHelper.scheduleDeadlinesForTask((InternalTask) taskImpl, context, DeadlineType.values());
-    	
+
     	return taskId;
     }
 
@@ -143,7 +143,7 @@ public class AddTaskCommand extends UserGroupCallbackTaskCommand<Long> {
     public Map<String, Object> getParams() {
         return params;
     }
-    
+
     public void setParams(Map<String, Object> params) {
     	this.params = params;
     }
@@ -159,7 +159,7 @@ public class AddTaskCommand extends UserGroupCallbackTaskCommand<Long> {
 
     private void initializeTask(Task task){
         Status assignedStatus = null;
-            
+
         if (task.getPeopleAssignments() != null && task.getPeopleAssignments().getPotentialOwners() != null && task.getPeopleAssignments().getPotentialOwners().size() == 1) {
             // if there is a single potential owner, assign and set status to Reserved
             OrganizationalEntity potentialOwner = task.getPeopleAssignments().getPotentialOwners().get(0);
@@ -184,6 +184,6 @@ public class AddTaskCommand extends UserGroupCallbackTaskCommand<Long> {
         if (assignedStatus != null) {
             ((InternalTaskData) task.getTaskData()).setStatus(assignedStatus);
         }
-        
+
     }
 }

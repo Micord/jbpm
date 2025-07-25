@@ -18,11 +18,11 @@ package org.jbpm.process.audit.strategy;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.TransactionRequiredException;
-import javax.transaction.Status;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.TransactionRequiredException;
+import jakarta.transaction.Status;
+import jakarta.transaction.UserTransaction;
 
 import org.jbpm.process.audit.JPAWorkingMemoryDbLogger;
 import org.kie.api.runtime.KieSession;
@@ -38,11 +38,11 @@ import org.slf4j.LoggerFactory;
 public class StandaloneLocalStrategy implements PersistenceStrategy {
 
     protected EntityManagerFactory emf;
-    
-    public StandaloneLocalStrategy(EntityManagerFactory emf) { 
+
+    public StandaloneLocalStrategy(EntityManagerFactory emf) {
         this.emf = emf;
     }
-    
+
     @Override
     public EntityManager getEntityManager() {
         return emf.createEntityManager();
@@ -50,7 +50,7 @@ public class StandaloneLocalStrategy implements PersistenceStrategy {
 
     @Override
     public Object joinTransaction(EntityManager em) {
-       em.getTransaction().begin(); 
+       em.getTransaction().begin();
        return true;
     }
 

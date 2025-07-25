@@ -25,7 +25,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.executor.impl.jpa.ExecutorJPAAuditService;
 import org.jbpm.process.core.timer.DateTimeUtils;
@@ -159,7 +159,7 @@ public class LogCleanupCommand implements Command, Reoccurring {
         }
 
         if (!skipExecutorLog) {
-            // executor tables  
+            // executor tables
             int errorInfoLogsRemoved = auditLogService.errorInfoLogDeleteBuilder()
                                                   .dateRangeEnd(olderThan == null ? null : formatToUse.parse(olderThan))
                                                   .recordsPerTransaction(recordsPerTransaction)
@@ -228,7 +228,7 @@ public class LogCleanupCommand implements Command, Reoccurring {
         }
 
         if (!skipProcessLog) {
-            // process tables			
+            // process tables
             int niLogsRemoved = auditLogService.nodeInstanceLogDelete()
                                            .processId(forProcess)
                                            .dateRangeEnd(olderThan == null ? null : formatToUse.parse(olderThan))
@@ -271,7 +271,7 @@ public class LogCleanupCommand implements Command, Reoccurring {
         executionResults.setData("BAMLogRemoved", 0L);
         return executionResults;
     }
-    
+
     private  static boolean mightBeMore (int deleted, int recordPerTransaction) {
         return recordPerTransaction > 0 && deleted >= recordPerTransaction;
     }

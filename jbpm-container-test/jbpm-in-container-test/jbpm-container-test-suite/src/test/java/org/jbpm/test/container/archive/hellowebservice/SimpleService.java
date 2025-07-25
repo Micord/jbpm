@@ -16,9 +16,9 @@
 
 package org.jbpm.test.container.archive.hellowebservice;
 
-import javax.jws.WebMethod;
-import javax.jws.WebParam;
-import javax.jws.WebService;
+import jakarta.jws.WebMethod;
+import jakarta.jws.WebParam;
+import jakarta.jws.WebService;
 
 @WebService(serviceName = "SimpleService")
 public class SimpleService {

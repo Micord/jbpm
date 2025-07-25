@@ -18,8 +18,8 @@ package org.jbpm.persistence.types;
 
 import java.math.BigInteger;
 
-import javax.persistence.EntityManager;
-import javax.persistence.Query;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 
 import org.jbpm.test.persistence.scripts.DatabaseType;
 import org.jbpm.test.persistence.scripts.PersistenceUnit;

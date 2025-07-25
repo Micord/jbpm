@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.kie.services.api.DeploymentIdResolver;
 import org.jbpm.kie.services.impl.audit.ServicesAwareAuditEventBuilder;

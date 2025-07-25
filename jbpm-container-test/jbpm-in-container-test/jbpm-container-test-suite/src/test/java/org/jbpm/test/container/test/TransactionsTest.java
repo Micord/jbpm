@@ -24,10 +24,10 @@ import java.util.Map;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.transaction.Status;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import jakarta.transaction.Status;
+import jakarta.transaction.UserTransaction;
 
 import org.assertj.core.api.Assertions;
 import org.jboss.arquillian.container.test.api.Deployment;

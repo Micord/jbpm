@@ -15,9 +15,9 @@
  */
 package org.jbpm.services.task.commands;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.jbpm.services.task.impl.util.DeadlineSchedulerHelper;
 import org.kie.api.runtime.Context;
@@ -27,18 +27,18 @@ import org.kie.internal.task.api.TaskDeadlinesService.DeadlineType;
 import org.kie.internal.task.api.model.InternalTask;
 
 /**
- * Operation.Release 
-        : [ new OperationCommand().{ 
+ * Operation.Release
+        : [ new OperationCommand().{
                 status = [ Status.Reserved, Status.InProgress ],
-                allowed = [Allowed.Owner, Allowed.BusinessAdministrator ],  
-                setNewOwnerToNull = true,            
+                allowed = [Allowed.Owner, Allowed.BusinessAdministrator ],
+                setNewOwnerToNull = true,
                 newStatus = Status.Ready
-            } ],    
+            } ],
  */
 @XmlRootElement(name="release-task-command")
 @XmlAccessorType(XmlAccessType.NONE)
 public class ReleaseTaskCommand extends UserGroupCallbackTaskCommand<Void> {
-	
+
 	private static final long serialVersionUID = -9094809920345727802L;
 
 	public ReleaseTaskCommand() {

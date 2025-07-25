@@ -16,7 +16,7 @@
 
 package org.jbpm.services.task.persistence;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.drools.persistence.jpa.AbstractPersistenceContextManager;
 import org.kie.api.runtime.Environment;
@@ -27,7 +27,7 @@ import org.kie.internal.task.api.TaskPersistenceContextManager;
 public class JPATaskPersistenceContextManager extends
 		AbstractPersistenceContextManager implements
 		TaskPersistenceContextManager {
-	
+
 	public JPATaskPersistenceContextManager(Environment environment) {
 		super(environment);
 	}
@@ -35,11 +35,11 @@ public class JPATaskPersistenceContextManager extends
 	@Override
 	public TaskPersistenceContext getPersistenceContext() {
 		Boolean locking = (Boolean) env.get(EnvironmentName.USE_PESSIMISTIC_LOCKING);
-        if( locking == null ) { 
+        if( locking == null ) {
             locking = false;
         }
         String lockingMode = (String) env.get(EnvironmentName.USE_PESSIMISTIC_LOCKING_MODE);
-        boolean useJTA = true; 
+        boolean useJTA = true;
 		EntityManager em = getCommandScopedEntityManager();
 		return new JPATaskPersistenceContext(em, useJTA, locking, lockingMode);
 	}
@@ -50,13 +50,13 @@ public class JPATaskPersistenceContextManager extends
 	}
 
     @Override
-    public void endCommandScopedEntityManager() {        
+    public void endCommandScopedEntityManager() {
         EntityManager cmdScopedEntityManager = (EntityManager) env.get( EnvironmentName.CMD_SCOPED_ENTITY_MANAGER );
         if(cmdScopedEntityManager != null && cmdScopedEntityManager.isOpen()) {
             cmdScopedEntityManager.clear();
         }
         super.endCommandScopedEntityManager();
     }
-    
+
 
 }

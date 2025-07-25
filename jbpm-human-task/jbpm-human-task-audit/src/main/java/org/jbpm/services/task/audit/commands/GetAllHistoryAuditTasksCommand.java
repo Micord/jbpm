@@ -24,15 +24,15 @@ import org.kie.internal.task.api.AuditTask;
 import org.kie.internal.task.api.TaskContext;
 import org.kie.internal.task.api.TaskPersistenceContext;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 @XmlRootElement(name="get-all-audit-tasks-command")
 @XmlAccessorType(XmlAccessType.NONE)
 public class GetAllHistoryAuditTasksCommand extends TaskCommand<List<AuditTask>> {
-        
+
         private QueryFilter filter;
 	public GetAllHistoryAuditTasksCommand() {
             this.filter =  new QueryFilter(0,0);
@@ -45,8 +45,8 @@ public class GetAllHistoryAuditTasksCommand extends TaskCommand<List<AuditTask>>
 	@Override
 	public List<AuditTask> execute(Context context) {
 		TaskPersistenceContext persistenceContext = ((TaskContext) context).getPersistenceContext();
-		return persistenceContext.queryWithParametersInTransaction("getAllAuditTasks", 
-                                persistenceContext.addParametersToMap("firstResult", filter.getOffset(), 
+		return persistenceContext.queryWithParametersInTransaction("getAllAuditTasks",
+                                persistenceContext.addParametersToMap("firstResult", filter.getOffset(),
                                         "maxResults", filter.getCount()),
 				ClassUtil.<List<AuditTask>>castClass(List.class));
 	}

@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
 
-import javax.ws.rs.ext.RuntimeDelegate;
+import jakarta.ws.rs.ext.RuntimeDelegate;
 
 import org.apache.cxf.endpoint.Server;
 import org.apache.cxf.jaxrs.JAXRSServerFactoryBean;
@@ -1043,19 +1043,19 @@ public class RestWorkItemHandlerTest {
         assertEquals("request to endpoint " + workItem.getParameter("Url") + " successfully completed OK",
                      responseMsg);
     }
-    
+
     @Test
     public void testHeadersNull() {
         RESTWorkItemHandler handler = new RESTWorkItemHandler();
         String headerKey = "headerKey";
-        
+
         WorkItemImpl workItem = new WorkItemImpl();
         workItem.setParameter("Url",
                               serverURL + "/header/" + headerKey);
         workItem.setParameter("Method",
                               "GET");
         workItem.setParameter(PARAM_HEADERS, headerKey + "=");
-        
+
         WorkItemManager manager = new TestWorkItemManager();
         handler.executeWorkItem(workItem,
                                 manager);
@@ -1063,21 +1063,21 @@ public class RestWorkItemHandlerTest {
         String result = (String) results.get(PARAM_RESULT);
         assertTrue(result.trim().isEmpty());
     }
-    
+
     @Test
     public void testHeadersSingleValue() {
         RESTWorkItemHandler handler = new RESTWorkItemHandler();
         String headerKey = "headerKey";
         String headerValue = "headerValue";
         String headers = headerKey + "=" + headerValue;
-         
+
         WorkItemImpl workItem = new WorkItemImpl();
         workItem.setParameter("Url",
                               serverURL + "/header/" + headerKey);
         workItem.setParameter("Method",
                               "GET");
         workItem.setParameter(PARAM_HEADERS, headers);
-        
+
         WorkItemManager manager = new TestWorkItemManager();
         handler.executeWorkItem(workItem,
                                 manager);
@@ -1085,21 +1085,21 @@ public class RestWorkItemHandlerTest {
         String result = (String) results.get(PARAM_RESULT);
         assertEquals(headerValue, result);
     }
-    
+
     @Test
     public void testHeadersValueWithEquals() {
         RESTWorkItemHandler handler = new RESTWorkItemHandler();
         String headerKey = "Authorization";
         String headerValue = "Basic bcdabcdabcdabcdabcdabcdabcd==";
         String headers = headerKey + "=" + headerValue;
-         
+
         WorkItemImpl workItem = new WorkItemImpl();
         workItem.setParameter("Url",
                               serverURL + "/header/" + headerKey);
         workItem.setParameter("Method",
                               "GET");
         workItem.setParameter(PARAM_HEADERS, headers);
-        
+
         WorkItemManager manager = new TestWorkItemManager();
         handler.executeWorkItem(workItem,
                                 manager);
@@ -1107,29 +1107,29 @@ public class RestWorkItemHandlerTest {
         String result = (String) results.get(PARAM_RESULT);
         assertEquals(headerValue, result);
     }
-    
+
     @Test
     public void testHeadersMultipleValues() {
         RESTWorkItemHandler handler = new RESTWorkItemHandler();
         String headerKey = "headerKey";
         String headerValues = "headerValue,headerValue2,headerValue3";
         String headers = headerKey + "=" + headerValues;
-         
+
         WorkItemImpl workItem = new WorkItemImpl();
         workItem.setParameter("Url",
                               serverURL + "/header/" + headerKey);
         workItem.setParameter("Method",
                               "GET");
         workItem.setParameter(PARAM_HEADERS, headers);
-        
+
         WorkItemManager manager = new TestWorkItemManager();
         handler.executeWorkItem(workItem,
                                 manager);
         Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
         String result = (String) results.get(PARAM_RESULT);
         assertEquals(headerValues, result);
-    }    
-    
+    }
+
     @Test
     public void testHeadersMultipleHeaders() {
         RESTWorkItemHandler handler = new RESTWorkItemHandler();
@@ -1137,9 +1137,9 @@ public class RestWorkItemHandlerTest {
         String headerValues1 = "headerValue,headerValue2,headerValue3";
         String headerKey2 = "headerKey2";
         String headerValues2 = "headerValue2,headerValue22,headerValue23";
-        String headers = headerKey1 + "=" + headerValues1 + ";" 
+        String headers = headerKey1 + "=" + headerValues1 + ";"
                            + headerKey2 + "=" + headerValues2;
-           
+
         WorkItemImpl workItem = new WorkItemImpl();
         workItem.setParameter("Url",
                                 serverURL + "/header/" + headerKey1);
@@ -1149,7 +1149,7 @@ public class RestWorkItemHandlerTest {
         WorkItemManager manager = new TestWorkItemManager();
         handler.executeWorkItem(workItem,
                                   manager);
-        
+
         Map<String, Object> results = ((TestWorkItemManager) manager).getResults(workItem.getId());
         String result = (String) results.get(PARAM_RESULT);
         assertEquals(headerValues1, result);
@@ -1221,7 +1221,7 @@ public class RestWorkItemHandlerTest {
         assertNull(handler.getContentTypeAndCharset(params));
 
     }
-    
+
     @Test
     public void testHandleErrorOnNotSuccessfulResponseHandlingException() {
         RESTWorkItemHandler handler = new RESTWorkItemHandler("test", "COMPLETE", "user", "password");
@@ -1248,7 +1248,7 @@ public class RestWorkItemHandlerTest {
                          e.getEndoint());
             assertEquals("",
                          e.getResponse());
-            
+
             assertEquals("test", ex.getProcessId());
             assertEquals("COMPLETE", ex.getStrategy().name());
         }
@@ -1324,7 +1324,7 @@ public class RestWorkItemHandlerTest {
         String cookieName1 = "cookieParam1";
         String cookieValue1 = "cookieParam1_Value;=";
         String cookie = cookieName1 + "=" + cookieValue1;
-        
+
         String cookieName2 = "cookieParam1";
         String cookieValue2 = "cookieParam1_Value=";
         String cookie1 = cookieName2 + "=" + cookieValue2;

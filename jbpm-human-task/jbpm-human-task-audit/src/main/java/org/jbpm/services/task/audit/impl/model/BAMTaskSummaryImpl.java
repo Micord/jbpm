@@ -18,17 +18,17 @@ package org.jbpm.services.task.audit.impl.model;
 import java.io.Serializable;
 import java.util.Date;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.persistence.Version;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name="BAMTaskSummary",
@@ -42,7 +42,7 @@ import javax.persistence.Version;
                   @Index(name = "IDX_BAMTaskSumm_taskName",  columnList="taskName"),
                   @Index(name = "IDX_BAMTaskSumm_userId", columnList="userId")})
 
-@SequenceGenerator(name="bamTaskIdSeq", sequenceName="BAM_TASK_ID_SEQ")
+@SequenceGenerator(name="bamTaskIdSeq", sequenceName="BAM_TASK_ID_SEQ", allocationSize = 1)
 public class BAMTaskSummaryImpl implements Serializable {
 
     private static final long serialVersionUID = 2793651602463099870L;
@@ -51,15 +51,15 @@ public class BAMTaskSummaryImpl implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO, generator="bamTaskIdSeq")
     @Column(name = "pk")
     private Long pk  = 0L;
-    
+
     @Version
     @Column(name = "OPTLOCK")
     private Integer version;
-    
+
     private long taskId;
-    
+
     private String taskName;
-    
+
     private String status;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -68,9 +68,9 @@ public class BAMTaskSummaryImpl implements Serializable {
     private Date startDate;
     @Temporal(TemporalType.TIMESTAMP)
     private Date endDate;
-    
+
     private long processInstanceId;
-    
+
      // Initiator
     private String userId;
     private Long duration;
@@ -87,8 +87,8 @@ public class BAMTaskSummaryImpl implements Serializable {
         this.createdDate = createdDate;
         this.processInstanceId = processInstanceId;
     }
-    
-    
+
+
     public Long getPk() {
         return pk;
     }
@@ -266,6 +266,6 @@ public class BAMTaskSummaryImpl implements Serializable {
 			return false;
 		return true;
 	}
-    
-	
+
+
 }

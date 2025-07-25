@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import javax.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBContext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.Consts;

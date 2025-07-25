@@ -23,20 +23,20 @@ import java.net.URL;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-import javax.activation.DataHandler;
-import javax.activation.MimetypesFileTypeMap;
-import javax.mail.Message;
-import javax.mail.Message.RecipientType;
-import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.util.ByteArrayDataSource;
+import jakarta.activation.DataHandler;
+import jakarta.activation.MimetypesFileTypeMap;
+import jakarta.mail.Message;
+import jakarta.mail.Message.RecipientType;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
@@ -81,15 +81,15 @@ public class SendHtml {
             // send the thing off
             Transport t = null;
             try {
-                
+
                 if (connection != null) {
                     t = (Transport) session.getTransport("smtp");
-                    
+
                     int port = Integer.parseInt(connection.getPort());
                     String mailhost = connection.getHost();
                     String username = connection.getUserName();
                     String password = connection.getPassword();
-                
+
                     t.connect(mailhost,
                               port,
                               username,
@@ -99,7 +99,7 @@ public class SendHtml {
                 } else {
                     Transport.send(msg, msg.getAllRecipients());
                 }
-                
+
             } catch (Exception e) {
                 throw new RuntimeException("Connection failure",
                                            e);
@@ -276,7 +276,7 @@ public class SendHtml {
         }
     }
 
-    private static class Authenticator extends javax.mail.Authenticator {
+    private static class Authenticator extends jakarta.mail.Authenticator {
 
         private PasswordAuthentication authentication;
 

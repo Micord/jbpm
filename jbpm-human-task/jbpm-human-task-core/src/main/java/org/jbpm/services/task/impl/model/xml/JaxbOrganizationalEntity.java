@@ -24,12 +24,12 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlEnum;
-import javax.xml.bind.annotation.XmlSchemaType;
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlEnum;
+import jakarta.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlType;
 
 import org.jbpm.services.task.impl.model.xml.InternalJaxbWrapper.GetterGroup;
 import org.jbpm.services.task.impl.model.xml.InternalJaxbWrapper.GetterUser;
@@ -47,28 +47,28 @@ public class JaxbOrganizationalEntity implements OrganizationalEntity {
     @XmlElement
     @XmlSchemaType(name="string")
     private String id;
- 
+
     @XmlElement
     private Type type;
-    
+
     @XmlEnum
     public static enum Type {
         USER, GROUP;
     }
-    
-    public JaxbOrganizationalEntity() { 
+
+    public JaxbOrganizationalEntity() {
         // JAXB default
     }
-    
-    public JaxbOrganizationalEntity(OrganizationalEntity orgEntity) { 
+
+    public JaxbOrganizationalEntity(OrganizationalEntity orgEntity) {
         this.id = orgEntity.getId();
-        if( orgEntity instanceof User ) { 
+        if( orgEntity instanceof User ) {
             this.type = Type.USER;
-        } else if (orgEntity instanceof Group ) { 
-           this.type = Type.GROUP; 
-        } else if(orgEntity instanceof JaxbOrganizationalEntity ) { 
+        } else if (orgEntity instanceof Group ) {
+           this.type = Type.GROUP;
+        } else if(orgEntity instanceof JaxbOrganizationalEntity ) {
             this.type = ((JaxbOrganizationalEntity) orgEntity).type;
-        } else { 
+        } else {
             throw new IllegalArgumentException("Unknown type of organizational entity: " + orgEntity.getClass().getSimpleName());
         }
     }
@@ -89,22 +89,22 @@ public class JaxbOrganizationalEntity implements OrganizationalEntity {
         this.type = type;
     }
 
-    public static List<OrganizationalEntity> convertListFromJaxbImplToInterface(List<JaxbOrganizationalEntity> jaxbList) { 
+    public static List<OrganizationalEntity> convertListFromJaxbImplToInterface(List<JaxbOrganizationalEntity> jaxbList) {
         List<OrganizationalEntity> orgEntList;
-        if( jaxbList != null ) {  
+        if( jaxbList != null ) {
             orgEntList = new ArrayList<OrganizationalEntity>(jaxbList.size());
-            for( JaxbOrganizationalEntity jaxb : jaxbList ) { 
+            for( JaxbOrganizationalEntity jaxb : jaxbList ) {
                 orgEntList.add(jaxb.createImplInstance());
             }
-        } else { 
+        } else {
             // it would be nice to use Collections.EMPTY_LIST here, but there's a possibility the list is being modified after this call
             orgEntList = new ArrayList<OrganizationalEntity>();
         }
         return orgEntList;
     }
-    
-    private OrganizationalEntity createImplInstance() { 
-        switch(type) { 
+
+    private OrganizationalEntity createImplInstance() {
+        switch(type) {
         case GROUP:
             return new GetterGroup(this.id);
         case USER:

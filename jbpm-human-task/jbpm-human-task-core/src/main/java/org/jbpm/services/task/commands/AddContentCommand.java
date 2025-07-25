@@ -17,12 +17,12 @@ package org.jbpm.services.task.commands;
 
 import java.util.Map;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.drools.core.xml.jaxb.util.JaxbMapAdapter;
 import org.jbpm.services.task.impl.model.xml.JaxbContent;
@@ -41,11 +41,11 @@ public class AddContentCommand extends TaskCommand<Long> {
 
 	@XmlTransient
 	private Content content;
-	
+
     @XmlJavaTypeAdapter(JaxbMapAdapter.class)
     @XmlElement(name="parameter")
     private Map<String, Object> params;
-    
+
     public AddContentCommand() {
     }
 
@@ -69,12 +69,12 @@ public class AddContentCommand extends TaskCommand<Long> {
         TaskContext context = (TaskContext) cntxt;
         if (params != null) {
             return context.getTaskInstanceService().addOutputContentFromUser(taskId, userId, params);
-        } else {        
+        } else {
 	        Content comentImpl = content;
 	        if (comentImpl == null) {
 	        	comentImpl = jaxbContent;
 	    	}
-	        
+
 	        return context.getTaskContentService().setDocumentContent(taskId, comentImpl);
         }
     }
@@ -86,7 +86,7 @@ public class AddContentCommand extends TaskCommand<Long> {
 	public void setContent(Content content) {
 		this.content = content;
 	}
-    
+
     public JaxbContent getJaxbContent() {
 		return jaxbContent;
 	}

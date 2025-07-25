@@ -19,8 +19,8 @@ package org.jbpm.process.audit;
 import static org.jbpm.test.persistence.util.PersistenceUtil.createEnvironment;
 import static org.jbpm.process.audit.AbstractAuditLogServiceTest.createKieSession;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.process.instance.impl.demo.SystemOutWorkItemHandler;
 import org.junit.After;

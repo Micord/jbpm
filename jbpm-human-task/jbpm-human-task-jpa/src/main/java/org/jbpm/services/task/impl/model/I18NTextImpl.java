@@ -21,15 +21,15 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.Lob;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Lob;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 import org.kie.internal.task.api.model.InternalI18NText;
 
@@ -46,7 +46,7 @@ import org.kie.internal.task.api.model.InternalI18NText;
                   @Index(name = "IDX_I18NText_DeadDocId", columnList="Deadline_Documentation_Id")})
 @SequenceGenerator(name="i18nTextIdSeq", sequenceName="I18NTEXT_ID_SEQ", allocationSize=1)
 public class I18NTextImpl implements InternalI18NText {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="i18nTextIdSeq")
     @Column(name = "id")
@@ -62,31 +62,31 @@ public class I18NTextImpl implements InternalI18NText {
     public I18NTextImpl() {
 
     }
-    
+
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong( id );
-        if( language == null ) { 
+        if( language == null ) {
             language = "";
         }
         out.writeUTF( language );
-        
+
         if( shortText == null ) {
             shortText = "";
         }
         out.writeUTF( shortText );
-        
-        if( text == null ) { 
+
+        if( text == null ) {
             text = "";
         }
-        out.writeUTF( text );        
+        out.writeUTF( text );
     }
-    
+
     public void readExternal(ObjectInput in) throws IOException,
                                             ClassNotFoundException {
         id = in.readLong();
         language = in.readUTF();
         shortText = in.readUTF();
-        text = in.readUTF();        
+        text = in.readUTF();
     }
 
     public I18NTextImpl(String language,
@@ -156,7 +156,7 @@ public class I18NTextImpl implements InternalI18NText {
         } else if ( !text.equals( other.text ) ) return false;
         return true;
     }
-    
+
     public static String getLocalText(List<I18NTextImpl> list, String prefferedLanguage, String defaultLanguage) {
         for ( I18NTextImpl text : list) {
             if ( text.getLanguage().equals( prefferedLanguage )) {
@@ -168,11 +168,11 @@ public class I18NTextImpl implements InternalI18NText {
                 if ( text.getLanguage().equals( defaultLanguage )) {
                     return text.getText();
                 }
-            }    
+            }
         }
         return "";
     }
 
 
-    
+
 }

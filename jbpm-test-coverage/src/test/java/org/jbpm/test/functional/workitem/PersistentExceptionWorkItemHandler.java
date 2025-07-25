@@ -15,7 +15,7 @@
  */
 package org.jbpm.test.functional.workitem;
 
-import javax.persistence.OptimisticLockException;
+import jakarta.persistence.OptimisticLockException;
 
 import org.jbpm.process.workitem.core.AbstractLogOrThrowWorkItemHandler;
 import org.kie.api.runtime.process.WorkItem;

@@ -16,8 +16,8 @@
 
 package org.jbpm.services.cdi.test.ext;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 
 import org.jbpm.services.api.DeploymentEvent;
 import org.jbpm.services.cdi.Deploy;

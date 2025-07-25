@@ -24,9 +24,9 @@ import org.kie.internal.task.api.AuditTask;
 import org.kie.internal.task.api.TaskContext;
 import org.kie.internal.task.api.TaskPersistenceContext;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 
@@ -35,7 +35,7 @@ import java.util.List;
 public class GetAllAuditTasksByStatusCommand extends UserGroupCallbackTaskCommand<List<AuditTask>> {
 
     private QueryFilter filter;
-    
+
 
     public GetAllAuditTasksByStatusCommand() {
         this.filter = new QueryFilter(0, 0);
@@ -50,12 +50,12 @@ public class GetAllAuditTasksByStatusCommand extends UserGroupCallbackTaskComman
     public List<AuditTask> execute(Context context) {
         TaskPersistenceContext persistenceContext = ((TaskContext) context).getPersistenceContext();
 
-        
+
         List<AuditTask> groupTasks = persistenceContext.queryWithParametersInTransaction("getAllAuditTasksByStatus",
                 persistenceContext.addParametersToMap("owner", userId,"statuses", filter.getParams().get("statuses"),"firstResult", filter.getOffset(),
                         "maxResults", filter.getCount()),
                 ClassUtil.<List<AuditTask>>castClass(List.class));
-   
+
         return groupTasks;
     }
 

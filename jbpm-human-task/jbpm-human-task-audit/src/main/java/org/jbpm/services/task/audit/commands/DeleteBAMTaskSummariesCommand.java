@@ -23,9 +23,9 @@ import org.kie.api.runtime.Context;
 import org.kie.internal.task.api.TaskContext;
 import org.kie.internal.task.api.TaskPersistenceContext;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name="delete-bam-task-summaries-for-task-command")
 @XmlAccessorType(XmlAccessType.NONE)
@@ -33,10 +33,10 @@ public class DeleteBAMTaskSummariesCommand extends TaskCommand<Void> {
 
     private static final long serialVersionUID = -7929370526623674312L;
 
-    public DeleteBAMTaskSummariesCommand() { 
+    public DeleteBAMTaskSummariesCommand() {
         // default, delete all
     }
-    
+
     public DeleteBAMTaskSummariesCommand(long taskId) {
         this.taskId = taskId;
     }
@@ -44,7 +44,7 @@ public class DeleteBAMTaskSummariesCommand extends TaskCommand<Void> {
     @Override
     public Void execute(Context context) {
         TaskPersistenceContext persistenceContext = ((TaskContext) context).getPersistenceContext();
-        if( this.taskId != null ) { 
+        if( this.taskId != null ) {
         	HashMap<String, Object> params = new HashMap<String, Object>();
         	params.put("taskId", this.taskId);
         	persistenceContext.executeUpdate("deleteBAMTaskSummariesForTask", params);

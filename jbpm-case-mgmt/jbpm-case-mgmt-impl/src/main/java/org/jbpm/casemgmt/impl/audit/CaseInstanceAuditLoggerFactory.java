@@ -18,11 +18,11 @@ package org.jbpm.casemgmt.impl.audit;
 
 import java.util.Map;
 
-import javax.jms.ConnectionFactory;
-import javax.jms.Queue;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.Queue;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.casemgmt.impl.jms.AsyncCaseInstanceAuditEventProducer;
 import org.jbpm.shared.services.impl.TransactionalCommandService;
@@ -37,7 +37,7 @@ public class CaseInstanceAuditLoggerFactory {
     public static CaseInstanceAuditEventListener newJPAInstance(TransactionalCommandService transactionalCommandService) {
         return new CaseInstanceAuditEventListener(transactionalCommandService);
     }
-    
+
     /**
      * Creates new instance of JPA case instance audit logger with given entity manager factory
      * @param enf EntityManagerFactory instance to be used
@@ -46,7 +46,7 @@ public class CaseInstanceAuditLoggerFactory {
     public static CaseInstanceAuditEventListener newJPAInstance(EntityManagerFactory emf) {
         return new CaseInstanceAuditEventListener(new TransactionalCommandService(emf));
     }
-    
+
     /**
      * Creates new instance of JMS case instance audit logger based on given parameters.
      * Supported parameters are as follows:
@@ -71,36 +71,36 @@ public class CaseInstanceAuditLoggerFactory {
                 transacted = Boolean.parseBoolean(transactedObj.toString());
             }
         }
-        
+
         logger.setTransacted(transacted);
-        
+
         // set connection factory and queue if given as property
         if (properties.containsKey("jbpm.audit.jms.connection.factory")) {
-            ConnectionFactory connFactory = (ConnectionFactory) properties.get("jbpm.audit.jms.connection.factory"); 
+            ConnectionFactory connFactory = (ConnectionFactory) properties.get("jbpm.audit.jms.connection.factory");
             logger.setConnectionFactory(connFactory);
-        }                
+        }
         if (properties.containsKey("jbpm.audit.jms.queue")) {
-            Queue queue = (Queue) properties.get("jbpm.audit.jms.queue"); 
+            Queue queue = (Queue) properties.get("jbpm.audit.jms.queue");
             logger.setQueue(queue);
         }
         try {
             // look up connection factory and queue if given as property
             if (properties.containsKey("jbpm.audit.jms.connection.factory.jndi")) {
                 ConnectionFactory connFactory = (ConnectionFactory) InitialContext.doLookup(
-                        (String)properties.get("jbpm.audit.jms.connection.factory.jndi")); 
+                        (String)properties.get("jbpm.audit.jms.connection.factory.jndi"));
                 logger.setConnectionFactory(connFactory);
-            }                
+            }
             if (properties.containsKey("jbpm.audit.jms.queue.jndi")) {
-                Queue queue = (Queue) InitialContext.doLookup((String)properties.get("jbpm.audit.jms.queue.jndi")); 
+                Queue queue = (Queue) InitialContext.doLookup((String)properties.get("jbpm.audit.jms.queue.jndi"));
                logger.setQueue(queue);
             }
         } catch (NamingException e) {
             throw new RuntimeException("Error when looking up ConnectionFactory/Queue", e);
         }
-        
+
         return logger;
     }
-    
+
     /**
      * Creates new instance of JMS case instance audit logger based on given connection factory and queue.
      * @param transacted determines if JMS session is transacted or not
@@ -113,7 +113,7 @@ public class CaseInstanceAuditLoggerFactory {
         logger.setTransacted(transacted);
         logger.setConnectionFactory(connFactory);
         logger.setQueue(queue);
-        
+
         return logger;
     }
 }

@@ -16,14 +16,14 @@
 
 package org.jbpm.services.ejb.api;
 
-import javax.ejb.Local;
+import jakarta.ejb.Local;
 
 import org.kie.api.executor.Executor;
 import org.kie.internal.executor.api.ExecutorService;
 
 @Local
 public interface ExecutorServiceEJB extends ExecutorService {
-    
-    Executor getExecutor();    
+
+    Executor getExecutor();
 
 }

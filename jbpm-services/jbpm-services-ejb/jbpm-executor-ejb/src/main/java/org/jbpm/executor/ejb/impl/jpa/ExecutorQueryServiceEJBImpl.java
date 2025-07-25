@@ -20,8 +20,8 @@ import org.jbpm.executor.impl.jpa.ExecutorQueryServiceImpl;
 import org.kie.api.executor.ExecutorQueryService;
 import org.kie.api.runtime.CommandExecutor;
 
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
 
 
 @Stateless

@@ -18,8 +18,8 @@ package org.jbpm.services.cdi.impl;
 
 import java.util.List;
 
-import javax.enterprise.context.ContextNotActiveException;
-import javax.enterprise.inject.Instance;
+import jakarta.enterprise.context.ContextNotActiveException;
+import jakarta.enterprise.inject.Instance;
 
 import org.jbpm.services.cdi.RequestScopedBackupIdentityProvider;
 import org.kie.internal.identity.IdentityProvider;
@@ -31,13 +31,13 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class IdentityProviderCDIWrapper implements IdentityProvider {
-	
+
 
 	private static final Logger logger = LoggerFactory.getLogger(IdentityProviderCDIWrapper.class);
 
 	private IdentityProvider delegate;
 	private Instance<RequestScopedBackupIdentityProvider> backupProviders;
-	
+
 	public IdentityProviderCDIWrapper(IdentityProvider identityProvider,
 			Instance<RequestScopedBackupIdentityProvider> backupProviders) {
 		this.delegate = identityProvider;
@@ -52,11 +52,11 @@ public class IdentityProviderCDIWrapper implements IdentityProvider {
             logger.debug( "Used original identity provider with user: {}", name);
         } catch (ContextNotActiveException e) {
         	if (!backupProviders.isUnsatisfied()) {
-        		
+
         		for (RequestScopedBackupIdentityProvider provider : backupProviders) {
         			try {
 		                name = provider.getName();
-		                
+
 		                if (name != null && !RequestScopedBackupIdentityProvider.UNKNOWN.equals(name)) {
 		                	logger.debug( "Used backup identity provider {} with user: {}", provider, name);
 		                	break;
@@ -70,7 +70,7 @@ public class IdentityProviderCDIWrapper implements IdentityProvider {
 
         return name;
 	}
-	
+
 	@Override
 	public List<String> getRoles() {
     	List<String> roles = null;

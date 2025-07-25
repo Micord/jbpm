@@ -16,8 +16,8 @@
 
 package org.jbpm.services.ejb.impl;
 
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
 
 import org.jbpm.kie.services.impl.ProcessServiceImpl;
 import org.jbpm.services.api.DeploymentService;
@@ -51,7 +51,7 @@ public class ProcessServiceEJBImpl extends ProcessServiceImpl implements Process
 		if (result == null) {
 			result = super.process(variables, cl);
 		}
-		
+
 		return result;
 	}
 
@@ -60,5 +60,5 @@ public class ProcessServiceEJBImpl extends ProcessServiceImpl implements Process
 		// do nothing since this is CMT bean tx sync will dispose runtime engine
 	}
 
-	
+
 }

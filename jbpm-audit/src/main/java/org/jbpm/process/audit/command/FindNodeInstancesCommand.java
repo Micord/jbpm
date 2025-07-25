@@ -20,11 +20,11 @@ import org.jbpm.process.audit.NodeInstanceLog;
 import org.kie.api.runtime.Context;
 import org.kie.internal.command.ProcessInstanceIdCommand;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 import java.util.List;
 
 @XmlRootElement
@@ -37,37 +37,37 @@ public class FindNodeInstancesCommand extends AuditCommand<List<NodeInstanceLog>
     @XmlAttribute(required=true, name="process-instance-id")
     @XmlSchemaType(name="long")
     private Long processInstanceId;
-    
-    @XmlAttribute 
+
+    @XmlAttribute
     @XmlSchemaType(name="string")
     private String nodeId;
-    
-    public FindNodeInstancesCommand() { 
+
+    public FindNodeInstancesCommand() {
         // no-arg for JAXB
     }
-    
+
     public FindNodeInstancesCommand(long processInstanceId) {
         this.processInstanceId = processInstanceId;
         this.nodeId = null;
 	}
-	
+
     public FindNodeInstancesCommand(long processInstanceId, String nodeId) {
         this.processInstanceId = processInstanceId;
         this.nodeId = nodeId;
-        if( nodeId == null || nodeId.isEmpty() ) { 
+        if( nodeId == null || nodeId.isEmpty() ) {
             throw new IllegalArgumentException("The nodeId field must not be null or empty." );
         }
 	}
-	
+
     public List<NodeInstanceLog> execute(Context cntxt) {
         setLogEnvironment(cntxt);
-        if( nodeId == null || nodeId.isEmpty() ) { 
+        if( nodeId == null || nodeId.isEmpty() ) {
             return this.auditLogService.findNodeInstances(processInstanceId);
-        } else { 
+        } else {
             return this.auditLogService.findNodeInstances(processInstanceId, nodeId);
         }
     }
-   
+
     @Override
     public Long getProcessInstanceId() {
         return processInstanceId;
@@ -87,9 +87,9 @@ public class FindNodeInstancesCommand extends AuditCommand<List<NodeInstanceLog>
     }
 
     public String toString() {
-        if( nodeId == null || nodeId.isEmpty() ) { 
+        if( nodeId == null || nodeId.isEmpty() ) {
             return AuditLogService.class.getSimpleName() + ".findNodeInstances("+ processInstanceId + ")";
-        } else { 
+        } else {
             return AuditLogService.class.getSimpleName() + ".findNodeInstances("+ processInstanceId + ", " + nodeId + ")";
         }
     }

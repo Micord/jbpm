@@ -18,18 +18,18 @@ package org.jbpm.bpmn2.objects;
 
 import java.io.Serializable;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class Person implements Serializable {
-    
+
 	private static final long serialVersionUID = 5L;
 	private Long id;
 	private String name;
 
     public Person() {
     }
-    
+
     public Person(String name) {
         this.name = name;
     }

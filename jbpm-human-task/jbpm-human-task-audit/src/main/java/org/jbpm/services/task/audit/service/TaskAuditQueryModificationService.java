@@ -29,12 +29,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Expression;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
-import javax.persistence.criteria.Subquery;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 
 import org.jbpm.query.jpa.data.QueryCriteria;
 import org.jbpm.query.jpa.data.QueryWhere;
@@ -169,7 +169,7 @@ public class TaskAuditQueryModificationService implements QueryModificationServi
 
     /*
      * (non-Javadoc)
-     * @see org.jbpm.query.jpa.service.QueryModificationService#createPredicate(org.jbpm.query.jpa.data.QueryCriteria, javax.persistence.criteria.CriteriaQuery, javax.persistence.criteria.CriteriaBuilder)
+     * @see org.jbpm.query.jpa.service.QueryModificationService#createPredicate(org.jbpm.query.jpa.data.QueryCriteria, jakarta.persistence.criteria.CriteriaQuery, jakarta.persistence.criteria.CriteriaBuilder)
      */
     public <R> Predicate createPredicate(QueryCriteria criteria, CriteriaQuery<R> query, CriteriaBuilder builder) {
         // subquery and root

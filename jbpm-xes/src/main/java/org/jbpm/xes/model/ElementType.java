@@ -16,8 +16,8 @@
 
 package org.jbpm.xes.model;
 
-import javax.xml.bind.annotation.XmlSeeAlso;
-import javax.xml.bind.annotation.XmlTransient;
+import jakarta.xml.bind.annotation.XmlSeeAlso;
+import jakarta.xml.bind.annotation.XmlTransient;
 
 /**
  * <p>Java class for ElementType complex type.

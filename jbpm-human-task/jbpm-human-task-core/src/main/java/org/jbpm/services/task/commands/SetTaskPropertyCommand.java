@@ -24,11 +24,11 @@ import org.kie.internal.task.api.TaskInstanceService;
 import org.kie.internal.task.api.model.FaultData;
 import org.kie.internal.task.api.model.SubTasksStrategy;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 import java.util.Date;
 import java.util.List;
 
@@ -44,26 +44,26 @@ public class SetTaskPropertyCommand extends UserGroupCallbackTaskCommand<Void> {
     public static final int DESCRIPTION_PROPERTY = 6;
     public static final int SKIPPABLE_PROPERTY = 7;
     public static final int SUB_TASK_STRATEGY_PROPERTY = 8;
-    
+
 	private static final long serialVersionUID = -836520791223188840L;
 
 	@XmlElement(required=true)
 	@XmlSchemaType(name="integer")
 	private Integer property;
-	
+
 	@XmlElement
 	private JaxbFaultData faultData;
 
 	@XmlElement
 	private Object output;
-	
+
 	@XmlElement
 	@XmlSchemaType(name="int")
 	private Integer priority;
-	
+
 	@XmlElement(name="names-or-descriptions")
 	private List<JaxbI18NText> namesOrDescriptions;
-	
+
 	@XmlElement(name="expiration-date")
 	@XmlSchemaType(name="dateTime")
 	private Date expirationDate;
@@ -77,17 +77,17 @@ public class SetTaskPropertyCommand extends UserGroupCallbackTaskCommand<Void> {
 
 	public SetTaskPropertyCommand() {
 	}
-	
+
 	public SetTaskPropertyCommand(long taskId, String userId, Integer property, Object value) {
 		this.taskId = taskId;
 		this.userId = userId;
 		this.property = property;
-		
+
 		JaxbFaultData newValue = null;
 		List<JaxbI18NText> newListValue = null;
         switch (property) {
         case FAULT_PROPERTY:
-            if( value != null ) { 
+            if( value != null ) {
                 checkValueType(value, FaultData.class, property, true, false);
                 newValue = new JaxbFaultData((FaultData) value);
             }
@@ -101,7 +101,7 @@ public class SetTaskPropertyCommand extends UserGroupCallbackTaskCommand<Void> {
             this.priority = (Integer) value;
             break;
         case TASK_NAMES_PROPERTY:
-            if( value != null ) { 
+            if( value != null ) {
                 checkValueType(value, I18NText.class, property, true, true);
                 newListValue = JaxbI18NText.convertListFromInterfaceToJaxbImpl(((List<I18NText>) value), I18NText.class, JaxbI18NText.class);
             }
@@ -112,7 +112,7 @@ public class SetTaskPropertyCommand extends UserGroupCallbackTaskCommand<Void> {
             this.expirationDate = (Date) value;
             break;
         case DESCRIPTION_PROPERTY:
-            if( value != null ) { 
+            if( value != null ) {
                 checkValueType(value, I18NText.class, property, true, true);
                 newListValue = JaxbI18NText.convertListFromInterfaceToJaxbImpl(((List<I18NText>) value), I18NText.class, JaxbI18NText.class);
             }
@@ -131,12 +131,12 @@ public class SetTaskPropertyCommand extends UserGroupCallbackTaskCommand<Void> {
         }
     }
 
-	private void checkValueType(Object value, Class expectedClass, int property, boolean assignable, boolean list) { 
+	private void checkValueType(Object value, Class expectedClass, int property, boolean assignable, boolean list) {
 	    if( value == null ) {
 	        return;
 	    }
 	    String propType = null;
-	    switch(property) { 
+	    switch(property) {
         case FAULT_PROPERTY:
             propType = "FAULT_PROPERTY (" + property + ")";
             break;
@@ -165,29 +165,29 @@ public class SetTaskPropertyCommand extends UserGroupCallbackTaskCommand<Void> {
             throw new IllegalStateException("Unknown property in " + this.getClass().getSimpleName() + " constructor check: " + property);
 	    }
 	    Class valueClass = value.getClass();
-	    if( list ) { 
-	       if( ! List.class.isAssignableFrom(valueClass) ) { 
+	    if( list ) {
+	       if( ! List.class.isAssignableFrom(valueClass) ) {
 	            throw new IllegalStateException("Expected a " + expectedClass.getSimpleName() + " for property " + propType + ", not a " + valueClass.getName() );
 	       }
 	       List listVal = (List) value;
-	       if( listVal.isEmpty() ) { 
+	       if( listVal.isEmpty() ) {
 	           return;
 	       }
 	       value = listVal.get(0);
 	       valueClass = value.getClass();
 	    }
-	    
-	    if( assignable ) { 
-	        if( ! expectedClass.isAssignableFrom(valueClass) ) { 
+
+	    if( assignable ) {
+	        if( ! expectedClass.isAssignableFrom(valueClass) ) {
 	            throw new IllegalStateException("Expected a " + expectedClass.getSimpleName() + " for property " + propType + ", not a " + valueClass.getName() );
-	        } 
-	    } else { 
+	        }
+	    } else {
 	       if( ! expectedClass.isInstance(value) )  {
 	            throw new IllegalStateException("Expected a " + expectedClass.getSimpleName() + " for property " + propType + ", not a " + valueClass.getName() );
 	       }
 	    }
 	}
-	
+
     public Integer getProperty() {
 		return property;
 	}
@@ -256,7 +256,7 @@ public class SetTaskPropertyCommand extends UserGroupCallbackTaskCommand<Void> {
         TaskContext context = (TaskContext) cntxt;
 
         TaskInstanceService service = context.getTaskInstanceService();
-        
+
         switch (property) {
 		case FAULT_PROPERTY:
 			doCallbackUserOperation(userId, context, true);
@@ -271,7 +271,7 @@ public class SetTaskPropertyCommand extends UserGroupCallbackTaskCommand<Void> {
 			break;
 		case TASK_NAMES_PROPERTY:
 		    List<I18NText> names = null;
-		    if( namesOrDescriptions != null ) { 
+		    if( namesOrDescriptions != null ) {
 		        names = JaxbI18NText.convertListFromJaxbImplToInterface(namesOrDescriptions);
 		    }
 			service.setTaskNames(taskId, names);
@@ -281,7 +281,7 @@ public class SetTaskPropertyCommand extends UserGroupCallbackTaskCommand<Void> {
 			break;
 		case DESCRIPTION_PROPERTY:
 		    List<I18NText> descriptions = null;
-		    if( namesOrDescriptions != null ) { 
+		    if( namesOrDescriptions != null ) {
 		        descriptions = JaxbI18NText.convertListFromJaxbImplToInterface(namesOrDescriptions);
 		    }
 			service.setDescriptions(taskId, descriptions);

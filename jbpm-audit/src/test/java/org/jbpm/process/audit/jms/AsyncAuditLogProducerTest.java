@@ -25,17 +25,17 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.Queue;
-import javax.jms.QueueSession;
-import javax.jms.Session;
-import javax.jms.XAConnectionFactory;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.Message;
+import jakarta.jms.MessageConsumer;
+import jakarta.jms.Queue;
+import jakarta.jms.QueueSession;
+import jakarta.jms.Session;
+import jakarta.jms.XAConnectionFactory;
 import javax.naming.InitialContext;
-import javax.persistence.EntityManagerFactory;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.transaction.UserTransaction;
 
 import org.assertj.core.api.Assertions;
 import org.hornetq.jms.server.embedded.EmbeddedJMS;
@@ -78,8 +78,8 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
     private ConnectionFactory factory;
     private Queue queue;
 
-    private EmbeddedJMS jmsServer;    
-    
+    private EmbeddedJMS jmsServer;
+
     @Before
     public void setup() throws Exception {
         startHornetQServer();
@@ -91,7 +91,7 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
         cleanUp(context);
         stopHornetQServer();
     }
-    
+
     @Test
     public void testAsyncAuditProducer() throws Exception {
         Environment env = createEnvironment(context);
@@ -111,14 +111,14 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
         // start process instance
         long processInstanceId = session.startProcess("com.sample.ruleflow").getId();
         // setup listener
-        
+
         MessageReceiver receiver = new MessageReceiver();
         List<Message> messages = receiver.receive(queue);
         Assertions.assertThat(messages).isNotNull();
         Assertions.assertThat(messages.size()).isEqualTo(11);
 
     }
-    
+
     @Test
     public void testAsyncAuditProducerTransactional() throws Exception {
         UserTransaction ut = InitialContext.doLookup("java:comp/UserTransaction");
@@ -139,16 +139,16 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
 
         // start process instance
         long processInstanceId = session.startProcess("com.sample.ruleflow").getId();
-        
+
         ut.commit();
-        
+
         MessageReceiver receiver = new MessageReceiver();
         List<Message> messages = receiver.receive(queue);
         Assertions.assertThat(messages).isNotNull();
         Assertions.assertThat(messages.size()).isEqualTo(11);
 
     }
-    
+
     @Test
     public void testAsyncAuditProducerTransactionalWithRollback() throws Exception {
         UserTransaction ut = InitialContext.doLookup("java:comp/UserTransaction");
@@ -169,15 +169,15 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
 
         // start process instance
         long processInstanceId = session.startProcess("com.sample.ruleflow").getId();
-        
+
         ut.rollback();
-        
+
         MessageReceiver receiver = new MessageReceiver();
         List<Message> messages = receiver.receive(queue);
         Assertions.assertThat(messages).isNotNull();
         Assertions.assertThat(messages.size()).isEqualTo(0);
     }
-    
+
     @Test
     public void testAsyncAuditProducerNonTransactionalWithRollback() throws Exception {
         UserTransaction ut = InitialContext.doLookup("java:comp/UserTransaction");
@@ -198,15 +198,15 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
 
         // start process instance
         long processInstanceId = session.startProcess("com.sample.ruleflow").getId();
-        
+
         ut.rollback();
-        
+
         MessageReceiver receiver = new MessageReceiver();
         List<Message> messages = receiver.receive(queue);
         Assertions.assertThat(messages).isNotNull();
         Assertions.assertThat(messages.size()).isEqualTo(11);
     }
-    
+
     @Test
     public void testAsyncAuditLoggerComplete() throws Exception {
         Environment env = createEnvironment(context);
@@ -226,10 +226,10 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
 
         // start process instance
         ProcessInstance processInstance = session.startProcess("com.sample.ruleflow");
-        
+
         MessageReceiver receiver = new MessageReceiver();
         receiver.receiveAndProcess(queue, ((EntityManagerFactory)env.get(EnvironmentName.ENTITY_MANAGER_FACTORY)), 2000, 11);
-     
+
         // validate if everything is stored in db
         AuditLogService logService = new JPAAuditLogService(env);
         List<ProcessInstanceLog> processInstances = logService.findProcessInstances("com.sample.ruleflow");
@@ -254,7 +254,7 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
         logService.dispose();
         Assertions.assertThat(processInstances).isEmpty();
     }
-    
+
     @Test
     public void testAsyncAuditLoggerCompleteDirectCreation() throws Exception {
         Environment env = createEnvironment(context);
@@ -271,10 +271,10 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
 
         // start process instance
         ProcessInstance processInstance = session.startProcess("com.sample.ruleflow");
-        
+
         MessageReceiver receiver = new MessageReceiver();
         receiver.receiveAndProcess(queue, ((EntityManagerFactory)env.get(EnvironmentName.ENTITY_MANAGER_FACTORY)), 6000, 11);
-     
+
         // validate if everything is stored in db
         AuditLogService logService = new JPAAuditLogService(env);
         List<ProcessInstanceLog> processInstances = logService.findProcessInstances("com.sample.ruleflow");
@@ -332,7 +332,7 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
         List<VariableInstanceLog> variables = logService.findVariableInstances(processInstance.getId());
         Assertions.assertThat(variables).isNotNull();
         Assertions.assertThat(variables).hasSize(2);
-        
+
         VariableInstanceLog var = variables.get(0);
         // initial value from rule flow definition
         Assertions.assertThat(var.getValue()).isEqualTo("InitialValue");
@@ -341,7 +341,7 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
         Assertions.assertThat(var.getProcessId()).isEqualTo(processInstance.getProcessId());
         Assertions.assertThat(var.getVariableId()).isEqualTo("s");
         Assertions.assertThat(var.getVariableInstanceId()).isEqualTo("s");
-        
+
         // value given at process start
         var = variables.get(1);
         // initial value from rule flow definition
@@ -357,7 +357,7 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
         logService.dispose();
         Assertions.assertThat(processInstances).isNullOrEmpty();
     }
-    
+
     @Test
     public void testAsyncAuditLoggerCompleteWithVariablesCustomIndexer() throws Exception {
         Environment env = createEnvironment(context);
@@ -378,16 +378,16 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
         names.add("john");
         names.add("mary");
         names.add("peter");
-        
+
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("list", names);
 
         // start process instance
         ProcessInstance processInstance = session.startProcess("com.sample.ruleflow3", params);
-        
+
         MessageReceiver receiver = new MessageReceiver();
         receiver.receiveAndProcess(queue, ((EntityManagerFactory)env.get(EnvironmentName.ENTITY_MANAGER_FACTORY)), 6000, 28);
-     
+
         // validate if everything is stored in db
         AuditLogService logService = new JPAAuditLogService(env);
         List<ProcessInstanceLog> processInstances = logService.findProcessInstances("com.sample.ruleflow3");
@@ -403,7 +403,7 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
         List<VariableInstanceLog> variables = logService.findVariableInstances(processInstance.getId());
         Assertions.assertThat(variables).isNotNull();
         Assertions.assertThat(variables.size()).isEqualTo(8);
-        
+
         List<VariableInstanceLog> listVariables = new ArrayList<VariableInstanceLog>();
         // collect only those that are related to list process variable
         for (VariableInstanceLog v : variables) {
@@ -433,14 +433,14 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
         logService.dispose();
         Assertions.assertThat(processInstances).isNullOrEmpty();
     }
-    
+
     public KieSession createSession(KieBase kbase, Environment env) {
-        
+
         KieSession session = createKieSession(kbase, env);
         session.getWorkItemManager().registerWorkItemHandler("Human Task", new SystemOutWorkItemHandler());
         return session;
     }
-    
+
     private void startHornetQServer() throws Exception {
         jmsServer = new EmbeddedJMS();
         jmsServer.start();
@@ -452,19 +452,19 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
         new InitialContext().rebind("java:comp/TransactionManager", com.arjuna.ats.jta.TransactionManager.transactionManager());
         new InitialContext().rebind("java:comp/TransactionSynchronizationRegistry", new com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionSynchronizationRegistryImple());
         factory = new ConnectionFactoryProxy(connectionFactory, new TransactionHelperImpl(com.arjuna.ats.jta.TransactionManager.transactionManager()));
-        
+
         queue = (Queue) jmsServer.lookup("/queue/exampleQueue");
     }
-    
+
     private void stopHornetQServer() throws Exception {
         jmsServer.stop();
         jmsServer = null;
     }
-    
+
     private class MessageReceiver {
-        
+
         void receiveAndProcess(Queue queue, EntityManagerFactory entityManagerFactory, long waitTime, int countDown) throws Exception {
-            
+
             Connection qconnetion = factory.createConnection();
             Session qsession = qconnetion.createSession(true, QueueSession.AUTO_ACKNOWLEDGE);
             MessageConsumer consumer = qsession.createConsumer(queue);
@@ -478,7 +478,7 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
                     try {
                         // need to use transaction so entity manager will persist logs
                         UserTransaction ut = InitialContext.doLookup("java:comp/UserTransaction");
-                        ut.begin();                    
+                        ut.begin();
                         super.onMessage(message);
                         ut.commit();
                         latch.countDown();
@@ -486,34 +486,34 @@ public class AsyncAuditLogProducerTest extends AbstractBaseTest {
                         e.printStackTrace();
                     }
                 }
-                
+
             };
             consumer.setMessageListener(rec);
             Assertions.assertThat(latch.await(waitTime, TimeUnit.MILLISECONDS)).isTrue();
-            
-            consumer.close();            
-            qsession.close();            
+
+            consumer.close();
+            qsession.close();
             qconnetion.close();
 
         }
-        
+
         public List<Message> receive(Queue queue) throws Exception {
             List<Message> messages = new ArrayList<Message>();
-            
+
             Connection qconnetion = factory.createConnection();
             Session qsession = qconnetion.createSession(true, QueueSession.AUTO_ACKNOWLEDGE);
             MessageConsumer consumer = qsession.createConsumer(queue);
             qconnetion.start();
-            
+
             Message m = null;
-            
+
             while ((m = consumer.receiveNoWait()) != null) {
                 messages.add(m);
             }
-            consumer.close();            
-            qsession.close();            
+            consumer.close();
+            qsession.close();
             qconnetion.close();
-            
+
             return messages;
         }
     }

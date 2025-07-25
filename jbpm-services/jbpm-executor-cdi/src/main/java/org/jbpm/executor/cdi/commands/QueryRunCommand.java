@@ -18,7 +18,7 @@ package org.jbpm.executor.cdi.commands;
 
 import java.lang.reflect.Method;
 
-import javax.enterprise.inject.spi.BeanManager;
+import jakarta.enterprise.inject.spi.BeanManager;
 
 import org.jbpm.executor.cdi.CDIUtils;
 import org.jbpm.services.api.query.QueryResultMapper;
@@ -33,9 +33,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Simple command to log the contextual data and return empty results. After attempting to get BeanManager
- * and creating simple CDI bean based on given class name as parameter. 
+ * and creating simple CDI bean based on given class name as parameter.
  * Just for demo purpose.
- * 
+ *
  */
 public class QueryRunCommand implements Command {
 

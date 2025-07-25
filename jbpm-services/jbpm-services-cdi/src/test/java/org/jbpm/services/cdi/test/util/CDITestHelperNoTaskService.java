@@ -16,12 +16,12 @@
 
 package org.jbpm.services.cdi.test.util;
 
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.BeanManager;
-import javax.inject.Inject;
-import javax.persistence.EntityManagerFactory;
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.runtime.manager.impl.ManagedAuditEventBuilderImpl;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
@@ -49,13 +49,13 @@ public class CDITestHelperNoTaskService {
     @Inject
     @Kjar
     private DeploymentService deploymentService;
-    
+
     @Produces
     @Singleton
     @PerRequest
     @PerProcessInstance
     public RuntimeEnvironment produceEnvironment(EntityManagerFactory emf) {
-        
+
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()
     			.newDefaultBuilder()
                 .entityManagerFactory(emf)
@@ -66,16 +66,16 @@ public class CDITestHelperNoTaskService {
                 .get();
         return environment;
     }
-    
+
     @Produces
     public EntityManagerFactory produceEntityManagerFactory() {
         if (this.emf == null) {
-            this.emf = EntityManagerFactoryManager.get().getOrCreate("org.jbpm.domain"); 
+            this.emf = EntityManagerFactoryManager.get().getOrCreate("org.jbpm.domain");
         }
-        
+
         return this.emf;
     }
-    
+
     @PreDestroy
     public void doCleanUp() {
     	EntityManagerFactoryManager.get().clear();
@@ -91,7 +91,7 @@ public class CDITestHelperNoTaskService {
     public DeploymentService produceKjarDeployService() {
     	return deploymentService;
     }
-    
+
     @Produces
     public TaskLifeCycleEventListener produceTaskAuditLogger() {
     	return new JPATaskLifeCycleEventListener(true);

@@ -16,8 +16,8 @@
 
 package org.jbpm.remote.ejb.test.mock;
 
-import javax.jws.WebMethod;
-import javax.jws.WebParam;
+import jakarta.jws.WebMethod;
+import jakarta.jws.WebParam;
 import javax.xml.ws.Endpoint;
 
 public class WebService {
@@ -28,7 +28,7 @@ public class WebService {
 
     public static final String URL = "http://localhost:8666/" + WS_SERVICE_NAME;
 
-    @javax.jws.WebService(name = WS_NAME, serviceName = WS_SERVICE_NAME, targetNamespace = WS_NAMESPACE)
+    @jakarta.jws.WebService(name = WS_NAME, serviceName = WS_SERVICE_NAME, targetNamespace = WS_NAMESPACE)
     public static class EchoService {
 
         @WebMethod

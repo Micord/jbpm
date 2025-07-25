@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.drools.core.impl.EnvironmentFactory;
 import org.drools.core.runtime.ChainableRunner;
@@ -54,14 +54,14 @@ import org.slf4j.LoggerFactory;
  * 	<li>userInfo - DefaultUserInfo by default</li>
  * 	<li>userGroupCallback - uses MvelUserGroupCallbackImpl by default</li>
  * </ul>
- * 
+ *
  * @see DefaultUserInfo
  * @see MvelUserGroupCallbackImpl
  */
 public class HumanTaskConfigurator {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(HumanTaskConfigurator.class);
-	
+
 	private static final String DEFAULT_INTERCEPTOR = "org.jbpm.services.task.persistence.TaskTransactionInterceptor";
 	private static final String TX_LOCK_INTERCEPTOR = "org.drools.persistence.jta.TransactionLockInterceptor";
 	private static final String OPTIMISTIC_LOCK_INTERCEPTOR = "org.drools.persistence.jpa.OptimisticLockRetryInterceptor";
@@ -70,13 +70,13 @@ public class HumanTaskConfigurator {
     private TaskService service;
     private TaskCommandExecutorImpl commandExecutor;
     private Environment environment = EnvironmentFactory.newEnvironment();
-	
+
     private UserGroupCallback userGroupCallback;
     private UserInfo userInfo;
-    
+
     private Set<PriorityInterceptor> interceptors = new TreeSet<PriorityInterceptor>();
     private Set<TaskLifeCycleEventListener> listeners = new HashSet<TaskLifeCycleEventListener>();
-    
+
     public HumanTaskConfigurator interceptor(int priority, ChainableRunner interceptor ) {
     	if (interceptor == null) {
             return this;
@@ -84,7 +84,7 @@ public class HumanTaskConfigurator {
     	this.interceptors.add(new PriorityInterceptor(priority, interceptor));
     	return this;
     }
-    
+
     public HumanTaskConfigurator listener(TaskLifeCycleEventListener listener) {
     	if (listener == null) {
             return this;
@@ -92,13 +92,13 @@ public class HumanTaskConfigurator {
     	this.listeners.add(listener);
     	return this;
     }
-    
+
     public HumanTaskConfigurator environment(Environment environment) {
     	if (environment == null) {
             return this;
         }
     	this.environment = environment;
-    	
+
     	return this;
     }
 
@@ -107,29 +107,29 @@ public class HumanTaskConfigurator {
             return this;
         }
     	environment.set(EnvironmentName.ENTITY_MANAGER_FACTORY, emf);
-        
+
         return this;
     }
-   
+
     public HumanTaskConfigurator userInfo(UserInfo userInfo) {
     	if (userInfo == null) {
             return this;
         }
         this.userInfo = userInfo;
-        
+
         return this;
     }
-   
-    
+
+
     public HumanTaskConfigurator userGroupCallback(UserGroupCallback userGroupCallback) {
         if (userGroupCallback == null) {
             return this;
         }
         this.userGroupCallback = userGroupCallback;
-        
+
         return this;
     }
-    
+
     @SuppressWarnings("unchecked")
 	public TaskService getTaskService() {
         if (service == null) {
@@ -142,16 +142,16 @@ public class HumanTaskConfigurator {
         	if (userInfo == null) {
         		userInfo = new DefaultUserInfo(true);
         	}
-        	environment.set(EnvironmentName.TASK_USER_INFO, userInfo);        	
-        	addDefaultInterceptor();        	
+        	environment.set(EnvironmentName.TASK_USER_INFO, userInfo);
+        	addDefaultInterceptor();
         	addTransactionLockInterceptor();
         	addOptimisticLockInterceptor();
         	addErrorHandlingInterceptor();
         	for (PriorityInterceptor pInterceptor : interceptors) {
         		this.commandExecutor.addInterceptor(pInterceptor.getInterceptor());
-        	}        	
-        	
-            service = new CommandBasedTaskService(this.commandExecutor, taskEventSupport, this.environment); 
+        	}
+
+            service = new CommandBasedTaskService(this.commandExecutor, taskEventSupport, this.environment);
             // register listeners
             for (TaskLifeCycleEventListener listener : listeners) {
             	((EventService<TaskLifeCycleEventListener>) service).registerTaskEventListener(listener);
@@ -163,7 +163,7 @@ public class HumanTaskConfigurator {
         }
         return service;
    }
-    
+
     @SuppressWarnings("unchecked")
 	protected void addDefaultInterceptor() {
     	// add default interceptor if present
@@ -178,7 +178,7 @@ public class HumanTaskConfigurator {
     				DEFAULT_INTERCEPTOR, e.getMessage(), e);
     	}
     }
-    
+
     @SuppressWarnings("unchecked")
 	protected void addTransactionLockInterceptor() {
     	// add default interceptor if present
@@ -193,7 +193,7 @@ public class HumanTaskConfigurator {
     				TX_LOCK_INTERCEPTOR, e.getMessage(), e);
     	}
     }
-    
+
     @SuppressWarnings("unchecked")
 	protected void addOptimisticLockInterceptor() {
     	// add default interceptor if present
@@ -208,7 +208,7 @@ public class HumanTaskConfigurator {
     				OPTIMISTIC_LOCK_INTERCEPTOR, e.getMessage(), e);
     	}
     }
-    
+
     @SuppressWarnings("unchecked")
     protected void addErrorHandlingInterceptor() {
         // add error handling interceptor if present
@@ -223,11 +223,11 @@ public class HumanTaskConfigurator {
                     ERROR_HANDLING_INTERCEPTOR, e.getMessage(), e);
         }
     }
-   
+
     private static class PriorityInterceptor implements Comparable<PriorityInterceptor> {
     	private Integer priority;
     	private ChainableRunner interceptor;
-    	
+
     	PriorityInterceptor(Integer priority, ChainableRunner interceptor) {
     		this.priority = priority;
     		this.interceptor = interceptor;

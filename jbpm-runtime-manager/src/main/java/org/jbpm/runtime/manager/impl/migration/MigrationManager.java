@@ -26,9 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Query;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Query;
 
 import org.drools.core.command.SingleSessionCommandService;
 import org.drools.core.command.impl.CommandBasedStatefulKnowledgeSession;
@@ -80,7 +80,7 @@ import org.slf4j.LoggerFactory;
  * MigrationManager is responsible for updating all required components during process instance migration.
  * Each process instance should be have dedicated instance of the manager to allow simple execution model.
  * Each manager maintains MigrationReport that is constantly updated when migration is running.
- * 
+ *
  * It comes with following migration entries (as part of the report)
  * <ul>
  *  <li>INFO - written mostly for information about given migration step and its result</li>
@@ -88,15 +88,15 @@ import org.slf4j.LoggerFactory;
  *  <li>ERROR - terminates the migration and restores to last state - before migration</li>
  * </ul>
  * There could be at most single ERROR type of entry as first one that occurred terminates the migration.
- * 
+ *
  * Migration is composed of two steps
  * <ul>
  *  <li>validation - various checks to ensure migration can be performed to limit number of failed migrations</li>
  *  <li>migration - actual migration that changes state of the process instance and its index data - history logs</li>
  * <ul>
- * 
+ *
  * Migration can either be performed with or without node instance mapping. Node instance mapping allows to map nodes
- * only of the same type as it simply changes node reference of the node and does not replace the node instance 
+ * only of the same type as it simply changes node reference of the node and does not replace the node instance
  * (by canceling current node and triggering new one).
  */
 public class MigrationManager {
@@ -131,9 +131,9 @@ public class MigrationManager {
      */
     public MigrationReport migrate(Map<String, String> nodeMapping) {
 
-        
+
         KieSession current = null;
-        KieSession tobe = null;      
+        KieSession tobe = null;
         TransactionManager txm = null;
         boolean transactionOwner = false;
         InternalRuntimeManager currentManager = (InternalRuntimeManager) RuntimeManagerRegistry.get().getManager(migrationSpec.getDeploymentId());
@@ -147,7 +147,7 @@ public class MigrationManager {
             // collect and cancel any active timers before migration
             timerMigrated = cancelActiveTimersBeforeMigration(currentManager);
 
-            // start transaction to secure consistency of the migration			
+            // start transaction to secure consistency of the migration
             txm = TransactionManagerFactory.get().newTransactionManager(currentManager.getEnvironment().getEnvironment());
             transactionOwner = txm.begin();
 
@@ -239,14 +239,14 @@ public class MigrationManager {
                     logger.warn("Unexpected error during migration", e);
                     report.addEntry(Type.WARN, "Cannot update context mapping owner (added in version 6.2) due to " + e.getMessage());
                 }
-                
+
                 if (migrateExecutorJobs) {
                     // update request info/executor with new deployment id
                     Query executorRequestQuery = em.createQuery("update RequestInfo set deploymentId = :depId where processInstanceId = :procInstanceId and status in ('ERROR')");
                     executorRequestQuery
-                                .setParameter("depId", migrationSpec.getToDeploymentId())                            
+                                .setParameter("depId", migrationSpec.getToDeploymentId())
                                 .setParameter("procInstanceId", migrationSpec.getProcessInstanceId());
-    
+
                     int executorRequestsUpdated = executorRequestQuery.executeUpdate();
                     report.addEntry(Type.INFO, "Executor Jobs updated = " + executorRequestsUpdated + " for process instance id " + migrationSpec.getProcessInstanceId());
                 }
@@ -332,7 +332,7 @@ public class MigrationManager {
         if (manager.getEnvironment().getKieBase().getProcess(migrationSpec.getToProcessId()) == null) {
             report.addEntry(Type.ERROR, "No process found for " + migrationSpec.getToProcessId() + " in deployment " + migrationSpec.getToDeploymentId());
         }
-        
+
         // verify that source and target runtime manager is of the same type - represent the same runtime strategy
         InternalRuntimeManager sourceManager = (InternalRuntimeManager) RuntimeManagerRegistry.get().getManager(migrationSpec.getDeploymentId());
         if (!sourceManager.getClass().isAssignableFrom(manager.getClass())) {
@@ -344,15 +344,15 @@ public class MigrationManager {
         EntityManagerFactory emf = EntityManagerFactoryManager.get().getOrCreate(auditPu);
         EntityManager em = emf.createEntityManager();
         try {
-            
+
             ProcessInstanceLog log = (ProcessInstanceLog) em.createQuery("FROM ProcessInstanceLog p WHERE p.processInstanceId = :processInstanceId")
                                                             .setParameter("processInstanceId", migrationSpec.getProcessInstanceId())
                                                             .getSingleResult();
-            
+
             if (log == null || log.getStatus() != ProcessInstance.STATE_ACTIVE) {
                 report.addEntry(Type.ERROR, "No process instance found or it is not active (id " + migrationSpec.getProcessInstanceId() + " in status " + (log == null ? "-1" : log.getStatus()));
             }
-            
+
             if (migrateExecutorJobs) {
                 List<Long> executorJobs = (List<Long>) em.createQuery("select id FROM RequestInfo ri WHERE ri.processInstanceId = :processInstanceId and ri.status in (:statuses)")
                         .setParameter("processInstanceId", migrationSpec.getProcessInstanceId())
@@ -411,18 +411,18 @@ public class MigrationManager {
             if (nodeInstance.getNode() == null) {
                 continue;
             }
-            
+
             if (nodeInstance instanceof NodeInstanceContainer) {
                 updateNodeInstances((NodeInstanceContainer) nodeInstance, nodeMapping, nodeContainer, em);
             }
-            
+
             Long upgradedNodeId = null;
             String oldNodeId = (String) ((NodeImpl) ((org.jbpm.workflow.instance.NodeInstance) nodeInstance).getNode()).getMetaData().get("UniqueId");
             String newNodeId = nodeMapping.get(oldNodeId);
             if (newNodeId == null) {
                 newNodeId = oldNodeId;
             }
-            
+
             Node upgradedNode = findNodeByUniqueId(newNodeId, nodeContainer);
             if (upgradedNode == null) {
                 Boolean isHidden = (Boolean) ((NodeImpl) ((org.jbpm.workflow.instance.NodeInstance) nodeInstance).getNode()).getMetaData().get("hidden");
@@ -433,16 +433,16 @@ public class MigrationManager {
                 try {
                     upgradedNodeId = Long.parseLong(newNodeId);
                     if (findNodeById(upgradedNodeId, nodeContainer) == null) {
-                        report.addEntry(Type.ERROR, "Node with id " + newNodeId + " was not found in new process definition"); 
+                        report.addEntry(Type.ERROR, "Node with id " + newNodeId + " was not found in new process definition");
                     }
                 } catch (NumberFormatException e) {
-                    report.addEntry(Type.ERROR, "Node with id " + newNodeId + " was not found in new process definition"); 
+                    report.addEntry(Type.ERROR, "Node with id " + newNodeId + " was not found in new process definition");
                 }
-        
+
             } else {
                 upgradedNodeId = upgradedNode.getId();
             }
-   
+
             ((NodeInstanceImpl) nodeInstance).setNodeId(upgradedNodeId);
 
             if (upgradedNode != null) {
@@ -467,7 +467,7 @@ public class MigrationManager {
                                 .setParameter("nodeType", upgradedNode.getClass().getSimpleName())
                                 .setParameter("ids", nodeInstanceIds)
                                 .setParameter("processInstanceId", nodeInstance.getProcessInstance().getId());
-    
+
                     int nodesUpdated = nodeLogQuery.executeUpdate();
                     report.addEntry(Type.INFO, "Mapping: Node instance logs updated = " + nodesUpdated + " for node instance id " + nodeInstance.getId());
                 }
@@ -503,7 +503,7 @@ public class MigrationManager {
                 }
             }
 
-            
+
         }
 
     }
@@ -525,7 +525,7 @@ public class MigrationManager {
 
         return result;
     }
-    
+
     private Node findNodeById(Long id, NodeContainer nodeContainer) {
         Node result = null;
 
@@ -591,7 +591,7 @@ public class MigrationManager {
                     for (org.jbpm.workflow.instance.NodeInstance active : activeInstances) {
                         if (active instanceof TimerNodeInstance) {
                             TimerInstance timerInstance = timerManager.getTimerMap().get(((TimerNodeInstance) active).getTimerId());
-                            
+
                             timerManager.cancelTimer(processInstance.getId(), timerInstance.getId());
                             result.put(active.getId(), Arrays.asList(timerInstance));
                         } else if (active instanceof StateBasedNodeInstance) {
@@ -642,12 +642,12 @@ public class MigrationManager {
                         org.jbpm.workflow.instance.NodeInstance active = processInstance.getNodeInstance(entry.getKey(), true);
                         if (active instanceof TimerNodeInstance) {
                             TimerInstance timerInstance = entry.getValue().get(0);
-                            
+
                             long delay = timerInstance.getDelay() - (System.currentTimeMillis() - timerInstance.getActivated().getTime());
                             timerInstance.setDelay(delay);
-                            
+
                             updateBasedOnTrigger(timerInstance);
-                                
+
                             timerManager.registerTimer(timerInstance, processInstance);
                             ((TimerNodeInstance) active).internalSetTimerId(timerInstance.getId());
                         } else if (active instanceof StateBasedNodeInstance) {
@@ -657,7 +657,7 @@ public class MigrationManager {
                             for (TimerInstance timerInstance : timerInstances) {
                                 long delay = timerInstance.getDelay() - (System.currentTimeMillis() - timerInstance.getActivated().getTime());
                                 timerInstance.setDelay(delay);
-                                
+
                                 updateBasedOnTrigger(timerInstance);
 
                                 timerManager.registerTimer(timerInstance, processInstance);
@@ -677,7 +677,7 @@ public class MigrationManager {
             manager.disposeRuntimeEngine(engine);
         }
     }
-    
+
     protected void updateBasedOnTrigger(TimerInstance timerInstance) {
         Trigger trigger = ((DefaultJobHandle)timerInstance.getJobHandle()).getTimerJobInstance().getTrigger();
         if (trigger instanceof IntervalTrigger && timerInstance.getPeriod() > 0) {

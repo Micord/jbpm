@@ -16,8 +16,8 @@
 
 package org.jbpm.services.task.wih;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.drools.core.impl.EnvironmentFactory;
 import org.jbpm.services.task.HumanTaskServiceFactory;
@@ -33,7 +33,7 @@ public class HTWorkItemHandlerTest extends HTWorkItemHandlerBaseTest {
 
     private EntityManagerFactory emf;
     private PoolingDataSourceWrapper pds;
-    
+
     @Before
     public void setUp() throws Exception {
     	pds = setupPoolingDataSource();
@@ -45,7 +45,7 @@ public class HTWorkItemHandlerTest extends HTWorkItemHandlerBaseTest {
 				.entityManagerFactory(emf)
 				.getTaskService();
         WorkItemHandler htWorkItemHandler = new NonManagedLocalHTWorkItemHandler(ksession, taskService);
- 
+
         setHandler(htWorkItemHandler);
     }
 

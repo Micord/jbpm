@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.xml.ws.Endpoint;
+import jakarta.xml.ws.Endpoint;
 
 import org.drools.compiler.compiler.ProcessBuilderFactory;
 import org.drools.core.impl.EnvironmentFactory;

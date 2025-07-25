@@ -17,17 +17,17 @@ package org.jbpm.runtime.manager.impl.jpa;
 
 import java.io.Serializable;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.NamedQueries;
-import javax.persistence.NamedQuery;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Version;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.NamedQueries;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 /**
  * The main entity that helps the runtime manager keep track of which context is bound to which <code>KieSession</code>.
@@ -42,7 +42,7 @@ import javax.persistence.Version;
 @Table(name = "ContextMappingInfo", indexes = {@Index(name = "IDX_CMI_Context", columnList = "CONTEXT_ID"),
                                         @Index(name = "IDX_CMI_KSession", columnList = "KSESSION_ID"),
                                         @Index(name = "IDX_CMI_Owner", columnList = "OWNER_ID")})
-@SequenceGenerator(name="contextMappingInfoIdSeq", sequenceName="CONTEXT_MAPPING_INFO_ID_SEQ")
+@SequenceGenerator(name="contextMappingInfoIdSeq", sequenceName="CONTEXT_MAPPING_INFO_ID_SEQ", allocationSize = 1)
 @NamedQueries(value=
     {@NamedQuery(name="FindContextMapingByContextId", query="from ContextMappingInfo where contextId = :contextId and ownerId = :ownerId"),
      @NamedQuery(name="FindContextMapingByAuditContextId", query="select o from ContextMappingInfo o join ProcessInstanceLog log on log.correlationKey = o.contextId where CAST(log.processInstanceId as string) = :contextId and o.ownerId = :ownerId"),
@@ -59,7 +59,7 @@ import javax.persistence.Version;
 public class ContextMappingInfo implements Serializable {
 
     private static final long serialVersionUID = 533985957655465840L;
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="contextMappingInfoIdSeq")
     private Long mappingId;
@@ -67,7 +67,7 @@ public class ContextMappingInfo implements Serializable {
     @Version
     @Column(name = "OPTLOCK")
     private int version;
-    
+
     @Column(name="CONTEXT_ID", nullable=false)
     private String contextId;
     @Column(name="KSESSION_ID", nullable=false)
@@ -76,7 +76,7 @@ public class ContextMappingInfo implements Serializable {
     private String ownerId;
 
 	public ContextMappingInfo() {
-        
+
     }
 
     public ContextMappingInfo(String contextId, Long ksessionId, String ownerId) {
@@ -116,7 +116,7 @@ public class ContextMappingInfo implements Serializable {
     public void setKsessionId(Long ksessionId) {
         this.ksessionId = ksessionId;
     }
-        
+
     public String getOwnerId() {
 		return ownerId;
 	}
@@ -125,7 +125,7 @@ public class ContextMappingInfo implements Serializable {
 		this.ownerId = ownerId;
 	}
 
-	
+
 	@Override
 	public String toString() {
 	    return "ContextMappingInfo {ksessionId=" + ksessionId + ", ownerId=" + ownerId + ", contextId=" + contextId +"}";

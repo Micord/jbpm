@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.naming.InitialContext;
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 
 import org.drools.core.command.runtime.process.SetProcessInstanceVariablesCommand;
 import org.jbpm.process.audit.ProcessInstanceLog;

@@ -16,9 +16,9 @@
 
 package org.jbpm.services.ejb.impl.tx;
 
-import javax.ejb.Stateless;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
+import jakarta.ejb.Stateless;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnit;
 
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
 import org.jbpm.shared.services.impl.TransactionalCommandService;
@@ -27,7 +27,7 @@ import org.kie.internal.runtime.manager.deploy.DeploymentDescriptorManager;
 
 @Stateless
 public class AuditTransactionalCommandServiceEJBImpl extends TransactionalCommandService {
-	
+
 	@PersistenceUnit(unitName="org.jbpm.domain")
 	@Override
 	public void setEmf(EntityManagerFactory emf) {
@@ -39,8 +39,8 @@ public class AuditTransactionalCommandServiceEJBImpl extends TransactionalComman
     		super.setEmf(emf);
     	}
 	}
-	
-	
+
+
 	public AuditTransactionalCommandServiceEJBImpl() {
 		super(null);
 		// entity manager will be set by setter method

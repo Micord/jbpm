@@ -67,10 +67,10 @@
 
     <dependency>
       <!--  only needed for metadata generation -->
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-jpamodelgen</artifactId>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-processor</artifactId>
       <optional>true</optional>
-      <scope>provided</scope>
+<!--      <scope>provided</scope>-->
       <exclusions>
         <!-- collides with jakarta.xml.bind-api -->
         <exclusion>
@@ -124,7 +124,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <annotationProcessors>
-            <annotationProcessor>org.hibernate.jpamodelgen.JPAMetaModelEntityProcessor</annotationProcessor>
+            <annotationProcessor>org.hibernate.processor.HibernateProcessor</annotationProcessor>
           </annotationProcessors>
         </configuration>
       </plugin>

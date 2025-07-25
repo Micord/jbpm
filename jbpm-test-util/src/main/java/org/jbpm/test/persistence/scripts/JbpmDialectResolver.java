@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JbpmDialectResolver implements DialectResolver {
- 
+
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(JbpmDialectResolver.class);
 
@@ -32,9 +32,9 @@ public class JbpmDialectResolver implements DialectResolver {
     public Dialect resolveDialect(DialectResolutionInfo info){
         Dialect d;
         if ("Adaptive Server Enterprise".equals(info.getDatabaseName())) {
-           return new SybaseJbpmDialect(); 
+           return new SybaseJbpmDialect();
         } else {
-            d = StandardDialectResolver.INSTANCE.resolveDialect(info);
+            d =new StandardDialectResolver().resolveDialect(info);
         }
         logger.info("resolveDialect: {}", d);
         return d;

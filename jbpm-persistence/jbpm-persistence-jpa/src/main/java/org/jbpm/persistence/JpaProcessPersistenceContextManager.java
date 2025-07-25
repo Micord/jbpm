@@ -17,7 +17,7 @@
 package org.jbpm.persistence;
 
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.drools.persistence.jpa.JpaPersistenceContextManager;
 import org.jbpm.persistence.api.ProcessPersistenceContext;
@@ -35,12 +35,12 @@ public class JpaProcessPersistenceContextManager extends JpaPersistenceContextMa
 
     public ProcessPersistenceContext getProcessPersistenceContext() {
         Boolean locking = (Boolean) env.get(EnvironmentName.USE_PESSIMISTIC_LOCKING);
-        if( locking == null ) { 
+        if( locking == null ) {
             locking = false;
         }
         String lockingMode = (String) env.get(EnvironmentName.USE_PESSIMISTIC_LOCKING_MODE);
-        
-        boolean useJTA = true; 
+
+        boolean useJTA = true;
         return new JpaProcessPersistenceContext( getCommandScopedEntityManager(), useJTA, locking, lockingMode, txm );
     }
 
@@ -52,7 +52,7 @@ public class JpaProcessPersistenceContextManager extends JpaPersistenceContextMa
         if (env.get(EnvironmentName.CMD_SCOPED_ENTITY_MANAGER) == null) {
             env.set(EnvironmentName.CMD_SCOPED_ENTITY_MANAGER, em);
         }
-        
+
         return em;
     }
 

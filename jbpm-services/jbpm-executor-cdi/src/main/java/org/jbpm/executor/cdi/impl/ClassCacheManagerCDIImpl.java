@@ -17,8 +17,8 @@
 package org.jbpm.executor.cdi.impl;
 
 
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.jbpm.executor.impl.ClassCacheManager;
 

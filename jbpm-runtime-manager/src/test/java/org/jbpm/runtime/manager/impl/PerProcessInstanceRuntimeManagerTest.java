@@ -32,10 +32,10 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.naming.InitialContext;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.persistence.Query;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import jakarta.persistence.Query;
+import jakarta.transaction.UserTransaction;
 
 import org.jbpm.bpmn2.handler.SendTaskHandler;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;

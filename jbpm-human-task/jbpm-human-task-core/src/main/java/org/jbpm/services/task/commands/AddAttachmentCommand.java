@@ -28,11 +28,11 @@ import org.kie.internal.task.api.TaskModelProvider;
 import org.kie.internal.task.api.model.InternalAttachment;
 import org.kie.internal.task.api.model.InternalContent;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 
 
 @XmlRootElement(name="add-attachment-command")
@@ -40,22 +40,22 @@ import javax.xml.bind.annotation.XmlTransient;
 public class AddAttachmentCommand extends UserGroupCallbackTaskCommand<Long> {
 
 	private static final long serialVersionUID = -1295175842745522756L;
-	
+
 	@XmlElement
     private JaxbAttachment jaxbAttachment;
 
 	@XmlTransient
 	private Attachment attachment;
-	
+
 	@XmlElement
     private JaxbContent jaxbContent;
 
 	@XmlTransient
 	private Content content;
-	
+
 	@XmlTransient
     private Object rawContent;
-    
+
     public AddAttachmentCommand() {
     }
 
@@ -64,7 +64,7 @@ public class AddAttachmentCommand extends UserGroupCallbackTaskCommand<Long> {
     	setAttachment(attachment);
         setContent(content);
     }
-    
+
     public AddAttachmentCommand(Long taskId, Attachment attachment, Object rawContent) {
         this.taskId = taskId;
         setAttachment(attachment);
@@ -74,31 +74,31 @@ public class AddAttachmentCommand extends UserGroupCallbackTaskCommand<Long> {
 
     public Long execute(Context cntxt) {
         TaskContext context = (TaskContext) cntxt;
-        
+
         Attachment attachmentImpl = attachment;
         if (attachmentImpl == null) {
         	attachmentImpl = jaxbAttachment;
     	}
-        
+
         Content contentImpl = content;
         if (contentImpl == null) {
         	contentImpl = jaxbContent;
         }
-        
+
         if (rawContent != null && contentImpl == null) {
             Task task = context.getPersistenceContext().findTask(taskId);
             contentImpl = TaskModelProvider.getFactory().newContent();
-            
+
             ContentMarshallerContext ctx = TaskContentRegistry.get().getMarshallerContext(task.getTaskData().getDeploymentId());
-            
+
             ((InternalContent)contentImpl).setContent(ContentMarshallerHelper.marshallContent(task, rawContent, ctx.getEnvironment()));
             ((InternalAttachment)attachmentImpl).setSize(contentImpl.getContent().length);
         }
-        
+
         doCallbackOperationForAttachment(attachmentImpl, context);
-        
+
         return context.getTaskAttachmentService().addAttachment(taskId, attachmentImpl, contentImpl);
-    	 
+
     }
 
 	public void setAttachment(Attachment attachment) {
@@ -109,7 +109,7 @@ public class AddAttachmentCommand extends UserGroupCallbackTaskCommand<Long> {
         	this.jaxbAttachment = new JaxbAttachment(attachment);
         }
 	}
-    
+
     public JaxbAttachment getJaxbAttachment() {
 		return jaxbAttachment;
 	}
@@ -142,11 +142,11 @@ public class AddAttachmentCommand extends UserGroupCallbackTaskCommand<Long> {
 	public Attachment getAttachment() {
 		return attachment;
 	}
-    
+
     public Object getRawContent() {
         return rawContent;
     }
-    
+
     public void setRawContent(Object rawContent) {
         this.rawContent = rawContent;
     }

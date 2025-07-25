@@ -16,7 +16,7 @@
 
 package org.jbpm.services.cdi.test;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.jbpm.test.services.TestIdentityProvider;
 

@@ -20,7 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.executor.commands.LogCleanupCommand;
 import org.jbpm.executor.impl.jpa.ExecutorJPAAuditService;
@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Case Log clean up command that aims at doing house keeping of audit/log tables used in jBPM extending
  * {@link LogCleanupCommand} for current behavior.
- * This command adds this to LogCleanupCommand. Theses parameters restricts the conditions where the logs are 
+ * This command adds this to LogCleanupCommand. Theses parameters restricts the conditions where the logs are
  * going to be deleted.
  * <ul>
  * 	<li>ForCaseDefId -  restricts the logs to be removed to those where the case definition id matches this parameter</li>

@@ -16,8 +16,8 @@
 
 package org.jbpm.services.cdi.impl;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 
 import org.jbpm.kie.services.impl.bpmn2.BPMN2DataServiceImpl;
 import org.jbpm.services.api.DeploymentEvent;
@@ -33,7 +33,7 @@ public class BPMN2DataServiceCDIImpl extends BPMN2DataServiceImpl {
     public void onDeploy(@Observes@Deploy DeploymentEvent event) {
         super.onDeploy(event);
     }
-    
+
 	@Override
     public void onUnDeploy(@Observes@Undeploy DeploymentEvent event) {
         super.onUnDeploy(event);

@@ -16,7 +16,7 @@
 
 package org.jbpm.services.cdi.test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -40,12 +40,12 @@ import org.slf4j.LoggerFactory;
 
 @RunWith(Arquillian.class)
 public class RuntimeDataServiceCDIImplTest extends RuntimeDataServiceImplTest {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(RuntimeDataServiceCDIImplTest.class);
-	
+
 	@Deployment()
     public static Archive<?> createDeployment() {
-        return ShrinkWrap.create(JavaArchive.class, "domain-services.jar")                
+        return ShrinkWrap.create(JavaArchive.class, "domain-services.jar")
                 .addPackage("org.jbpm.services.task")
                 .addPackage("org.jbpm.services.task.wih") // work items org.jbpm.services.task.wih
                 .addPackage("org.jbpm.services.task.annotations")
@@ -71,32 +71,32 @@ public class RuntimeDataServiceCDIImplTest extends RuntimeDataServiceImplTest {
                 .addPackage("org.kie.internal.runtime.manager")
                 .addPackage("org.kie.internal.runtime.manager.context")
                 .addPackage("org.kie.internal.runtime.manager.cdi.qualifier")
-                
+
                 .addPackage("org.jbpm.runtime.manager.impl")
-                .addPackage("org.jbpm.runtime.manager.impl.cdi")                               
+                .addPackage("org.jbpm.runtime.manager.impl.cdi")
                 .addPackage("org.jbpm.runtime.manager.impl.factory")
                 .addPackage("org.jbpm.runtime.manager.impl.jpa")
                 .addPackage("org.jbpm.runtime.manager.impl.manager")
                 .addPackage("org.jbpm.runtime.manager.impl.task")
                 .addPackage("org.jbpm.runtime.manager.impl.tx")
-                
+
                 .addPackage("org.jbpm.shared.services.api")
                 .addPackage("org.jbpm.shared.services.impl")
                 .addPackage("org.jbpm.shared.services.impl.tx")
-                
+
                 .addPackage("org.jbpm.kie.services.api")
-                .addPackage("org.jbpm.kie.services.impl")                
+                .addPackage("org.jbpm.kie.services.impl")
                 .addPackage("org.jbpm.kie.services.api.bpmn2")
                 .addPackage("org.jbpm.kie.services.impl.bpmn2")
                 .addPackage("org.jbpm.kie.services.impl.event.listeners")
                 .addPackage("org.jbpm.kie.services.impl.audit")
                 .addPackage("org.jbpm.kie.services.impl.form")
                 .addPackage("org.jbpm.kie.services.impl.form.provider")
-                .addPackage("org.jbpm.kie.services.impl.query")  
-                .addPackage("org.jbpm.kie.services.impl.query.mapper")  
-                .addPackage("org.jbpm.kie.services.impl.query.persistence")  
-                .addPackage("org.jbpm.kie.services.impl.query.preprocessor")  
-                
+                .addPackage("org.jbpm.kie.services.impl.query")
+                .addPackage("org.jbpm.kie.services.impl.query.mapper")
+                .addPackage("org.jbpm.kie.services.impl.query.persistence")
+                .addPackage("org.jbpm.kie.services.impl.query.preprocessor")
+
                 .addPackage("org.jbpm.services.cdi")
                 .addPackage("org.jbpm.services.cdi.impl")
                 .addPackage("org.jbpm.services.cdi.impl.form")
@@ -104,7 +104,7 @@ public class RuntimeDataServiceCDIImplTest extends RuntimeDataServiceImplTest {
                 .addPackage("org.jbpm.services.cdi.producer")
                 .addPackage("org.jbpm.services.cdi.impl.security")
                 .addPackage("org.jbpm.services.cdi.impl.query")
-                
+
                 .addPackage("org.jbpm.test.util")
                 .addPackage("org.jbpm.kie.services.test")
                 .addPackage("org.jbpm.services.cdi.test") // Identity Provider Test Impl here
@@ -116,10 +116,10 @@ public class RuntimeDataServiceCDIImplTest extends RuntimeDataServiceImplTest {
                 .addAsManifestResource("META-INF/beans.xml", ArchivePaths.create("beans.xml"));
 
     }
-	
-	@Inject 
+
+	@Inject
     private TransactionalCommandService commandService;
-    
+
     @Override
 	protected void close() {
 		// do nothing here and let CDI close resources
@@ -127,41 +127,41 @@ public class RuntimeDataServiceCDIImplTest extends RuntimeDataServiceImplTest {
 
 	@Override
 	protected void configureServices() {
-		// do nothing here and let CDI configure services 
+		// do nothing here and let CDI configure services
 	}
 
-	@Inject	
+	@Inject
 	@Override
 	public void setDeploymentService(DeploymentService deploymentService) {
-		
+
 		super.setDeploymentService(deploymentService);
 	}
 
 	@Inject
 	@Override
 	public void setBpmn2Service(DefinitionService bpmn2Service) {
-		
+
 		super.setBpmn2Service(bpmn2Service);
 	}
 
 	@Inject
 	@Override
 	public void setRuntimeDataService(RuntimeDataService runtimeDataService) {
-		
+
 		super.setRuntimeDataService(runtimeDataService);
 	}
 
 	@Inject
 	@Override
 	public void setProcessService(ProcessService processService) {
-		
+
 		super.setProcessService(processService);
 	}
 
 	@Inject
 	@Override
 	public void setUserTaskService(UserTaskService userTaskService) {
-		
+
 		super.setUserTaskService(userTaskService);
 	}
 
@@ -170,19 +170,19 @@ public class RuntimeDataServiceCDIImplTest extends RuntimeDataServiceImplTest {
     public void setIdentityProvider(TestIdentityProvider identityProvider) {
         super.setIdentityProvider(identityProvider);
     }
-	
+
 	@After
 	public void removeAllData() {
         //need to abort all processes before deleting all the tables
         super.cleanup();
         int deleted = 0;
         deleted += commandService.execute(new UpdateStringCommand("delete from  NodeInstanceLog nid"));
-        deleted += commandService.execute(new UpdateStringCommand("delete from  ProcessInstanceLog pid"));        
+        deleted += commandService.execute(new UpdateStringCommand("delete from  ProcessInstanceLog pid"));
         deleted += commandService.execute(new UpdateStringCommand("delete from  VariableInstanceLog vsd"));
         deleted += commandService.execute(new UpdateStringCommand("delete from  AuditTaskImpl at"));
         deleted += commandService.execute(new UpdateStringCommand("delete from  TaskEventImpl te"));
         deleted += commandService.execute(new UpdateStringCommand("delete from  TaskVariableImpl te"));
         logger.debug("Deleted " + deleted);
 	}
-	
+
 }

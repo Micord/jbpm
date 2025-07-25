@@ -60,8 +60,8 @@
 
     <dependency>
       <!--  only needed for metadata generation -->
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-jpamodelgen</artifactId>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-processor</artifactId>
       <optional>true</optional>
       <scope>provided</scope>
       <exclusions>
@@ -127,16 +127,10 @@
     </dependency>
 
     <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-entitymanager</artifactId>
-      <scope>test</scope>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.hibernate</groupId>
+      <groupId>org.hibernate.orm</groupId>
       <artifactId>hibernate-core</artifactId>
       <optional>true</optional>
-      <scope>test</scope>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
@@ -223,7 +217,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <annotationProcessors>
-            <annotationProcessor>org.hibernate.jpamodelgen.JPAMetaModelEntityProcessor</annotationProcessor>
+            <annotationProcessor>org.hibernate.processor.HibernateProcessor</annotationProcessor>
           </annotationProcessors>
         </configuration>
       </plugin>

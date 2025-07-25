@@ -16,7 +16,7 @@
 
 package org.jbpm.workflow.core.node;
 
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.workflow.core.DroolsAction;
 import org.jbpm.workflow.core.impl.ExtendedNodeImpl;
 import org.kie.api.definition.process.Connection;
@@ -25,17 +25,17 @@ import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of an action node.
- * 
+ *
  */
 public class ActionNode extends ExtendedNodeImpl {
 
 	private static final long serialVersionUID = 510l;
-	
+
 	private DroolsAction action;
 
     private boolean executeActionAfterComplete = false;
 
-    
+
 
 
     public ActionNode() {
@@ -46,7 +46,7 @@ public class ActionNode extends ExtendedNodeImpl {
         super(nodeType);
     }
 
-    
+
     public void setExecuteActionAfterComplete(boolean executeActionAfterComplete) {
         this.executeActionAfterComplete = executeActionAfterComplete;
     }
@@ -90,5 +90,5 @@ public class ActionNode extends ExtendedNodeImpl {
               connection.getTo().getNodeUniqueId());
         }
     }
-    
+
 }

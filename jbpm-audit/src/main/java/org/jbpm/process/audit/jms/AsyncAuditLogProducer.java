@@ -18,13 +18,13 @@ package org.jbpm.process.audit.jms;
 
 import java.util.List;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.Queue;
-import javax.jms.Session;
-import javax.jms.TextMessage;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
+import jakarta.jms.MessageProducer;
+import jakarta.jms.Queue;
+import jakarta.jms.Session;
+import jakarta.jms.TextMessage;
 
 import com.thoughtworks.xstream.XStream;
 import org.jbpm.process.audit.AbstractAuditLogger;
@@ -51,33 +51,33 @@ import static org.kie.soup.xstream.XStreamUtils.createTrustingXStream;
  *  <li>ConnectionFactory - used to create jMS objects required to send a message</li>
  *  <li>Queue - JMS destination where messages should be placed</li>
  * </ul>
- * 
+ *
  * It sends TextMessages with content of *Log classes (ProcessInstanceLog,
- * NodeInstanceLog, VaraiableInstanceLog) serialized by Xstream. 
+ * NodeInstanceLog, VaraiableInstanceLog) serialized by Xstream.
  * Such serialization allows:
  * <ul>
  *  <li>use of message selectors to filter which types of events should be processed by different consumer</li>
  *  <li>use any consumer to process messages - does not have to be default one</li>
  *  <li>use content based routing in more advanced scenarios</li>
  * </ul>
- * 
+ *
  * Default receiver is <code>AsyncAuditLogReceiver</code> class
  */
 public class AsyncAuditLogProducer extends AbstractAuditLogger {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(AsyncAuditLogProducer.class);
 
-    private ConnectionFactory connectionFactory;    
+    private ConnectionFactory connectionFactory;
     private Queue queue;
     private boolean transacted = true;
     private XStream xstream;
-    
+
     private ProcessIndexerManager indexManager = ProcessIndexerManager.get();
 
     public AsyncAuditLogProducer() {
         initXStream();
     }
-    
+
     public AsyncAuditLogProducer(KieSession session, boolean transacted) {
         super(session);
         this.transacted = transacted;
@@ -108,7 +108,7 @@ public class AsyncAuditLogProducer extends AbstractAuditLogger {
     public void setQueue(Queue queue) {
         this.queue = queue;
     }
-    
+
     public boolean isTransacted() {
         return transacted;
     }
@@ -116,7 +116,7 @@ public class AsyncAuditLogProducer extends AbstractAuditLogger {
     public void setTransacted(boolean transacted) {
         this.transacted = transacted;
     }
-    
+
     @Override
     public void beforeNodeTriggered(ProcessNodeTriggeredEvent event) {
         NodeInstanceLog log = (NodeInstanceLog) builder.buildEvent(event);
@@ -139,8 +139,8 @@ public class AsyncAuditLogProducer extends AbstractAuditLogger {
     @Override
     public void afterVariableChanged(ProcessVariableChangedEvent event) {
         List<org.kie.api.runtime.manager.audit.VariableInstanceLog> variables = indexManager.index(getBuilder(), event);
-        for (org.kie.api.runtime.manager.audit.VariableInstanceLog log : variables) {  
-            sendMessage(log, AFTER_VAR_CHANGE_EVENT_TYPE, 1);   
+        for (org.kie.api.runtime.manager.audit.VariableInstanceLog log : variables) {
+            sendMessage(log, AFTER_VAR_CHANGE_EVENT_TYPE, 1);
         }
     }
 
@@ -148,7 +148,7 @@ public class AsyncAuditLogProducer extends AbstractAuditLogger {
     public void beforeProcessStarted(ProcessStartedEvent event) {
         ProcessInstanceLog log = (ProcessInstanceLog) builder.buildEvent(event);
         sendMessage(log, BEFORE_START_EVENT_TYPE, 9);
-        
+
     }
 
     @Override
@@ -156,7 +156,7 @@ public class AsyncAuditLogProducer extends AbstractAuditLogger {
         ProcessInstanceLog log = (ProcessInstanceLog) builder.buildEvent(event, null);
         sendMessage(log, AFTER_COMPLETE_EVENT_TYPE, 0);
     }
-    
+
     @Override
     public void afterNodeTriggered(ProcessNodeTriggeredEvent event) {
     	// trigger this to record some of the data (like work item id) after activity was triggered
@@ -175,17 +175,17 @@ public class AsyncAuditLogProducer extends AbstractAuditLogger {
     }
     @Override
     public void beforeVariableChanged(ProcessVariableChangedEvent event) {
-        
+
     }
     @Override
     public void afterProcessStarted(ProcessStartedEvent event) {
-        
+
     }
 
     @Override
     public void beforeProcessCompleted(ProcessCompletedEvent event) {
     }
-    
+
     protected void sendMessage(Object messageContent, Integer eventType, int priority) {
         if (connectionFactory == null && queue == null) {
             throw new IllegalStateException("ConnectionFactory and Queue cannot be null");
@@ -201,7 +201,7 @@ public class AsyncAuditLogProducer extends AbstractAuditLogger {
             TextMessage message = queueSession.createTextMessage(eventXml);
             message.setIntProperty("EventType", eventType);
             message.setStringProperty("LogType", "Process");
-            producer = queueSession.createProducer(queue);  
+            producer = queueSession.createProducer(queue);
             producer.setPriority(priority);
             producer.send(message);
         } catch (Exception e) {
@@ -214,7 +214,7 @@ public class AsyncAuditLogProducer extends AbstractAuditLogger {
                     logger.warn("Error when closing producer", e);
                 }
             }
-            
+
             if (queueSession != null) {
                 try {
                     queueSession.close();
@@ -222,7 +222,7 @@ public class AsyncAuditLogProducer extends AbstractAuditLogger {
                     logger.warn("Error when closing queue session", e);
                 }
             }
-            
+
             if (queueConnection != null) {
                 try {
                     queueConnection.close();

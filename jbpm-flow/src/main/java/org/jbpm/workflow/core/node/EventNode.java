@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.process.core.event.EventFilter;
 import org.jbpm.process.core.event.EventTransformer;
 import org.jbpm.process.core.event.EventTypeFilter;
@@ -31,7 +31,7 @@ import org.kie.api.definition.process.NodeType;
 public class EventNode extends ExtendedNodeImpl implements EventNodeInterface {
 
 	private static final long serialVersionUID = 510l;
-	
+
 	private List<EventFilter> filters = new ArrayList<EventFilter>();
 	private EventTransformer transformer;
 	private String variableName;
@@ -56,19 +56,19 @@ public class EventNode extends ExtendedNodeImpl implements EventNodeInterface {
 	public void addEventFilter(EventFilter eventFilter) {
 		filters.add(eventFilter);
 	}
-	
+
 	public void removeEventFilter(EventFilter eventFilter) {
 		filters.remove(eventFilter);
 	}
-	
+
 	public List<EventFilter> getEventFilters() {
 		return filters;
 	}
-		
+
 	public void setEventFilters(List<EventFilter> filters) {
 		this.filters = filters;
 	}
-	
+
 	public String getType() {
 		for (EventFilter filter: filters) {
     		if (filter instanceof EventTypeFilter) {
@@ -77,7 +77,7 @@ public class EventNode extends ExtendedNodeImpl implements EventNodeInterface {
     	}
     	return null;
 	}
-		
+
 	public boolean acceptsEvent(String type, Object event) {
     	for (EventFilter filter: filters) {
     		if (!filter.acceptsEvent(type, event)) {
@@ -96,16 +96,16 @@ public class EventNode extends ExtendedNodeImpl implements EventNodeInterface {
         }
         return true;
     }
-	
+
 	public void setEventTransformer(EventTransformer transformer) {
 		this.transformer = transformer;
 	}
-	
+
 	public EventTransformer getEventTransformer() {
 		return transformer;
 	}
-	
-	
+
+
 	public String getScope() {
 		return scope;
 	}
@@ -141,5 +141,5 @@ public class EventNode extends ExtendedNodeImpl implements EventNodeInterface {
 							connection.getTo().getNodeUniqueId());
         }
     }
-    
+
 }

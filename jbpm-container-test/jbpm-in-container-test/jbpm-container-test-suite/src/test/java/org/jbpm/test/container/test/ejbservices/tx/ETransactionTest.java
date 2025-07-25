@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 
 import javax.naming.InitialContext;
-import javax.transaction.Status;
-import javax.transaction.UserTransaction;
+import jakarta.transaction.Status;
+import jakarta.transaction.UserTransaction;
 
 import org.drools.core.command.runtime.rule.FireAllRulesCommand;
 import org.jbpm.services.api.model.NodeInstanceDesc;

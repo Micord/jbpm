@@ -16,13 +16,13 @@
 
 package org.jbpm.executor.ejb.impl;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.ConcurrencyManagementType;
-import javax.ejb.EJB;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.ejb.ConcurrencyManagement;
+import jakarta.ejb.ConcurrencyManagementType;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
 
 import org.jbpm.executor.RequeueAware;
 import org.jbpm.executor.ejb.impl.jpa.ExecutorRequestAdminServiceEJBImpl;
@@ -66,19 +66,19 @@ public class ExecutorServiceEJBImpl extends ExecutorServiceImpl implements Execu
 		executor.setExecutorStoreService(this.storeService);
 		executor.setEventSupport(getEventSupport());
 		executor.setTransactionManager(this.transactionalCommandService.getTransactionManager());
-		
-		AvailableJobsExecutor jobExecutor = new AvailableJobsExecutor();             
+
+		AvailableJobsExecutor jobExecutor = new AvailableJobsExecutor();
         jobExecutor.setClassCacheManager(this.classCacheManager);
         jobExecutor.setQueryService(getQueryService());
         jobExecutor.setExecutorStoreService(this.storeService);
         jobExecutor.setEventSupport(getEventSupport());
-        jobExecutor.setExecutor(executor);        
-		
+        jobExecutor.setExecutor(executor);
+
 		executor.setJobProcessor(jobExecutor);
-		
+
 		setExecutor(executor);
-		
-		
+
+
 		super.init();
 	}
 
@@ -100,7 +100,7 @@ public class ExecutorServiceEJBImpl extends ExecutorServiceImpl implements Execu
 	public void setAdminService(ExecutorAdminService adminService) {
 		super.setAdminService(adminService);
 	}
-	
+
 	@EJB
 	public void setStoreService(ExecutorStoreService storeService) {
 		this.storeService = storeService;

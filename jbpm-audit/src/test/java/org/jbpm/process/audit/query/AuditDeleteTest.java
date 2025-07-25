@@ -31,8 +31,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.process.audit.AuditLogServiceTest;
 import org.jbpm.process.audit.JPAAuditLogService;
@@ -72,9 +72,9 @@ public class AuditDeleteTest extends JPAAuditLogService {
     }
 
     @AfterClass
-    public static void reset() { 
+    public static void reset() {
         LoggingPrintStream.resetInterceptSysOutSysErr();
-        
+
     }
 
     @Before
@@ -93,45 +93,45 @@ public class AuditDeleteTest extends JPAAuditLogService {
             nilTestData = createTestNodeInstanceLogData();
         }
     }
-    
+
     @After
     public void cleanup() {
         clearTables(ProcessInstanceLog.class, VariableInstanceLog.class, NodeInstanceLog.class);
         cleanUp(context);
     }
-   
+
     private static Random random = new Random();
 
-    private long randomLong() { 
+    private long randomLong() {
         long result = (long) Math.abs(random.nextInt());
-        while( result == 23l ) { 
+        while( result == 23l ) {
            result = (long) Math.abs(random.nextInt());
         }
         return result;
     }
 
-    private String randomString() { 
+    private String randomString() {
         return UUID.randomUUID().toString();
     }
 
-    private Calendar randomCal() { 
+    private Calendar randomCal() {
         Calendar cal = GregorianCalendar.getInstance();
         cal.roll(Calendar.DAY_OF_YEAR, -1*random.nextInt(10*365));
         cal.set(Calendar.MILLISECOND, 0);
         cal.set(Calendar.SECOND, 0);
         return cal;
     }
-    
-    private ProcessInstanceLog [] createTestProcessInstanceLogData() { 
+
+    private ProcessInstanceLog [] createTestProcessInstanceLogData() {
         StandaloneJtaStrategy jtaHelper = new StandaloneJtaStrategy(emf);
         EntityManager em = jtaHelper.getEntityManager();
-   
+
         int numEntities = 11;
         ProcessInstanceLog [] testData = new ProcessInstanceLog[numEntities];
-        
+
         Calendar cal = randomCal();
-        
-        for( int i = 0; i < numEntities; ++i ) { 
+
+        for( int i = 0; i < numEntities; ++i ) {
             ProcessInstanceLog pil = new ProcessInstanceLog(randomLong(), randomString());
             pil.setDuration(randomLong());
             pil.setExternalId(randomString());
@@ -142,17 +142,17 @@ public class AuditDeleteTest extends JPAAuditLogService {
             pil.setProcessName(randomString());
             pil.setProcessVersion(randomString());
             pil.setStatus(random.nextInt());
-            
+
             cal.add(Calendar.MINUTE, 1);
             pil.setStart(cal.getTime());
             cal.add(Calendar.DAY_OF_YEAR, 1);
             pil.setEnd(cal.getTime());
-            
-            testData[i] = pil; 
+
+            testData[i] = pil;
         }
-    
-        for( int i = 0; i < numEntities; ++i ) { 
-           switch(i) { 
+
+        for( int i = 0; i < numEntities; ++i ) {
+           switch(i) {
            case 1:
                testData[i-1].setDuration(testData[i].getDuration());
                break;
@@ -190,21 +190,21 @@ public class AuditDeleteTest extends JPAAuditLogService {
             em.persist(testData[i]);
         }
         jtaHelper.leaveTransaction(em, tx);
-        
+
         return testData;
     }
-    
-    private NodeInstanceLog [] createTestNodeInstanceLogData() { 
+
+    private NodeInstanceLog [] createTestNodeInstanceLogData() {
         StandaloneJtaStrategy jtaHelper = new StandaloneJtaStrategy(emf);
         EntityManager em = jtaHelper.getEntityManager();
-    
+
         int numEntities = 9;
         NodeInstanceLog [] testData = new NodeInstanceLog[numEntities];
         ProcessInstanceLog [] testDataPI = new ProcessInstanceLog[numEntities];
-        
+
         Calendar cal = randomCal();
-    
-        for( int i = 0; i < numEntities; ++i ) { 
+
+        for( int i = 0; i < numEntities; ++i ) {
             NodeInstanceLog nil = new NodeInstanceLog();
             nil.setProcessInstanceId(randomLong());
             nil.setProcessId(randomString());
@@ -218,15 +218,15 @@ public class AuditDeleteTest extends JPAAuditLogService {
             nil.setWorkItemId(randomLong());
             nil.setConnection(randomString());
             nil.setExternalId(randomString());
-            
-            testData[i] = nil; 
-            
+
+            testData[i] = nil;
+
             ProcessInstanceLog pLog = buildCompletedProcessInstance(nil.getProcessInstanceId());
             testDataPI[i] = pLog;
         }
-    
-        for( int i = 0; i < numEntities; ++i ) { 
-           switch(i) { 
+
+        for( int i = 0; i < numEntities; ++i ) {
+           switch(i) {
            case 1:
                testData[i-1].setDate(testData[i].getDate());
                break;
@@ -259,21 +259,21 @@ public class AuditDeleteTest extends JPAAuditLogService {
             em.persist(testData[i]);
         }
         jtaHelper.leaveTransaction(em, tx);
-        
+
         return testData;
     }
-    
-    private VariableInstanceLog [] createTestVariableInstanceLogData() { 
+
+    private VariableInstanceLog [] createTestVariableInstanceLogData() {
         StandaloneJtaStrategy jtaHelper = new StandaloneJtaStrategy(emf);
         EntityManager em = jtaHelper.getEntityManager();
-    
+
         int numEntities = 8;
         VariableInstanceLog [] testData = new VariableInstanceLog[numEntities];
         ProcessInstanceLog [] testDataPI = new ProcessInstanceLog[numEntities];
-       
+
         Calendar cal = randomCal();
-        
-        for( int i = 0; i < numEntities; ++i ) { 
+
+        for( int i = 0; i < numEntities; ++i ) {
             VariableInstanceLog vil = new VariableInstanceLog();
             vil.setProcessInstanceId(randomLong());
             vil.setProcessId(randomString());
@@ -284,15 +284,15 @@ public class AuditDeleteTest extends JPAAuditLogService {
             vil.setValue(randomString());
             vil.setOldValue(randomString());
             vil.setExternalId(randomString());
-            
-            testData[i] = vil; 
-            
+
+            testData[i] = vil;
+
             ProcessInstanceLog pLog = buildCompletedProcessInstance(vil.getProcessInstanceId());
             testDataPI[i] = pLog;
         }
-    
-        for( int i = 0; i < numEntities; ++i ) { 
-           switch(i) { 
+
+        for( int i = 0; i < numEntities; ++i ) {
+           switch(i) {
            case 1:
                testData[i-1].setDate(testData[i].getDate());
                break;
@@ -322,10 +322,10 @@ public class AuditDeleteTest extends JPAAuditLogService {
             em.persist(testData[i]);
         }
         jtaHelper.leaveTransaction(em, tx);
-        
+
         return testData;
     }
-    
+
     private ProcessInstanceLog buildCompletedProcessInstance(long processInstanceId) {
         ProcessInstanceLog pil = new ProcessInstanceLog(processInstanceId, randomString());
         pil.setDuration(randomLong());
@@ -337,178 +337,178 @@ public class AuditDeleteTest extends JPAAuditLogService {
         pil.setProcessName(randomString());
         pil.setProcessVersion(randomString());
         pil.setStatus(2);
-                
-        pil.setStart(null);        
+
+        pil.setStart(null);
         pil.setEnd(null);
-        
+
         return pil;
     }
 
     @Test
-    public void testDeleteProcessInstanceInfoLogByProcessId() { 
+    public void testDeleteProcessInstanceInfoLogByProcessId() {
         int p = 0;
         String processId = pilTestData[p++].getProcessId();
         String processId2 = pilTestData[p++].getProcessId();
-        
+
         ProcessInstanceLogDeleteBuilder updateBuilder = this.processInstanceLogDelete().processId(processId, processId2);
         int result = updateBuilder.build().execute();
         assertEquals(2, result);
     }
-    
+
     @Test
-    public void testDeleteProcessInstanceInfoLogByDate() { 
-        int p = 0;        
+    public void testDeleteProcessInstanceInfoLogByDate() {
+        int p = 0;
         Date endDate = pilTestData[p++].getEnd();
-        
+
         ProcessInstanceLogDeleteBuilder updateBuilder = this.processInstanceLogDelete().endDate(endDate);
         int result = updateBuilder.build().execute();
         assertEquals(1, result);
     }
-    
+
     @Test
-    public void testDeleteProcessInstanceInfoLogByTimestamp() { 
-        int p = 0;        
+    public void testDeleteProcessInstanceInfoLogByTimestamp() {
+        int p = 0;
         Date endDate = pilTestData[p++].getEnd();
-        
+
         List<org.kie.api.runtime.manager.audit.ProcessInstanceLog> logs = this.processInstanceLogQuery().endDate(endDate).build().getResultList();
         assertEquals(1, logs.size());
-        
+
         ProcessInstanceLogDeleteBuilder updateBuilder = this.processInstanceLogDelete().endDate(logs.get(0).getEnd());
         int result = updateBuilder.build().execute();
         assertEquals(1, result);
     }
-    
+
     @Test
-    public void testDeleteProcessInstanceInfoLogByProcessIdAndDate() { 
-        int p = 0;     
+    public void testDeleteProcessInstanceInfoLogByProcessIdAndDate() {
+        int p = 0;
         String processId = pilTestData[p].getProcessId();
         Date endDate = pilTestData[p].getEnd();
-        
+
         ProcessInstanceLogDeleteBuilder updateBuilder = this.processInstanceLogDelete().endDate(endDate).processId(processId);
         int result = updateBuilder.build().execute();
         assertEquals(1, result);
     }
-    
+
     @Test
-    public void testDeleteProcessInstanceInfoLogByProcessIdAndNotMatchingDate() { 
-        int p = 0;     
+    public void testDeleteProcessInstanceInfoLogByProcessIdAndNotMatchingDate() {
+        int p = 0;
         String processId = pilTestData[p++].getProcessId();
         Date endDate = pilTestData[p++].getEnd();
-        
+
         ProcessInstanceLogDeleteBuilder updateBuilder = this.processInstanceLogDelete().endDate(endDate).processId(processId);
         int result = updateBuilder.build().execute();
         assertEquals(0, result);
     }
-    
+
     @Test
-    public void testDeleteProcessInstanceInfoLogByStatus() { 
+    public void testDeleteProcessInstanceInfoLogByStatus() {
         int status = pilTestData[5].getStatus();
         ProcessInstanceLogDeleteBuilder updateBuilder = this.processInstanceLogDelete().status(status);
         int result = updateBuilder.build().execute();
         assertEquals(1, result);
     }
-    
+
     @Test
-    public void testDeleteProcessInstanceInfoLogByDateRangeEnd() { 
-        
+    public void testDeleteProcessInstanceInfoLogByDateRangeEnd() {
+
         Date endDate = pilTestData[4].getEnd();
-        
+
         ProcessInstanceLogDeleteBuilder updateBuilder = this.processInstanceLogDelete().endDateRangeEnd(endDate);
         int result = updateBuilder.build().execute();
         assertEquals(5, result);
     }
-    
+
     @Test
-    public void testDeleteProcessInstanceInfoLogByDateRangeStart() { 
-        
+    public void testDeleteProcessInstanceInfoLogByDateRangeStart() {
+
         Date endDate = pilTestData[8].getEnd();
         ProcessInstanceLogDeleteBuilder updateBuilder = this.processInstanceLogDelete().endDateRangeStart(endDate);
         int result = updateBuilder.build().execute();
         assertEquals(3, result);
     }
-    
+
     @Test
-    public void testDeleteNodeInstanceInfoLogByProcessId() { 
+    public void testDeleteNodeInstanceInfoLogByProcessId() {
         int p = 0;
         String processId = nilTestData[p++].getProcessId();
-        
+
         NodeInstanceLogDeleteBuilder updateBuilder = this.nodeInstanceLogDelete().processId(processId);
         int result = updateBuilder.build().execute();
         assertEquals(1, result);
     }
-    
+
     @Test
-    public void testDeleteNodeInstanceInfoLogByDate() { 
+    public void testDeleteNodeInstanceInfoLogByDate() {
         int p = 0;
-        Date date = nilTestData[p++].getDate();       
-        
+        Date date = nilTestData[p++].getDate();
+
         NodeInstanceLogDeleteBuilder updateBuilder = this.nodeInstanceLogDelete().date(date);
         int result = updateBuilder.build().execute();
         assertEquals(2, result);
     }
-    
+
     @Test
-    public void testDeleteNodeInstanceInfoLogByDateRangeEnd() { 
-        
+    public void testDeleteNodeInstanceInfoLogByDateRangeEnd() {
+
         Date endDate = nilTestData[4].getDate();
-        
+
         NodeInstanceLogDeleteBuilder updateBuilder = this.nodeInstanceLogDelete().dateRangeEnd(endDate);
         int result = updateBuilder.build().execute();
         assertEquals(5, result);
     }
-    
+
     @Test
-    public void testDeleteNodeInstanceInfoLogByTimestamp() { 
+    public void testDeleteNodeInstanceInfoLogByTimestamp() {
         int p = 0;
-        Date date = nilTestData[p++].getDate();   
-        
+        Date date = nilTestData[p++].getDate();
+
         List<org.kie.api.runtime.manager.audit.NodeInstanceLog> logs = this.nodeInstanceLogQuery().date(date).build().getResultList();
         assertEquals(2, logs.size());
-        
-        
+
+
         NodeInstanceLogDeleteBuilder updateBuilder = this.nodeInstanceLogDelete().date(logs.get(0).getDate());
         int result = updateBuilder.build().execute();
         assertEquals(2, result);
     }
-    
+
     @Test
-    public void testDeleteVarInstanceInfoLogByProcessId() { 
+    public void testDeleteVarInstanceInfoLogByProcessId() {
         int p = 0;
-        String processId = vilTestData[p++].getProcessId();     
-        
+        String processId = vilTestData[p++].getProcessId();
+
         VariableInstanceLogDeleteBuilder updateBuilder = this.variableInstanceLogDelete().processId(processId);
         int result = updateBuilder.build().execute();
         assertEquals(1, result);
     }
-    
+
     @Test
-    public void testDeleteVarInstanceInfoLogByDate() { 
+    public void testDeleteVarInstanceInfoLogByDate() {
         int p = 0;
-        Date date = vilTestData[p++].getDate();       
-        
+        Date date = vilTestData[p++].getDate();
+
         VariableInstanceLogDeleteBuilder updateBuilder = this.variableInstanceLogDelete().date(date);
         int result = updateBuilder.build().execute();
         assertEquals(2, result);
     }
-    
+
     @Test
-    public void testDeleteVarInstanceInfoLogByDateRangeEnd() { 
-        
+    public void testDeleteVarInstanceInfoLogByDateRangeEnd() {
+
         Date endDate = vilTestData[4].getDate();
-        
+
         VariableInstanceLogDeleteBuilder updateBuilder = this.variableInstanceLogDelete().dateRangeEnd(endDate);
         int result = updateBuilder.build().execute();
         assertEquals(5, result);
     }
-    
+
     @Test
-    public void testDeleteVarInstanceInfoLogByTimestamp() { 
+    public void testDeleteVarInstanceInfoLogByTimestamp() {
         int p = 0;
-        Date date = vilTestData[p++].getDate();     
-        
+        Date date = vilTestData[p++].getDate();
+
         List<org.kie.api.runtime.manager.audit.VariableInstanceLog> vars = this.variableInstanceLogQuery().date(date).build().getResultList();
         assertEquals(2, vars.size());
-        
+
         VariableInstanceLogDeleteBuilder updateBuilder = this.variableInstanceLogDelete().date(vars.get(0).getDate());
         int result = updateBuilder.build().execute();
         assertEquals(2, result);

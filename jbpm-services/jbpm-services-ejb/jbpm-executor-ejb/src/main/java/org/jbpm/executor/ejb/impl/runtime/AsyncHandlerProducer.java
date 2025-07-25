@@ -19,8 +19,8 @@ package org.jbpm.executor.ejb.impl.runtime;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.ejb.EJB;
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.ejb.EJB;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.jbpm.executor.commands.PrintOutCommand;
 import org.jbpm.executor.impl.wih.AsyncWorkItemHandler;
@@ -35,18 +35,18 @@ import org.kie.internal.runtime.manager.WorkItemHandlerProducer;
  */
 @ApplicationScoped
 public class AsyncHandlerProducer implements WorkItemHandlerProducer {
-	
+
 	@EJB
 	private ExecutorServiceEJB executorService;
 
     @Override
     public Map<String, WorkItemHandler> getWorkItemHandlers(String identifier, Map<String, Object> params) {
         Map<String, WorkItemHandler> handlers = new HashMap<String, WorkItemHandler>();
-        
+
         if (executorService != null) {
             handlers.put("async",new AsyncWorkItemHandler(executorService, PrintOutCommand.class.getName()));
         }
-        
+
         return handlers;
     }
 

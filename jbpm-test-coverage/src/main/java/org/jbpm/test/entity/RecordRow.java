@@ -17,12 +17,12 @@ package org.jbpm.test.entity;
 
 import java.io.Serializable;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 @Entity
 public class RecordRow implements Serializable{
@@ -37,7 +37,7 @@ public class RecordRow implements Serializable{
     public RecordRow() {
     }
 
-    
+
     public RecordRow(String code, String desc) {
         this.code = code;
         this.description = desc;
@@ -51,7 +51,7 @@ public class RecordRow implements Serializable{
         this.medicalRecord = medicalRecord;
     }
 
-    
+
     public String getCode() {
         return code;
     }
@@ -114,6 +114,6 @@ public class RecordRow implements Serializable{
         hash = 13 * hash + (this.medicalRecord != null ? this.medicalRecord.hashCode() : 0);
         return hash;
     }
-    
-    
+
+
 }

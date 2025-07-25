@@ -18,7 +18,7 @@ package org.jbpm.services.ejb.api;
 
 import java.util.function.Function;
 
-import javax.ejb.Remote;
+import jakarta.ejb.Remote;
 
 import org.jbpm.services.api.model.DeploymentUnit;
 
@@ -26,15 +26,15 @@ import org.jbpm.services.api.model.DeploymentUnit;
 public interface DeploymentServiceEJBRemote  {
 
 	/**
-	 * Deploys artifact identified by given GAV (group, artifact, version) 
+	 * Deploys artifact identified by given GAV (group, artifact, version)
 	 * @param groupId group id of the artifact to deploy
 	 * @param artifactId artifact id of the artifact to deploy
 	 * @param version version of the artifact to deploy
 	 */
     void deploy(String groupId, String artifactId, String version);
-    
+
     /**
-	 * Deploys artifact identified by given GAV (group, artifact, version) with additional selection of kbase and 
+	 * Deploys artifact identified by given GAV (group, artifact, version) with additional selection of kbase and
 	 * ksession names from kmodule.xml - these names must exists in kmodule.xml of the artifact being deployed
 	 * @param groupId group id of the artifact to deploy
 	 * @param artifactId artifact id of the artifact to deploy
@@ -43,9 +43,9 @@ public interface DeploymentServiceEJBRemote  {
 	 * @param ksessionName name of kie session defined in kmodule.xml
 	 */
     void deploy(String groupId, String artifactId, String version, String kbaseName, String ksessionName);
-    
+
     /**
-	 * Deploys artifact identified by given GAV (group, artifact, version) with additional selection of kbase and 
+	 * Deploys artifact identified by given GAV (group, artifact, version) with additional selection of kbase and
 	 * ksession names from kmodule.xml - these names must exists in kmodule.xml of the artifact being deployed and
 	 * runtime strategy (singleton, per request, per process instance)
 	 * @param groupId group id of the artifact to deploy
@@ -56,7 +56,7 @@ public interface DeploymentServiceEJBRemote  {
 	 * @param strategy selected runtime strategy
 	 */
     void deploy(String groupId, String artifactId, String version, String kbaseName, String ksessionName, String strategy);
-    
+
     /**
      * Undeploys currently active deployment unit identified by given deploymentId
      * @param deploymentId unique identifier of the deployment
@@ -76,13 +76,13 @@ public interface DeploymentServiceEJBRemote  {
      * @param deploymentId
      */
     void activate(String deploymentId);
-    
+
     /**
      * Deactivates given deployment by making it only available for already running instances.
      * @param deploymentId
      */
     void deactivate(String deploymentId);
-    
+
     /**
      * Performs a check if given deployment is already active
      * @param deploymentUnitId

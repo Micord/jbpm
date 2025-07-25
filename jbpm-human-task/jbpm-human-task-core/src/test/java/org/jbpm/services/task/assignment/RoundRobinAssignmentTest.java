@@ -17,8 +17,8 @@ package org.jbpm.services.task.assignment;
 
 import java.io.StringReader;
 import java.util.Collections;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.services.task.HumanTaskServiceFactory;
 import org.jbpm.services.task.assignment.impl.strategy.RoundRobinAssignmentStrategy;
@@ -58,7 +58,7 @@ public class RoundRobinAssignmentTest extends AbstractAssignmentTest {
 
     private static final String NO_USERS_IN_GROUP_ASSIGNMENTS = "peopleAssignments = (with (new PeopleAssignments()) { potentialOwners = [new Group('Nobodies')],"
             + " businessAdministrators = [new User('Administrator')], } ),";
-    
+
     private static final String NOT_EXISTING_GROUP_ASSIGNMENTS = "peopleAssignments = (with (new PeopleAssignments()) { potentialOwners = [new Group('Mandalorians')],"
             + " businessAdministrators = [new User('Administrator')], } ),";
 

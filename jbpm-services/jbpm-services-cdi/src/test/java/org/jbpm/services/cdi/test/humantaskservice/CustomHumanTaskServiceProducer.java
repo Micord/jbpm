@@ -15,7 +15,7 @@
  */
 package org.jbpm.services.cdi.test.humantaskservice;
 
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.inject.Produces;
 
 import org.drools.core.impl.EnvironmentFactory;
 import org.drools.persistence.jta.JtaTransactionManager;

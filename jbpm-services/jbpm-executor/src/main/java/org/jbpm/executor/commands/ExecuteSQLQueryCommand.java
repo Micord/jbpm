@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.process.core.timer.DateTimeUtils;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
@@ -69,7 +69,7 @@ public class ExecuteSQLQueryCommand implements Command, Reoccurring {
         Map<String, Object> parameters = new HashMap<>();
         if(paramsString != null && !paramsString.isEmpty()) {
             String []p = paramsString.split(",");
-            Arrays.stream(p).forEach(item -> parameters.put(item, ctx.getData(item))); 
+            Arrays.stream(p).forEach(item -> parameters.put(item, ctx.getData(item)));
         }
 
         List<Object> data = commandService.execute(new NativeQueryStringCommand(sql, parameters));

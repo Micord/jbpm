@@ -21,7 +21,7 @@ import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.*;
 import java.util.List;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -97,11 +97,11 @@ public class HumanTaskServiceWithAuditExclusionTest extends AbstractKieServicesB
                 .addPackage("org.jbpm.kie.services.impl.audit")
                 .addPackage("org.jbpm.kie.services.impl.form")
                 .addPackage("org.jbpm.kie.services.impl.form.provider")
-                .addPackage("org.jbpm.kie.services.impl.query")  
-                .addPackage("org.jbpm.kie.services.impl.query.mapper")  
-                .addPackage("org.jbpm.kie.services.impl.query.persistence")  
-                .addPackage("org.jbpm.kie.services.impl.query.preprocessor")  
-                
+                .addPackage("org.jbpm.kie.services.impl.query")
+                .addPackage("org.jbpm.kie.services.impl.query.mapper")
+                .addPackage("org.jbpm.kie.services.impl.query.persistence")
+                .addPackage("org.jbpm.kie.services.impl.query.preprocessor")
+
                 .addPackage("org.jbpm.services.cdi")
                 .addPackage("org.jbpm.services.cdi.impl")
                 .addPackage("org.jbpm.services.cdi.impl.form")

@@ -26,10 +26,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.naming.InitialContext;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import jakarta.transaction.UserTransaction;
 
 import org.jbpm.executor.impl.ExecutorServiceImpl;
 import org.jbpm.executor.test.CountDownAsyncJobListener;
@@ -53,7 +53,7 @@ public class ReconfiguredExecutorTest {
 
     private PoolingDataSourceWrapper pds;
     private EntityManagerFactory emf = null;
-    
+
     @Before
     public void setUp() {
         pds = ExecutorTestUtil.setupPoolingDataSource();
@@ -63,15 +63,15 @@ public class ReconfiguredExecutorTest {
         executorService.setThreadPoolSize(2);
         executorService.setInterval(3000);
         executorService.setTimeunit(TimeUnit.MILLISECONDS);
-        
+
         executorService.init();
     }
-    
+
     @After
     public void tearDown() {
     	executorService.clearAllRequests();
         executorService.clearAllErrors();
-        
+
         System.clearProperty("org.kie.executor.msg.length");
     	System.clearProperty("org.kie.executor.stacktrace.length");
         executorService.destroy();
@@ -80,14 +80,14 @@ public class ReconfiguredExecutorTest {
         }
         pds.close();
     }
-    
+
     protected CountDownAsyncJobListener configureListener(int threads) {
         CountDownAsyncJobListener countDownListener = new CountDownAsyncJobListener(threads);
         ((ExecutorServiceImpl) executorService).addAsyncJobListener(countDownListener);
-        
+
         return countDownListener;
     }
-   
+
     @Test
     public void simpleExcecutionTest() throws InterruptedException {
         CountDownAsyncJobListener countDownListener = configureListener(1);

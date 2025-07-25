@@ -20,33 +20,33 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 
 import org.kie.api.task.model.User;
 
 @Entity
 @DiscriminatorValue("User")
 public class UserImpl extends OrganizationalEntityImpl implements User {
-    
+
     public UserImpl() {
         super();
     }
-    
+
     public UserImpl(String id) {
         super(id);
     }
-    
+
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal( out );
-    } 
-    
+    }
+
     public void readExternal(ObjectInput in) throws IOException,
                                             ClassNotFoundException {
-        super.readExternal( in );       
-    }          
+        super.readExternal( in );
+    }
 
 
-    
-        
+
+
 }

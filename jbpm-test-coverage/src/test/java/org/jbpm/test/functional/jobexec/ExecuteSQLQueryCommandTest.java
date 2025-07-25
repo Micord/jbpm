@@ -20,8 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Query;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Query;
 
 import org.jbpm.executor.commands.ExecuteSQLQueryCommand;
 import org.jbpm.executor.impl.ExecutorServiceImpl;

@@ -26,14 +26,14 @@ import java.util.stream.StreamSupport;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
-import javax.persistence.TransactionRequiredException;
-import javax.transaction.NotSupportedException;
-import javax.transaction.Status;
-import javax.transaction.SystemException;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.TransactionRequiredException;
+import jakarta.transaction.NotSupportedException;
+import jakarta.transaction.Status;
+import jakarta.transaction.SystemException;
+import jakarta.transaction.UserTransaction;
 
 import org.drools.core.WorkingMemory;
 import org.drools.core.common.InternalWorkingMemory;
@@ -129,9 +129,10 @@ public class JPAWorkingMemoryDbLogger extends AbstractAuditLoggerAdapter impleme
         initArchiveLoggerProvider();
     }
 
-    private void initArchiveLoggerProvider() {
+   public List<ArchiveLoggerProvider> initArchiveLoggerProvider() {
         archiveLoggerProvider = new ArrayList<>();
         archiveLoggerProvider.addAll(ARCHIVE_LOGGER_PROVIDERS);
+        return archiveLoggerProvider;
     }
 
     private void internalSetIsJTA(Environment env) {

@@ -20,11 +20,11 @@ import org.jbpm.process.audit.VariableInstanceLog;
 import org.kie.api.runtime.Context;
 import org.kie.internal.command.ProcessInstanceIdCommand;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 import java.util.List;
 
 @XmlRootElement
@@ -37,37 +37,37 @@ public class FindVariableInstancesCommand extends AuditCommand<List<VariableInst
     @XmlAttribute(required=true, name="process-instance-id")
     @XmlSchemaType(name="long")
     private Long processInstanceId;
-    
+
     @XmlAttribute(required=true)
     @XmlSchemaType(name="string")
     private String variableId;
-    
-    public FindVariableInstancesCommand() { 
+
+    public FindVariableInstancesCommand() {
         // no-arg for JAXB
     }
-    
+
     public FindVariableInstancesCommand(long processInstanceId) {
         this.processInstanceId = processInstanceId;
         this.variableId = null;
 	}
-	
+
     public FindVariableInstancesCommand(long processInstanceId, String variableId) {
         this.processInstanceId = processInstanceId;
         this.variableId = variableId;
-        if( variableId == null || variableId.isEmpty() ) { 
+        if( variableId == null || variableId.isEmpty() ) {
             throw new IllegalArgumentException("The variableId field must not be null or empty." );
         }
 	}
-	
+
     public List<VariableInstanceLog> execute(Context cntxt) {
         setLogEnvironment(cntxt);
-        if( variableId == null || variableId.isEmpty() ) { 
+        if( variableId == null || variableId.isEmpty() ) {
             return this.auditLogService.findVariableInstances(processInstanceId);
-        } else { 
+        } else {
             return this.auditLogService.findVariableInstances(processInstanceId, variableId);
         }
     }
-   
+
     @Override
     public Long getProcessInstanceId() {
         return processInstanceId;
@@ -87,9 +87,9 @@ public class FindVariableInstancesCommand extends AuditCommand<List<VariableInst
     }
 
     public String toString() {
-        if( variableId == null || variableId.isEmpty() ) { 
+        if( variableId == null || variableId.isEmpty() ) {
             return AuditLogService.class.getSimpleName() + ".findVariableInstances("+ processInstanceId + ")";
-        } else { 
+        } else {
             return AuditLogService.class.getSimpleName() + ".findVariableInstances("+ processInstanceId + ", " + variableId + ")";
         }
     }

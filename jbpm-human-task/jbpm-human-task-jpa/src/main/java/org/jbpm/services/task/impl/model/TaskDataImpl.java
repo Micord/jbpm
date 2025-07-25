@@ -26,15 +26,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Embeddable;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OrderBy;
-import javax.persistence.Temporal;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import jakarta.persistence.Temporal;
 
 import org.jbpm.services.task.utils.CollectionUtils;
 import org.kie.api.task.model.Attachment;
@@ -60,19 +60,19 @@ public class TaskDataImpl implements InternalTaskData {
     @ManyToOne(targetEntity=UserImpl.class)
     private User createdBy;
 
-    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private Date createdOn;
 
-    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private Date activationTime;
 
-    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private Date expirationTime;
 
     private boolean skipable;
 
     private long workItemId = -1;
-    
+
     private long processInstanceId = -1;
 
     private AccessType documentAccessType;
@@ -96,11 +96,11 @@ public class TaskDataImpl implements InternalTaskData {
     private long faultContentId = -1;
 
     private long parentId = -1;
-    
+
     private String processId;
-    
+
     private String deploymentId;
-    
+
     private long processSessionId;
 
     @OneToMany(cascade = CascadeType.ALL, targetEntity=CommentImpl.class)
@@ -112,12 +112,12 @@ public class TaskDataImpl implements InternalTaskData {
     @JoinColumn(name = "TaskData_Attachments_Id", nullable = true)
     @OrderBy("id ASC")
     private List<Attachment> attachments = Collections.emptyList();
-   
+
 
     // transient task variables for improved access
     private transient Map<String, Object> taskInputVariables;
     private transient Map<String, Object> taskOutputVariables;
-    
+
     @Override
     public Map<String, Object> getTaskInputVariables() {
         return taskInputVariables;
@@ -280,14 +280,14 @@ public class TaskDataImpl implements InternalTaskData {
         } else {
             out.writeBoolean(false);
         }
-        
+
         if (processId != null) {
             out.writeBoolean(true);
             out.writeUTF(processId);
         } else {
             out.writeBoolean(false);
         }
-        
+
         if (processSessionId != -1) {
             out.writeBoolean(true);
             out.writeLong(processSessionId);
@@ -386,15 +386,15 @@ public class TaskDataImpl implements InternalTaskData {
         if (in.readBoolean()) {
             parentId = in.readLong();
         }
-        
+
         if (in.readBoolean()) {
             processId = in.readUTF();
         }
-        
+
         if (in.readBoolean()) {
             processSessionId = in.readLong();
         }
-        
+
         comments = CollectionUtils.readCommentList(in);
         attachments = CollectionUtils.readAttachmentList(in);
 
@@ -496,15 +496,15 @@ public class TaskDataImpl implements InternalTaskData {
     public long getWorkItemId() {
         return workItemId;
     }
-    
+
     public void setProcessInstanceId(long processInstanceId) {
     	this.processInstanceId = processInstanceId;
     }
-    
+
     public long getProcessInstanceId() {
     	return processInstanceId;
     }
-    
+
     public String getProcessId() {
 		return processId;
 	}
@@ -512,7 +512,7 @@ public class TaskDataImpl implements InternalTaskData {
 	public void setProcessId(String processId) {
 		this.processId = processId;
 	}
-	
+
 	public long getProcessSessionId() {
 		return processSessionId;
 	}
@@ -806,10 +806,10 @@ public class TaskDataImpl implements InternalTaskData {
         if (processId == null) {
             if (other.processId != null) return false;
         } else if (!processId.equals(other.processId)) return false;
-        if (processSessionId != other.processSessionId) return false;        
+        if (processSessionId != other.processSessionId) return false;
         if (deploymentId == null) {
             if (other.deploymentId != null) return false;
-        } else if (!deploymentId.equals(other.deploymentId)) return false;        
+        } else if (!deploymentId.equals(other.deploymentId)) return false;
         return CollectionUtils.equals(attachments,
                 other.attachments) && CollectionUtils.equals(comments,
                 other.comments);
@@ -824,25 +824,25 @@ public class TaskDataImpl implements InternalTaskData {
     public void setDeploymentId(String deploymentId) {
         this.deploymentId = deploymentId;
     }
-    
-    static UserImpl convertToUserImpl(User user) { 
-        if( user == null ) { 
+
+    static UserImpl convertToUserImpl(User user) {
+        if( user == null ) {
             return null;
         }
-        if( user instanceof UserImpl ) { 
+        if( user instanceof UserImpl ) {
             return (UserImpl) user;
-        } else { 
+        } else {
             return new UserImpl(user.getId());
         }
     }
 
-    static GroupImpl convertToGroupImpl(Group group) { 
-        if( group == null ) { 
+    static GroupImpl convertToGroupImpl(Group group) {
+        if( group == null ) {
             return null;
         }
-        if( group instanceof GroupImpl ) { 
+        if( group instanceof GroupImpl ) {
             return (GroupImpl) group;
-        } else { 
+        } else {
             return new GroupImpl(group.getId());
         }
     }

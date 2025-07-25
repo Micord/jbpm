@@ -23,8 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.services.task.impl.factories.TaskFactory;
 import org.kie.test.util.db.PoolingDataSourceWrapper;
@@ -61,7 +61,7 @@ public class TaskContentTest extends HumanTaskServicesBaseTest {
     @Test
     public void testTaskContent() throws Exception {
         String userId = "Bobba Fet";
-        
+
         String str = "(with (new Task()) { priority = 55, taskData = (with( new TaskData()) { } ), ";
         str += "peopleAssignments = (with ( new PeopleAssignments() ) { businessAdministrators = [new User('" + userId + "')], }),";
         str += "name =  'This is my task name' })";
@@ -72,29 +72,29 @@ public class TaskContentTest extends HumanTaskServicesBaseTest {
         Map<String, Object> outputParams = new HashMap<String, Object>();
         outputParams.put("str", "str");
         outputParams.put("int", new Integer(23));
-        try { 
+        try {
             taskService.addOutputContentFromUser(task.getId(), "Jabba Hutt", outputParams);
             fail( "This should not have succeeded (Jabba doesn't have permissions)");
-        } catch( Exception e ) { 
+        } catch( Exception e ) {
             // do nothing
         }
-        
+
         long contentId = taskService.addOutputContentFromUser(task.getId(), userId, outputParams);
-        
+
         Map<String, Object> gotOutputParams = taskService.getOutputContentMapForUser(taskId, userId);
-        
-        for( Entry<String, Object> origEntry : outputParams.entrySet() ) { 
+
+        for( Entry<String, Object> origEntry : outputParams.entrySet() ) {
             String key = origEntry.getKey();
            assertEquals( "Entry: " + key, origEntry.getValue(), gotOutputParams.get(key));
         }
-        
-        try { 
+
+        try {
             taskService.getOutputContentMapForUser(taskId, "Jabba Hutt");
             fail( "This should not have succeeded (Jabba doesn't have permissions)");
-        } catch( Exception e ) { 
+        } catch( Exception e ) {
             // do nothing
         }
-        
+
     }
 
 }

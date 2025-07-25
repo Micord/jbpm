@@ -16,7 +16,7 @@
 
 package org.jbpm.executor.ejb.impl.jms;
 
-import javax.ejb.EJB;
+import jakarta.ejb.EJB;
 
 import org.jbpm.executor.ejb.impl.ClassCacheManagerEJBImpl;
 import org.jbpm.executor.impl.ClassCacheManager;
@@ -28,13 +28,13 @@ import org.kie.api.executor.ExecutorStoreService;
 
 
 public class JmsAvailableJobsExecutorEJBImpl extends JmsAvailableJobsExecutor {
-    
+
     @EJB
     @Override
     public void setQueryService(ExecutorQueryService queryService) {
         super.setQueryService(queryService);
-    }    
-    
+    }
+
     @EJB(beanInterface=ClassCacheManagerEJBImpl.class)
     @Override
     public void setClassCacheManager(ClassCacheManager classCacheManager) {
@@ -46,7 +46,7 @@ public class JmsAvailableJobsExecutorEJBImpl extends JmsAvailableJobsExecutor {
     public void setExecutorStoreService(ExecutorStoreService executorStoreService) {
         super.setExecutorStoreService(executorStoreService);
     }
-    
+
     @EJB
     public void setExecutorService(ExecutorServiceEJB executorService) {
         super.setExecutor(executorService.getExecutor());

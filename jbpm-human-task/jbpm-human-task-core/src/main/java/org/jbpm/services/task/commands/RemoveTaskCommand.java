@@ -17,14 +17,14 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name="remove-task-command")
 @XmlAccessorType(XmlAccessType.NONE)
 public class RemoveTaskCommand extends UserGroupCallbackTaskCommand<Void> {
-	
+
 	private static final long serialVersionUID = -5174631969130504959L;
 
 	public RemoveTaskCommand() {
@@ -41,6 +41,6 @@ public class RemoveTaskCommand extends UserGroupCallbackTaskCommand<Void> {
         doUserGroupCallbackOperation(userId, null, context);
     	context.getTaskInstanceService().remove(taskId, userId);
     	return null;
-       
+
     }
 }

@@ -17,9 +17,9 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 
 @XmlRootElement(name="remove-user-command")
@@ -27,7 +27,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class RemoveUserCommand extends TaskCommand<Void> {
 
 	private static final long serialVersionUID = 7393379209067431866L;
-	
+
     public RemoveUserCommand() {
     }
 
@@ -38,9 +38,9 @@ public class RemoveUserCommand extends TaskCommand<Void> {
 
     public Void execute(Context cntxt) {
         TaskContext context = (TaskContext) cntxt;
-                
+
         context.getTaskIdentityService().removeUser(userId);
         return null;
-    	 
+
     }
 }

@@ -21,7 +21,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.Properties;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.process.audit.JPAAuditLogService;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
@@ -47,7 +47,7 @@ import org.kie.internal.runtime.manager.context.ProcessInstanceIdContext;
 import org.kie.internal.task.api.UserGroupCallback;
 
 public class AdHocSubprocessAbortRuntimeManagerTest extends AbstractBaseTest {
-    
+
     private PoolingDataSourceWrapper pds;
     private UserGroupCallback userGroupCallback;
     private EntityManagerFactory emf;
@@ -62,7 +62,7 @@ public class AdHocSubprocessAbortRuntimeManagerTest extends AbstractBaseTest {
         properties.setProperty("john", "HR");
         userGroupCallback = new JBossUserGroupCallbackImpl(properties);
     }
-    
+
     @After
     public void teardown() {
         if (manager != null) {
@@ -71,48 +71,48 @@ public class AdHocSubprocessAbortRuntimeManagerTest extends AbstractBaseTest {
         EntityManagerFactoryManager.get().clear();
         pds.close();
     }
-    
+
     @Test
     public void testSingletonRuntimeManagerScopeSignal() {
-        RuntimeEnvironment environment = createEnvironment();        
-        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment, "first");        
+        RuntimeEnvironment environment = createEnvironment();
+        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment, "first");
         assertNotNull(manager);
         testAdHocSubprocess();
     }
-    
+
     @Test
     public void testPerProcessInstanceRuntimeManagerScopeSignal() {
-        RuntimeEnvironment environment = createEnvironment();        
-        manager = RuntimeManagerFactory.Factory.get().newPerProcessInstanceRuntimeManager(environment, "first");        
-        assertNotNull(manager); 
-        testAdHocSubprocess();
-    }
-   
-    
-    @Test
-    public void testPerRequestRuntimeManagerScopeSignal() {
-        RuntimeEnvironment environment = createEnvironment();        
-        manager = RuntimeManagerFactory.Factory.get().newPerRequestRuntimeManager(environment, "first");        
+        RuntimeEnvironment environment = createEnvironment();
+        manager = RuntimeManagerFactory.Factory.get().newPerProcessInstanceRuntimeManager(environment, "first");
         assertNotNull(manager);
         testAdHocSubprocess();
     }
-    
+
+
+    @Test
+    public void testPerRequestRuntimeManagerScopeSignal() {
+        RuntimeEnvironment environment = createEnvironment();
+        manager = RuntimeManagerFactory.Factory.get().newPerRequestRuntimeManager(environment, "first");
+        assertNotNull(manager);
+        testAdHocSubprocess();
+    }
+
     @Test
     public void testPerCaseRuntimeManagerScopeSignal() {
-        RuntimeEnvironment environment = createEnvironment();        
-        manager = RuntimeManagerFactory.Factory.get().newPerCaseRuntimeManager(environment, "first");        
+        RuntimeEnvironment environment = createEnvironment();
+        manager = RuntimeManagerFactory.Factory.get().newPerCaseRuntimeManager(environment, "first");
         assertNotNull(manager);
         testAdHocSubprocess();
     }
 
     private void testAdHocSubprocess() {
-            
+
         RuntimeEngine runtime1 = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
         KieSession ksession1 = runtime1.getKieSession();
-        assertNotNull(ksession1);                 
+        assertNotNull(ksession1);
         ProcessInstance processInstance = ksession1.startProcess("jbpm-abort-ht-issue.ad-hoc-abort-ht");
         manager.disposeRuntimeEngine(runtime1);
-       
+
 
         // then signal via first manager, should only signal instances owned by that manager
         runtime1 = manager.getRuntimeEngine(ProcessInstanceIdContext.get(processInstance.getId()));
@@ -120,20 +120,20 @@ public class AdHocSubprocessAbortRuntimeManagerTest extends AbstractBaseTest {
         ksession1.addEventListener(new TaskCleanUpProcessEventListener(runtime1.getTaskService()));
         ksession1.signalEvent("Milestone", null, processInstance.getId());
         manager.disposeRuntimeEngine(runtime1);
-        
+
         JPAAuditLogService auditService = new JPAAuditLogService(emf);
         // process instance 1 should be completed by signal
         ProcessInstanceLog pi1Log = auditService.findProcessInstance(processInstance.getId());
         assertNotNull(pi1Log);
         assertEquals(ProcessInstance.STATE_COMPLETED, pi1Log.getStatus().intValue());
-        
+
         auditService.dispose();
-        
+
         // close manager which will close session maintained by the manager
         manager.close();
     }
-    
-    
+
+
     private RuntimeEnvironment createEnvironment() {
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()
                 .newDefaultBuilder()
@@ -141,7 +141,7 @@ public class AdHocSubprocessAbortRuntimeManagerTest extends AbstractBaseTest {
                 .userGroupCallback(userGroupCallback)
                 .addAsset(ResourceFactory.newClassPathResource("adhoc-subprocess.bpmn2"), ResourceType.BPMN2)
                 .get();
-        
+
         return environment;
     }
 }

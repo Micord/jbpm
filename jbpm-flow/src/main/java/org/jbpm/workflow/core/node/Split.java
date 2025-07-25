@@ -19,7 +19,7 @@ package org.jbpm.workflow.core.node;
 import java.util.Collections;
 import java.util.Map;
 
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.workflow.core.Constraint;
 import org.jbpm.workflow.core.impl.ConnectionRef;
 import org.jbpm.workflow.core.impl.NodeImpl;
@@ -28,7 +28,7 @@ import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of a split node.
- * 
+ *
  */
 public class Split extends NodeImpl implements Constrainable {
 
@@ -45,7 +45,7 @@ public class Split extends NodeImpl implements Constrainable {
      * when its incoming connection has been triggered.  Which connection
      * is based on the constraints associated with each of the connections:
      * the connection with the highest priority whose constraint is satisfied
-     * is triggered.  
+     * is triggered.
      */
     public static final int TYPE_XOR       = 2;
     /**
@@ -53,7 +53,7 @@ public class Split extends NodeImpl implements Constrainable {
      * triggered when its incoming connection has been triggered.  Which
      * connections is based on the constraints associated with each of the
      * connections: all connections whose constraint is satisfied are
-     * triggered.  
+     * triggered.
      */
     public static final int TYPE_OR        = 3;
     public static final int TYPE_XAND      = 4;
@@ -70,7 +70,7 @@ public class Split extends NodeImpl implements Constrainable {
     public Split(final int type) {
         super(fromType(type));
         this.type = type;
-    }    
+    }
 
     public void setType(final int type) {
         this.setNodeType(fromType(type));
@@ -95,7 +95,7 @@ public class Split extends NodeImpl implements Constrainable {
     public int getType() {
         return this.type;
     }
-    
+
     public boolean isDefault(final Connection connection) {
         if ( connection == null ) {
             throw new IllegalArgumentException( "connection is null" );
@@ -189,14 +189,14 @@ public class Split extends NodeImpl implements Constrainable {
         super.removeOutgoingConnection(type, connection);
         removeConstraint(connection);
     }
-    
+
     public void removeConstraint(Connection connection) {
     	ConnectionRef ref = new ConnectionRef((String)connection.getMetaData().get("UniqueId"), connection.getTo().getId(), connection.getToType());
         internalRemoveConstraint(ref);
     }
-    
+
     public void internalRemoveConstraint(ConnectionRef ref) {
     	this.constraints.remove(ref);
     }
-    
+
 }

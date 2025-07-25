@@ -20,7 +20,7 @@ import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.kie.api.KieServices;
 import org.kie.api.executor.ExecutorService;

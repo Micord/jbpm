@@ -16,7 +16,7 @@
 
 package org.jbpm.services.cdi.impl.admin;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.jbpm.kie.services.impl.admin.ProcessInstanceMigrationServiceImpl;
 

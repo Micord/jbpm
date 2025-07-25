@@ -19,13 +19,13 @@ package org.jbpm.services.cdi.producer;
 import java.util.HashSet;
 import java.util.List;
 
-import javax.enterprise.inject.AmbiguousResolutionException;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
+import jakarta.enterprise.inject.AmbiguousResolutionException;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnit;
 
 import org.drools.core.impl.EnvironmentFactory;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
@@ -81,7 +81,7 @@ public class HumanTaskServiceProducer {
     @Inject
     @Any
     private Instance<TaskLifeCycleEventListener> taskListeners;
-    
+
     @Inject
     @Any
     private Instance<List<TaskLifeCycleEventListener>> listOfListeners;
@@ -89,7 +89,7 @@ public class HumanTaskServiceProducer {
     @Inject
     @PersistenceUnit(unitName = "org.jbpm.domain")
     private EntityManagerFactory emf;
-    
+
     @Inject
     private Instance<IdentityProvider> identityProvider;
 
@@ -103,7 +103,7 @@ public class HumanTaskServiceProducer {
         }
         if ( taskService == null ) {
             HumanTaskConfigurator configurator = createHumanTaskConfigurator();
-            
+
             if ( mode.equalsIgnoreCase( "singleton" ) ) {
                 this.taskService = (CommandBasedTaskService) configurator.getTaskService();
             } else {
@@ -116,7 +116,7 @@ public class HumanTaskServiceProducer {
 
     protected HumanTaskConfigurator createHumanTaskConfigurator() {
         HumanTaskConfigurator configurator = HumanTaskServiceFactory.newTaskServiceConfigurator();
-        
+
         configureHumanTaskConfigurator(configurator);
         return configurator;
     }
@@ -127,7 +127,7 @@ public class HumanTaskServiceProducer {
                 .entityManagerFactory( emf )
                 .userGroupCallback( safeGet( userGroupCallback ) )
                 .userInfo( safeGet( userInfo ) );
-        
+
         DeploymentDescriptorManager manager = new DeploymentDescriptorManager("org.jbpm.domain");
         DeploymentDescriptor descriptor = manager.getDefaultDescriptor();
         // in case there is descriptor with enabled audit register then by default
@@ -138,7 +138,7 @@ public class HumanTaskServiceProducer {
         	if (!"org.jbpm.domain".equals(descriptor.getAuditPersistenceUnit())) {
         		 EntityManagerFactory emf = EntityManagerFactoryManager.get().getOrCreate(descriptor.getAuditPersistenceUnit());
         		 listener = new JPATaskLifeCycleEventListener(emf);
-        		 
+
         		 bamListener = new BAMTaskEventListener(emf);
         	}
         	configurator.listener( listener );
@@ -154,12 +154,12 @@ public class HumanTaskServiceProducer {
             logger.debug( "Cannot add listeners to task service due to {}", e.getMessage() );
         }
     }
-    
+
     protected Environment getEnvironment(Instance<IdentityProvider> identityProvider) {
         Environment env = EnvironmentFactory.newEnvironment();
         try {
             env.set(EnvironmentName.IDENTITY_PROVIDER, identityProvider.get());
-            
+
             return env;
         } catch (Exception e) {
             return env;

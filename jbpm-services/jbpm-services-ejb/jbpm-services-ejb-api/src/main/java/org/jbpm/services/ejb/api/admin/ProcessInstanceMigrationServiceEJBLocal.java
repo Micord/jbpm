@@ -16,7 +16,7 @@
 
 package org.jbpm.services.ejb.api.admin;
 
-import javax.ejb.Local;
+import jakarta.ejb.Local;
 
 import org.jbpm.services.api.admin.ProcessInstanceMigrationService;
 

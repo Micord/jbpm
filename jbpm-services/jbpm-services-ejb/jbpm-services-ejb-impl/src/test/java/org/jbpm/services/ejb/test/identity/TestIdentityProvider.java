@@ -19,13 +19,13 @@ package org.jbpm.services.ejb.test.identity;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.kie.internal.identity.IdentityProvider;
 
 @ApplicationScoped
 public class TestIdentityProvider implements IdentityProvider {
-	
+
 	private String name = "testUser";
 	private List<String> roles = new ArrayList<String>();
 
@@ -46,7 +46,7 @@ public class TestIdentityProvider implements IdentityProvider {
 	public void setRoles(List<String> roles) {
 		this.roles = roles;
 	}
-	
+
 	public void setName(String name) {
 		this.name = name;
 	}

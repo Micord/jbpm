@@ -19,9 +19,9 @@ package org.jbpm.services.task.commands;
 import org.kie.api.runtime.Context;
 import org.kie.api.task.model.Comment;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 @XmlRootElement(name="get-all-comments-command")
@@ -29,10 +29,10 @@ import java.util.List;
 public class GetAllCommentsCommand extends TaskCommand<List<Comment>> {
 
 	private static final long serialVersionUID = 5911387213149078240L;
-	
+
 	public GetAllCommentsCommand() {
 	}
-	
+
 	public GetAllCommentsCommand(Long taskId) {
 		this.taskId = taskId;
 	}

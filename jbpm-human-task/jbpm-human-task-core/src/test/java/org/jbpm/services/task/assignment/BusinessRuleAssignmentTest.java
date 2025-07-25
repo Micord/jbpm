@@ -23,8 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 import org.assertj.core.api.Assertions;
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.jbpm.services.task.HumanTaskServiceFactory;
@@ -56,15 +56,15 @@ import org.slf4j.LoggerFactory;
 
 
 public class BusinessRuleAssignmentTest extends AbstractAssignmentTest {
-    
-    private static final Logger logger = LoggerFactory.getLogger(BusinessRuleAssignmentTest.class); 
+
+    private static final Logger logger = LoggerFactory.getLogger(BusinessRuleAssignmentTest.class);
 
     private static final String GROUP_ID = "org.jbpm.task";
-    private static final String ARTIFACT_ID = "assignment-rules";    
+    private static final String ARTIFACT_ID = "assignment-rules";
     private static final String VERSION = "1.0";
-    
+
 	private PoolingDataSourceWrapper pds;
-	private EntityManagerFactory emf;	
+	private EntityManagerFactory emf;
 
 	@Before
 	public void setup() {
@@ -73,70 +73,70 @@ public class BusinessRuleAssignmentTest extends AbstractAssignmentTest {
 	    System.setProperty("org.jbpm.task.assignment.rules.releaseId", GROUP_ID + ":" + ARTIFACT_ID +":" + VERSION);
 
 	    buildKJar();
-	    
+
 		pds = setupPoolingDataSource();
 		emf = Persistence.createEntityManagerFactory( "org.jbpm.services.task" );
-		
+
 		AssignmentServiceProvider.override(new BusinessRuleAssignmentStrategy());
-		
-	
+
+
 		this.taskService = (InternalTaskService) HumanTaskServiceFactory.newTaskServiceConfigurator()
 												.entityManagerFactory(emf)
 												.getTaskService();
-	
+
 	}
-	
+
 	@After
 	public void clean() {
 	    System.clearProperty("org.jbpm.task.assignment.enabled");
 	    System.clearProperty("org.jbpm.task.assignment.rules.releaseId");
 	    System.clearProperty("org.jbpm.task.assignment.rules.scan");
 	    System.clearProperty("org.jbpm.task.assignment.rules.query");
-	    
+
 	    TaskDeadlinesServiceImpl.reset();
-	    
+
 	    AssignmentServiceProvider.clear();
 		if (emf != null) {
 			emf.close();
 		}
 		if (pds != null) {
 			pds.close();
-		}		
+		}
 	}
-	
+
     @Test
     public void testAssignmentAlwaysAssignToBobbaFet() {
         String str = "(with (new Task()) { priority = 55, taskData = (with( new TaskData()) { } ), ";
         str += "peopleAssignments = (with ( new PeopleAssignments() ) { potentialOwners = [new User('Bobba Fet'), new User('Darth Vader'), new User('Luke Cage')  ],businessAdministrators = [ new User('Administrator') ],}),";
         str += "name =  'Bobbas tasks' })";
-        
-        createAndAssertTask(str, "Bobba Fet", 3, "Bobba Fet", "Darth Vader", "Luke Cage");        
+
+        createAndAssertTask(str, "Bobba Fet", 3, "Bobba Fet", "Darth Vader", "Luke Cage");
         // another task
-        createAndAssertTask(str, "Bobba Fet", 3, "Bobba Fet", "Darth Vader", "Luke Cage"); 
+        createAndAssertTask(str, "Bobba Fet", 3, "Bobba Fet", "Darth Vader", "Luke Cage");
         // yet another task
-        createAndAssertTask(str, "Bobba Fet", 3, "Bobba Fet", "Darth Vader", "Luke Cage"); 
+        createAndAssertTask(str, "Bobba Fet", 3, "Bobba Fet", "Darth Vader", "Luke Cage");
     }
-    
+
     @Test
     public void testAssignmentPriorityBased() {
         String str = "(with (new Task()) { priority = 4, taskData = (with( new TaskData()) { } ), ";
         str += "peopleAssignments = (with ( new PeopleAssignments() ) { potentialOwners = [new User('Bobba Fet'), new User('Darth Vader'), new User('Luke Cage')  ],businessAdministrators = [ new User('Administrator') ],}),";
         str += "name =  'Low priority' })";
-        
-        createAndAssertTask(str, "Luke Cage", 3, "Bobba Fet", "Darth Vader", "Luke Cage");        
+
+        createAndAssertTask(str, "Luke Cage", 3, "Bobba Fet", "Darth Vader", "Luke Cage");
         // another task
-        createAndAssertTask(str, "Luke Cage", 3, "Bobba Fet", "Darth Vader", "Luke Cage"); 
-        
-        
+        createAndAssertTask(str, "Luke Cage", 3, "Bobba Fet", "Darth Vader", "Luke Cage");
+
+
         String str2 = "(with (new Task()) { priority = 10, taskData = (with( new TaskData()) { } ), ";
         str2 += "peopleAssignments = (with ( new PeopleAssignments() ) { potentialOwners = [new User('Bobba Fet'), new User('Darth Vader'), new User('Luke Cage')  ],businessAdministrators = [ new User('Administrator') ],}),";
         str2 += "name =  'High priority' })";
         // yet another task
         createAndAssertTask(str2, "Darth Vader", 3, "Bobba Fet", "Darth Vader", "Luke Cage");
-        
+
         createAndAssertTask(str2, "Darth Vader", 3, "Bobba Fet", "Darth Vader", "Luke Cage");
     }
-    
+
     @Test
     public void testAssignmentAlwaysAssignToBobbaFetRetrieveAssignmentsViaQuery() {
         // here two rules will match but we select only those for Darth Vader via query
@@ -144,12 +144,12 @@ public class BusinessRuleAssignmentTest extends AbstractAssignmentTest {
         String str = "(with (new Task()) { priority = 9, taskData = (with( new TaskData()) { } ), ";
         str += "peopleAssignments = (with ( new PeopleAssignments() ) { potentialOwners = [new User('Bobba Fet'), new User('Darth Vader'), new User('Luke Cage')  ],businessAdministrators = [ new User('Administrator') ],}),";
         str += "name =  'Bobbas tasks' })";
-        
-        createAndAssertTask(str, "Darth Vader", 3, "Bobba Fet", "Darth Vader", "Luke Cage");        
+
+        createAndAssertTask(str, "Darth Vader", 3, "Bobba Fet", "Darth Vader", "Luke Cage");
         // another task
-        createAndAssertTask(str, "Darth Vader", 3, "Bobba Fet", "Darth Vader", "Luke Cage"); 
+        createAndAssertTask(str, "Darth Vader", 3, "Bobba Fet", "Darth Vader", "Luke Cage");
         // yet another task
-        createAndAssertTask(str, "Darth Vader", 3, "Bobba Fet", "Darth Vader", "Luke Cage"); 
+        createAndAssertTask(str, "Darth Vader", 3, "Bobba Fet", "Darth Vader", "Luke Cage");
     }
 
     @Test
@@ -199,24 +199,24 @@ public class BusinessRuleAssignmentTest extends AbstractAssignmentTest {
         User actualOwner = task.getTaskData().getActualOwner();
         Assertions.assertThat(actualOwner).isNull();
     }
-    
+
     @Test
     public void testAssignmentAssignToBobbaFetBasedOnDataInput() {
         String str = "(with (new Task()) { priority = 55, taskData = (with( new TaskData()) { } ), ";
         str += "peopleAssignments = (with ( new PeopleAssignments() ) { potentialOwners = [new User('Darth Vader'), new User('Bobba Fet'), new User('Luke Cage')  ],businessAdministrators = [ new User('Administrator') ],}),";
         str += "name =  'Bobbas dedicated tasks' })";
-        
+
         Map<String, Object> input = new HashMap<>();
         input.put("name", "Bobbas dedicated tasks");
-        
-        createAndAssertTask(str, "Bobba Fet", 3, input, "Bobba Fet", "Darth Vader", "Luke Cage"); 
-        
+
+        createAndAssertTask(str, "Bobba Fet", 3, input, "Bobba Fet", "Darth Vader", "Luke Cage");
+
         input.clear();
         // another task
-        createAndAssertTask(str, null, 3, input, "Bobba Fet", "Darth Vader", "Luke Cage"); 
-         
+        createAndAssertTask(str, null, 3, input, "Bobba Fet", "Darth Vader", "Luke Cage");
+
     }
-    
+
     @Test(timeout=10000)
     public void testAssignmentAssignToLukeCageBasedOnDataInputAndDeadlines() {
         String str = "with ( new Task() ) {priority = 51, taskData = (with( new TaskData()) { } ),";
@@ -256,10 +256,10 @@ public class BusinessRuleAssignmentTest extends AbstractAssignmentTest {
     protected void buildKJar() {
         KieServices ks = KieServices.Factory.get();
         ReleaseId releaseId = ks.newReleaseId(GROUP_ID, ARTIFACT_ID, VERSION);
-        
+
         List<String> resources = new ArrayList<>();
         resources.add("assignments/assignment-rules.drl");
-        
+
         createKieJar(ks, releaseId, resources);
     }
 
@@ -288,14 +288,14 @@ public class BusinessRuleAssignmentTest extends AbstractAssignmentTest {
         pom += "</project>";
         return pom;
     }
-   
+
    protected InternalKieModule createKieJar(KieServices ks, ReleaseId releaseId, List<String> resources ) {
-     
-        
+
+
         KieFileSystem kfs = createKieFileSystemWithKProject(ks);
         kfs.writePomXML( getPom(releaseId) );
 
-        
+
         for (String resource : resources) {
             kfs.write("src/main/resources/rules/" + resource, ResourceFactory.newClassPathResource(resource));
         }
@@ -309,11 +309,11 @@ public class BusinessRuleAssignmentTest extends AbstractAssignmentTest {
             throw new RuntimeException(
                     "There are errors builing the package, please check your knowledge assets!");
         }
-        
+
         return ( InternalKieModule ) kieBuilder.getKieModule();
     }
 
-    
+
 
     protected KieFileSystem createKieFileSystemWithKProject(KieServices ks) {
         KieModuleModel kproj = ks.newKieModuleModel();
@@ -324,7 +324,7 @@ public class BusinessRuleAssignmentTest extends AbstractAssignmentTest {
                 .setEqualsBehavior( EqualityBehaviorOption.EQUALITY )
                 .setEventProcessingMode( EventProcessingOption.STREAM );
 
-    
+
         kieBaseModel1.newKieSessionModel("defaultKieSession")
                 .setDefault(true)
                 .setType(KieSessionModel.KieSessionType.STATEFUL)

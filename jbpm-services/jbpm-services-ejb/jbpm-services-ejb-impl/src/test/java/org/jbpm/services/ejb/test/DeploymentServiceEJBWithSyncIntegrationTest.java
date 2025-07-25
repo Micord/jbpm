@@ -21,7 +21,7 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.ejb.EJB;
+import jakarta.ejb.EJB;
 
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -50,10 +50,10 @@ import static org.kie.scanner.KieMavenRepository.getKieMavenRepository;
 
 @RunWith(Arquillian.class)
 public class DeploymentServiceEJBWithSyncIntegrationTest extends AbstractTestSupport {
-   
+
     private List<DeploymentUnit> units = new ArrayList<DeploymentUnit>();
-        
-    
+
+
     @After
     public void cleanup() {
 
@@ -65,7 +65,7 @@ public class DeploymentServiceEJBWithSyncIntegrationTest extends AbstractTestSup
             units.clear();
         }
     }
-	
+
 	@Deployment
 	public static WebArchive createDeployment() {
 		File archive = new File("target/sample-war-ejb-app.war");
@@ -78,10 +78,10 @@ public class DeploymentServiceEJBWithSyncIntegrationTest extends AbstractTestSup
 
 		// deploy test kjar
 		deployKjar();
-		
+
 		return war;
 	}
-	
+
 	protected static void deployKjar() {
 		KieServices ks = KieServices.Factory.get();
         ReleaseId releaseId = ks.newReleaseId(GROUP_ID, ARTIFACT_ID, VERSION);
@@ -91,7 +91,7 @@ public class DeploymentServiceEJBWithSyncIntegrationTest extends AbstractTestSup
         processes.add("processes/signal.bpmn");
         processes.add("processes/import.bpmn");
         processes.add("processes/callactivity.bpmn");
-        
+
         InternalKieModule kJar1 = createKieJar(ks, releaseId, processes);
         File pom = new File("target/kmodule", "pom.xml");
         pom.getParentFile().mkdir();
@@ -100,15 +100,15 @@ public class DeploymentServiceEJBWithSyncIntegrationTest extends AbstractTestSup
             fs.write(getPom(releaseId).getBytes());
             fs.close();
         } catch (Exception e) {
-            
+
         }
 		KieMavenRepository repository = getKieMavenRepository();
         repository.installArtifact(releaseId, kJar1, pom);
-        
+
         ReleaseId releaseIdSupport = ks.newReleaseId(GROUP_ID, "support", VERSION);
         List<String> processesSupport = new ArrayList<String>();
         processesSupport.add("processes/support.bpmn");
-        
+
         InternalKieModule kJar2 = createKieJar(ks, releaseIdSupport, processesSupport);
         File pom2 = new File("target/kmodule2", "pom.xml");
         pom2.getParentFile().mkdir();
@@ -117,89 +117,89 @@ public class DeploymentServiceEJBWithSyncIntegrationTest extends AbstractTestSup
             fs.write(getPom(releaseIdSupport).getBytes());
             fs.close();
         } catch (Exception e) {
-            
+
         }
 
         repository.installArtifact(releaseIdSupport, kJar2, pom2);
 	}
-	
+
     protected CountDownDeploymentListener configureListener(int threads) {
         CountDownDeploymentListener countDownListener = new CountDownDeploymentListener(threads);
         ((ListenerSupport)deploymentService).addListener(countDownListener);
-        
+
         return countDownListener;
     }
-    
+
     @EJB
 	private DeploymentServiceEJBLocal deploymentService;
-    
+
     @EJB(beanInterface=TransactionalCommandServiceEJBImpl.class)
 	private TransactionalCommandService commandService;
-    
+
     @Test
     public void testDeploymentOfProcessesBySync() throws Exception {
-        
+
         CountDownDeploymentListener countDownListener = configureListener(1);
-        
+
     	DeploymentStore store = new DeploymentStore();
 		store.setCommandService(commandService);
     	Collection<DeployedUnit> deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
     	assertEquals(0, deployed.size());
-    	
-    	KModuleDeploymentUnit unit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);    		
+
+    	KModuleDeploymentUnit unit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);
 		store.enableDeploymentUnit(unit);
 		units.add(unit);
-		
+
 		countDownListener.waitTillCompleted(10000);
-		
+
 		deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
     	assertEquals(1, deployed.size());
-       
+
     }
-    
+
     @Test
     public void testUndeploymentOfProcessesBySync() throws Exception {
         CountDownDeploymentListener countDownListener = configureListener(2);
-        
+
     	DeploymentStore store = new DeploymentStore();
 		store.setCommandService(commandService);
     	Collection<DeployedUnit> deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
     	assertEquals(0, deployed.size());
-    	
-    	KModuleDeploymentUnit unit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);    		
+
+    	KModuleDeploymentUnit unit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);
 		deploymentService.deploy(unit);
 		units.add(unit);
 
 		deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
     	assertEquals(1, deployed.size());
-    	
+
     	countDownListener.waitTillCompleted(1000);
-        
+
         store.disableDeploymentUnit(unit);
 
         countDownListener.waitTillCompleted(10000);
-		
+
 		deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
     	assertEquals(0, deployed.size());
     }
-    
+
     @Test
     public void testDeactivateAndActivateOfProcessesBySync() throws Exception {
         CountDownDeploymentListener countDownListener = configureListener(2);
-        
+
     	DeploymentStore store = new DeploymentStore();
 		store.setCommandService(commandService);
-		
+
     	Collection<DeployedUnit> deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
     	assertEquals(0, deployed.size());
-    	
-    	KModuleDeploymentUnit unit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);    		
+
+    	KModuleDeploymentUnit unit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);
 		deploymentService.deploy(unit);
 		units.add(unit);
 
@@ -207,25 +207,25 @@ public class DeploymentServiceEJBWithSyncIntegrationTest extends AbstractTestSup
     	assertNotNull(deployed);
     	assertEquals(1, deployed.size());
     	assertTrue(deployed.iterator().next().isActive());
-    	
+
     	store.deactivateDeploymentUnit(unit);
 
     	countDownListener.waitTillCompleted(10000);
-		
+
 		deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
     	assertEquals(1, deployed.size());
     	assertFalse(deployed.iterator().next().isActive());
-    	
+
     	store.activateDeploymentUnit(unit);
 
     	countDownListener.reset(1);
         countDownListener.waitTillCompleted(10000);
-		
+
 		deployed = deploymentService.getDeployedUnits();
     	assertNotNull(deployed);
     	assertEquals(1, deployed.size());
     	assertTrue(deployed.iterator().next().isActive());
     }
-   
+
 }

@@ -23,12 +23,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlSchemaType;
-import javax.xml.bind.annotation.XmlSeeAlso;
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlSeeAlso;
+import jakarta.xml.bind.annotation.XmlType;
 
 import org.jbpm.services.task.impl.model.xml.InternalJaxbWrapper.GetterUser;
 import org.kie.api.task.model.Attachment;
@@ -137,7 +137,7 @@ public class JaxbTaskData extends AbstractJaxbTaskObject<TaskData> implements Ta
 
     @XmlElement
     private List<JaxbAttachment> attachments;
-    
+
     @XmlElement(name = "deployment-id")
     @XmlSchemaType(name = "string")
     private String deploymentId;
@@ -148,15 +148,15 @@ public class JaxbTaskData extends AbstractJaxbTaskObject<TaskData> implements Ta
 
     public JaxbTaskData(TaskData taskData) {
         super(TaskData.class);
-       
+
         this.status = taskData.getStatus();
         this.previousStatus = taskData.getPreviousStatus();
         User actualOwnerUser = taskData.getActualOwner();
-        if( actualOwnerUser != null ) { 
+        if( actualOwnerUser != null ) {
             this.actualOwner = actualOwnerUser.getId();
         }
         User createdByUser = taskData.getCreatedBy();
-        if( createdByUser != null ) { 
+        if( createdByUser != null ) {
             this.createdBy = createdByUser.getId();
         }
         this.createdOn = taskData.getCreatedOn();
@@ -166,14 +166,14 @@ public class JaxbTaskData extends AbstractJaxbTaskObject<TaskData> implements Ta
         this.workItemId = taskData.getWorkItemId();
         this.processInstanceId = taskData.getProcessInstanceId();
         this.documentType = taskData.getDocumentType();
-        if( taskData instanceof JaxbTaskData ) { 
+        if( taskData instanceof JaxbTaskData ) {
             JaxbTaskData jaxbTaskData = (JaxbTaskData) taskData;
-            this.documentAccessType = jaxbTaskData.getDocumentAccessType(); 
+            this.documentAccessType = jaxbTaskData.getDocumentAccessType();
             this.outputAccessType = jaxbTaskData.getOutputAccessType();
             this.faultAccessType = jaxbTaskData.getFaultAccessType();
-        } else if( taskData instanceof InternalTaskData ) { 
+        } else if( taskData instanceof InternalTaskData ) {
             InternalTaskData internalTaskData = (InternalTaskData) taskData;
-            this.documentAccessType = internalTaskData.getDocumentAccessType(); 
+            this.documentAccessType = internalTaskData.getDocumentAccessType();
             this.outputAccessType = internalTaskData.getOutputAccessType();
             this.faultAccessType = internalTaskData.getFaultAccessType();
         }
@@ -186,7 +186,7 @@ public class JaxbTaskData extends AbstractJaxbTaskObject<TaskData> implements Ta
         this.parentId = taskData.getParentId();
         this.processId = taskData.getProcessId();
         this.processSessionId = taskData.getProcessSessionId();
-        if( taskData.getComments() != null ) { 
+        if( taskData.getComments() != null ) {
             List<JaxbComment> commentList = new ArrayList<JaxbComment>();
             for (Object comment : taskData.getComments() ) {
                 commentList.add(new JaxbComment((Comment) comment));
@@ -194,7 +194,7 @@ public class JaxbTaskData extends AbstractJaxbTaskObject<TaskData> implements Ta
             this.comments = commentList;
         }
         List<JaxbAttachment> attachList = new ArrayList<JaxbAttachment>();
-        for (Object attach : taskData.getAttachments() ) { 
+        for (Object attach : taskData.getAttachments() ) {
             attachList.add(new JaxbAttachment((Attachment) attach));
         }
         this.attachments = attachList;

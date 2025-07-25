@@ -70,10 +70,10 @@ public class TransformerJSONandXMLTest {
 		DataTransformer transformer = DataTransformerRegistry.get().find("http://www.mvel.org/2.0");
 
 		String expressionR = "java.io.StringReader result = new java.io.StringReader(xml);"
-				+ "return javax.xml.bind.JAXBContext.newInstance(classes).createUnmarshaller().unmarshal(result);";
+				+ "return jakarta.xml.bind.JAXBContext.newInstance(classes).createUnmarshaller().unmarshal(result);";
 
 		String expressionW = "java.io.StringWriter result = new java.io.StringWriter();"
-				+ "javax.xml.bind.JAXBContext.newInstance(classes).createMarshaller().marshal(employee, result);"
+				+ "jakarta.xml.bind.JAXBContext.newInstance(classes).createMarshaller().marshal(employee, result);"
 				+ "return result.toString();";
 
 		Object compiled = transformer.compile(expressionW, new HashMap<String, Object>());

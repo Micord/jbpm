@@ -20,10 +20,10 @@ import org.jbpm.query.jpa.data.QueryWhere;
 import org.kie.api.runtime.Context;
 import org.kie.api.runtime.manager.audit.NodeInstanceLog;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 @XmlRootElement
@@ -32,18 +32,18 @@ public class AuditNodeInstanceLogQueryCommand extends AuditCommand<List<NodeInst
 
     /** generated serial version UID */
     private static final long serialVersionUID = -5408224599858065532L;
-    
+
     @XmlElement
     private QueryWhere queryWhere;
-   
+
     public AuditNodeInstanceLogQueryCommand() {
         // JAXB constructor
     }
-    
+
     public AuditNodeInstanceLogQueryCommand(QueryWhere queryWhere) {
-       this.queryWhere = queryWhere; 
+       this.queryWhere = queryWhere;
     }
-    
+
     @Override
     public List<NodeInstanceLog> execute( Context context ) {
         setLogEnvironment(context);
