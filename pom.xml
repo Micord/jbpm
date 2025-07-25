@@ -57,9 +57,11 @@
 ]]>
         </checkstyle.header.template>
         <jacoco.agent.line/>
-        <version.org.eclipse.jetty>12.0.16</version.org.eclipse.jetty>
+        <jetty.version>12.0.16</jetty.version>
         <version.org.eclipse.persistence>4.0.7</version.org.eclipse.persistence>
         <kie-soup.version>7.74.1.Final-Micord.1</kie-soup.version>
+        <drools.version>7.74.1.Final-Micord.1</drools.version>
+        <droolsjbpm-knowledge.version>7.74.1.Final-Micord.1</droolsjbpm-knowledge.version>
         <version.com.thoughtworks.xstream>1.4.21</version.com.thoughtworks.xstream>
         <version.org.jboss.logging-4ee7>3.6.1.Final</version.org.jboss.logging-4ee7>
         <version.jakarta.jws-api>4.0.2</version.jakarta.jws-api>
@@ -532,239 +534,239 @@
             <dependency>
                 <groupId>org.kie</groupId>
                 <artifactId>kie-api</artifactId>
-                <version>${project.version}</version>
+                <version>${droolsjbpm-knowledge.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.kie</groupId>
                 <artifactId>kie-internal</artifactId>
-                <version>${project.version}</version>
+                <version>${droolsjbpm-knowledge.version}</version>
             </dependency>
 <!--            drools-->
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-model-compiler</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-model-compiler</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-model-compiler</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-ruleunit</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-ruleunit</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-ruleunit</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-alphanetwork-compiler</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-alphanetwork-compiler</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-alphanetwork-compiler</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-canonical-model</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-canonical-model</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-canonical-model</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-mvel-parser</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-mvel-parser</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-mvel-compiler</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-mvel-compiler</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-mvel</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-mvel</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-mvel</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-decisiontables</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-decisiontables</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-persistence-api</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-persistence-jpa</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-core</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-core</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-core</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-compiler</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-ecj</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.kie</groupId>
                 <artifactId>kie-test-util</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.kie</groupId>
                 <artifactId>kie-test-util</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.kie</groupId>
                 <artifactId>kie-test-util</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.kie</groupId>
                 <artifactId>kie-ci</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.kie</groupId>
                 <artifactId>kie-ci-osgi</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.kie</groupId>
                 <artifactId>kie-ci</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.kie</groupId>
                 <artifactId>kie-ci</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-serialization-protobuf</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-serialization-protobuf</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <classifier>sources</classifier>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-serialization-protobuf</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.drools</groupId>
                 <artifactId>drools-legacy-test-util</artifactId>
-                <version>${project.version}</version>
+                <version>${drools.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
@@ -1581,7 +1583,60 @@
                 <artifactId>narayana-tomcat</artifactId>
                 <version>2.0.0.Final</version>
             </dependency>
-
+            <!--      jetty-->
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-continuation</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-http</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-io</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-proxy</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-security</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-util</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-server</artifactId>
+                <version>${jetty.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>javax.servlet</groupId>
+                        <artifactId>javax.servlet-api</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.ee10</groupId>
+                <artifactId>jetty-ee10-servlet</artifactId>
+                <version>12.0.16</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlets</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <!--      jetty-->
         </dependencies>
     </dependencyManagement>
 
