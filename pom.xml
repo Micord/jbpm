@@ -134,18 +134,6 @@
             <url>${nexus.url}/repository/maven-micord</url>
         </pluginRepository>
     </pluginRepositories>
-    <distributionManagement>
-        <repository>
-            <id>micord</id>
-            <name>micord releases</name>
-            <url>${nexus.url}/repository/libs-releases-local</url>
-        </repository>
-        <snapshotRepository>
-            <id>snapshots</id>
-            <name>micord snapshots</name>
-            <url>${nexus.url}/repository/libs-snapshots-local</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <scm>
         <connection>scm:git:https://github.com:kiegroup/jbpm.git</connection>
