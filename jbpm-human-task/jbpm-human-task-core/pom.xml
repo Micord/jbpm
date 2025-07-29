@@ -203,7 +203,7 @@
     <!-- serialization tests -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson-provider</artifactId>
+      <artifactId>resteasy-jackson2-provider</artifactId>
       <scope>test</scope>
       <exclusions>
         <exclusion>
