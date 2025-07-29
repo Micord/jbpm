@@ -1637,6 +1637,11 @@
                 <version>${jetty.version}</version>
             </dependency>
             <!--      jetty-->
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
+                <version>${version.com.fasterxml.jackson}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
