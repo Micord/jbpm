@@ -17,7 +17,7 @@
 package org.jbpm.test.container.archive.ejbtransactions;
 
 import javax.annotation.Resource;
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 
 import org.kie.api.KieBase;
 import org.kie.api.KieServices;

@@ -16,11 +16,11 @@
 
 package org.jbpm.services.cdi.impl;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import org.jbpm.kie.services.impl.RuntimeDataServiceImpl;
 import org.jbpm.kie.services.impl.security.DeploymentRolesManager;
@@ -39,7 +39,7 @@ import org.kie.internal.identity.IdentityProvider;
 
 @ApplicationScoped
 public class RuntimeDataServiceCDIImpl extends RuntimeDataServiceImpl {
-	
+
 	@Inject
     private Instance<RequestScopedBackupIdentityProvider> backupProviders;
 
@@ -47,7 +47,7 @@ public class RuntimeDataServiceCDIImpl extends RuntimeDataServiceImpl {
     public void onDeploy(@Observes@Deploy DeploymentEvent event) {
         super.onDeploy(event);
     }
-    
+
 	@Override
     public void onUnDeploy(@Observes@Undeploy DeploymentEvent event) {
         super.onUnDeploy(event);
@@ -63,7 +63,7 @@ public class RuntimeDataServiceCDIImpl extends RuntimeDataServiceImpl {
 		super.onDeactivate(event);
 	}
 
-	@Inject	
+	@Inject
 	@Override
 	public void setCommandService(@Audit TransactionalCommandService commandService) {
 		super.setCommandService(commandService);
@@ -80,13 +80,13 @@ public class RuntimeDataServiceCDIImpl extends RuntimeDataServiceImpl {
 	public void setTaskService(TaskService taskService) {
 		super.setTaskService(taskService);
 	}
-	  
+
     @Inject
     @Override
     public void setTaskAuditService(TaskAuditService taskAuditService) {
         super.setTaskAuditService(taskAuditService);
     }
-    
+
     @Inject
     @Override
     public void setDeploymentRolesManager(DeploymentRolesManager deploymentRolesManager) {
@@ -103,5 +103,5 @@ public class RuntimeDataServiceCDIImpl extends RuntimeDataServiceImpl {
     public void init() {
         taskAuditService.setTaskService(taskService);
     }
-	    
+
 }

@@ -16,7 +16,7 @@
 
 package org.jbpm.casemgmt.impl.utils;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.casemgmt.api.AdvanceCaseRuntimeDataService;
 import org.jbpm.casemgmt.api.CaseRuntimeDataService;
@@ -65,7 +65,7 @@ import org.kie.internal.runtime.manager.deploy.DeploymentDescriptorImpl;
 public class DefaultCaseServiceConfigurator implements CaseServiceConfigurator {
 
     protected EntityManagerFactory emf;
-    
+
     protected DeploymentService deploymentService;
     protected DefinitionService bpmn2Service;
     protected RuntimeDataService runtimeDataService;
@@ -261,10 +261,10 @@ public class DefaultCaseServiceConfigurator implements CaseServiceConfigurator {
         ));
         deploymentUnit.setDeploymentDescriptor(descriptor);
         deploymentUnit.setStrategy(RuntimeStrategy.PER_CASE);
-        
+
         return deploymentUnit;
     }
-    
+
     public EntityManagerFactory getEmf() {
         return emf;
     }

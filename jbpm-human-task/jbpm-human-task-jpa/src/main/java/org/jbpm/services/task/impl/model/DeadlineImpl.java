@@ -22,18 +22,18 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import javax.persistence.Basic;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 import org.jbpm.services.task.utils.CollectionUtils;
 import org.kie.api.task.model.I18NText;
@@ -57,7 +57,7 @@ public class DeadlineImpl implements org.kie.internal.task.api.model.Deadline {
     @OneToMany(cascade = CascadeType.ALL, targetEntity=EscalationImpl.class)
     @JoinColumn(name = "Deadline_Escalation_Id", nullable = true)
     private List<Escalation> escalations = Collections.emptyList();
-    
+
     @Basic
     private Short escalated = 0;
 

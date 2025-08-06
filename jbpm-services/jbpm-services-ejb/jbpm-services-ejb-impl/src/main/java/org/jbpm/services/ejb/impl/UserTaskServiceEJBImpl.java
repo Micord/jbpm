@@ -16,8 +16,8 @@
 
 package org.jbpm.services.ejb.impl;
 
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
 
 import org.jbpm.kie.services.impl.UserTaskServiceImpl;
 import org.jbpm.services.api.DeploymentService;
@@ -51,7 +51,7 @@ public class UserTaskServiceEJBImpl extends UserTaskServiceImpl implements UserT
 		if (result == null) {
 			result = super.process(variables, cl);
 		}
-		
+
 		return result;
 	}
 

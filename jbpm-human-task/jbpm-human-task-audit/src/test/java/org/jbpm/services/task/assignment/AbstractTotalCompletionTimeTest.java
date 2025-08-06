@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.services.task.utils.TaskFluent;
 import org.kie.test.util.db.PoolingDataSourceWrapper;

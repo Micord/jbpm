@@ -18,11 +18,16 @@ package org.jbpm.test.persistence.scripts.quartzdialects;
 
 import java.sql.Types;
 
-import org.hibernate.dialect.Oracle12cDialect;
+import org.hibernate.dialect.OracleDialect;
 
-public class OracleCustomDialect extends Oracle12cDialect {
+public class OracleCustomDialect extends OracleDialect {
 
-    public OracleCustomDialect() {
-        registerColumnType(Types.BOOLEAN, "varchar2(1)");
+  @Override
+  protected String columnType(int sqlTypeCode) {
+
+    if (sqlTypeCode == Types.BOOLEAN) {
+      return "varchar(2)";
     }
+    return super.columnType(sqlTypeCode);
+  }
 }

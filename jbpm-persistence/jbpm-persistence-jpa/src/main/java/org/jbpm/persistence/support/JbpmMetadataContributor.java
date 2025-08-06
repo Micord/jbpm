@@ -21,15 +21,18 @@ import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
 
+import org.hibernate.boot.ResourceStreamLocator;
+import org.hibernate.boot.spi.AdditionalMappingContributions;
+import org.hibernate.boot.spi.AdditionalMappingContributor;
 import org.hibernate.boot.spi.InFlightMetadataCollector;
-import org.hibernate.boot.spi.MetadataContributor;
+import org.hibernate.boot.spi.MetadataBuildingContext;
 import org.hibernate.engine.spi.ExecuteUpdateResultCheckStyle;
 import org.jboss.jandex.IndexView;
 import org.jbpm.persistence.api.JbpmEntityContributor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JbpmMetadataContributor implements MetadataContributor {
+public class JbpmMetadataContributor implements AdditionalMappingContributor {
 
     private static final Logger log = LoggerFactory.getLogger(JbpmMetadataContributor.class);
 
@@ -42,11 +45,14 @@ public class JbpmMetadataContributor implements MetadataContributor {
     }
 
     @Override
-    public void contribute(InFlightMetadataCollector metadataCollector, IndexView jandexIndex) {
+    public void contribute(	AdditionalMappingContributions contributions,
+                                 InFlightMetadataCollector metadata,
+                                 ResourceStreamLocator resourceStreamLocator,
+                                 MetadataBuildingContext buildingContext) {
         List<String> entityDisableChecks = contributors.stream().flatMap(e -> e.disableInsertChecks().stream()).collect(Collectors.toList());
         for(String entity : entityDisableChecks) {
             log.debug("disabling row count check for entity {}", entity);
-            metadataCollector.getEntityBindingMap().get(entity).setCustomSQLInsert(null, false, ExecuteUpdateResultCheckStyle.NONE);
+            metadata.getEntityBindingMap().get(entity).setCustomSQLInsert(null, false, ExecuteUpdateResultCheckStyle.NONE);
         }
     }
 

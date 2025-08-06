@@ -16,8 +16,8 @@
 
 package org.jbpm.test.container.archive.ejbtransactions;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnit;
 
 import org.kie.api.KieServices;
 import org.kie.api.runtime.Environment;
@@ -35,7 +35,7 @@ public abstract class BeanWithPersistence implements ProcessEJB {
     public EntityManagerFactory getEmf() {
         return this.emf;
     }
-    
+
     protected Environment getEnvironment() {
 
         Environment env = KieServices.get().newEnvironment();

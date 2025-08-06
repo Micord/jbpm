@@ -32,9 +32,9 @@ import java.util.List;
 import java.util.Map;
 
 import javax.naming.InitialContext;
-import javax.persistence.EntityManager;
-import javax.transaction.TransactionManager;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.TransactionManager;
+import jakarta.transaction.UserTransaction;
 
 import org.drools.core.common.InternalKnowledgeRuntime;
 import org.drools.core.marshalling.impl.MarshallingConfigurationImpl;
@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
 public class SerializedTimerRollbackTest extends JbpmTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(SerializedTimerRollbackTest.class);
-    
+
     public SerializedTimerRollbackTest() {
         super(true, true);
     }
@@ -92,7 +92,7 @@ public class SerializedTimerRollbackTest extends JbpmTestCase {
             KieSession ksession = runtimeEngine.getKieSession();
             TaskService taskService = runtimeEngine.getTaskService();
             logger.debug("Created knowledge session");
-            
+
             TransactionManager tm = com.arjuna.ats.jta.TransactionManager.transactionManager();
 
             List<Long> committedProcessInstanceIds = new ArrayList<Long>();
@@ -146,7 +146,7 @@ public class SerializedTimerRollbackTest extends JbpmTestCase {
     @Test
     public void testSerizliableTestsWithEngineRollback() {
         try {
-    
+
             createRuntimeManager("org/jbpm/test/functional/timer/HumanTaskWithBoundaryTimer.bpmn");
             RuntimeEngine runtimeEngine = getRuntimeEngine();
             KieSession ksession = runtimeEngine.getKieSession();
@@ -167,7 +167,7 @@ public class SerializedTimerRollbackTest extends JbpmTestCase {
                 } else {
                     try {
                         Map<String, Object> params = new HashMap<String, Object>();
-                        // set test variable to null so engine will rollback 
+                        // set test variable to null so engine will rollback
                         params.put("test", null);
                         logger.debug("Creating process instance: {}", i);
                         ksession.startProcess("PROCESS_1", params);

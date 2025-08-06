@@ -15,7 +15,7 @@
  */
 package org.jbpm.runtime.manager.impl.factory;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.runtime.manager.impl.SimpleRuntimeEnvironment;
 import org.jbpm.services.task.HumanTaskConfigurator;

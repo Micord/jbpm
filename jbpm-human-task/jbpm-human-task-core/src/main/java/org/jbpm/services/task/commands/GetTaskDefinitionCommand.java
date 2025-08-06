@@ -19,11 +19,11 @@ package org.jbpm.services.task.commands;
 import org.kie.api.runtime.Context;
 import org.kie.internal.task.api.model.TaskDef;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 @XmlRootElement(name="get-task-definition-command")
 @XmlAccessorType(XmlAccessType.NONE)
@@ -34,10 +34,10 @@ public class GetTaskDefinitionCommand extends TaskCommand<TaskDef> {
 	@XmlElement
     @XmlSchemaType(name="string")
 	private String definitionId;
-	
+
 	public GetTaskDefinitionCommand() {
 	}
-	
+
 	public GetTaskDefinitionCommand(String definitionId) {
 		this.definitionId = definitionId;
     }
@@ -52,7 +52,7 @@ public class GetTaskDefinitionCommand extends TaskCommand<TaskDef> {
 
 	public TaskDef execute(Context cntxt ) {
         TaskContext context = (TaskContext) cntxt;
-        
+
     	return context.getTaskDefService().getTaskDefById(definitionId);
 
     }

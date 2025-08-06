@@ -17,7 +17,7 @@ package org.jbpm.services.task.lifecycle.listeners;
 
 import java.util.Date;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.services.task.audit.impl.model.BAMTaskSummaryImpl;
 import org.jbpm.services.task.persistence.PersistableEventListener;
@@ -72,7 +72,7 @@ public class BAMTaskEventListener extends PersistableEventListener  {
     public BAMTaskEventListener(boolean flag) {
     	super(null);
     }
-    
+
     public BAMTaskEventListener(EntityManagerFactory emf) {
     	super(emf);
     }
@@ -132,7 +132,7 @@ public class BAMTaskEventListener extends PersistableEventListener  {
         updateTask(event);
     }
 
-    
+
     public void afterTaskFailedEvent(TaskEvent event) {
         createOrUpdateTask(event, Status.Failed);
     }
@@ -164,12 +164,12 @@ public class BAMTaskEventListener extends PersistableEventListener  {
     public void afterTaskSuspendedEvent(TaskEvent event) {
     	updateTask(event);
     }
-    
+
     @Override
     public void afterTaskForwardedEvent(TaskEvent event) {
     	updateTask(event);
     }
-    
+
     @Override
     public void afterTaskNominatedEvent(TaskEvent event) {
     	updateTask(event);
@@ -225,28 +225,28 @@ public class BAMTaskEventListener extends PersistableEventListener  {
 	            logger.error("The task instance does not exist.");
 	            return result;
 	        }
-	
+
 	        Status status = newStatus != null ? newStatus : ti.getTaskData().getStatus();
-	
+
 	        String actualOwner = "";
 	        if (ti.getTaskData().getActualOwner() != null) {
 	            actualOwner = ti.getTaskData().getActualOwner().getId();
 	        }
-	
+
 	        result = new BAMTaskSummaryImpl(ti.getId(), ti.getName(), status.toString(), event.getEventDate(), actualOwner, ti.getTaskData().getProcessInstanceId());
 	        if (worker != null) {
 	            worker.createTask(result, ti);
 	        }
             event.getMetadata().put(METADATA_BAMTASK_EVENT, result);
 	        persistenceContext.persist(result);
-	    
-	
+
+
 	        return result;
         } finally {
         	cleanup(persistenceContext);
         }
     }
-    
+
     protected BAMTaskSummaryImpl updateTask(TaskEvent event, Status newStatus, BAMTaskWorker worker) {
         BAMTaskSummaryImpl result = null;
         Task ti = event.getTask();
@@ -257,18 +257,18 @@ public class BAMTaskEventListener extends PersistableEventListener  {
 	            logger.error("The task instance does not exist.");
 	            return result;
 	        }
-	
+
 	        Status status = newStatus != null ? newStatus : ti.getTaskData().getStatus();
-	
+
 	        result = persistenceContext.queryStringWithParametersInTransaction("select bts from BAMTaskSummaryImpl bts where bts.taskId=:taskId", true,
-	        												persistenceContext.addParametersToMap("taskId", ti.getId()), 
+	        												persistenceContext.addParametersToMap("taskId", ti.getId()),
 	        												BAMTaskSummaryImpl.class);
-	        
+
 	        if (result == null) {
 	        	logger.warn("Unable find bam task entry for task id {} '{}', skipping bam task update", ti.getId(), ti.getName());
 	        	return null;
 	        }
-	        	
+
 	        result.setStatus(status.toString());
 	        if (ti.getTaskData().getActualOwner() != null) {
 	            result.setUserId(ti.getTaskData().getActualOwner().getId());
@@ -278,7 +278,7 @@ public class BAMTaskEventListener extends PersistableEventListener  {
 	        }
 	        persistenceContext.merge(result);
             event.getMetadata().put(METADATA_BAMTASK_EVENT, result);
-      
+
 	        return result;
         } finally {
         	cleanup(persistenceContext);
@@ -296,17 +296,17 @@ public class BAMTaskEventListener extends PersistableEventListener  {
 	@Override
 	public void beforeTaskActivatedEvent(TaskEvent event) {
 
-		
+
 	}
 
 	@Override
 	public void beforeTaskClaimedEvent(TaskEvent event) {
-		
-		
+
+
 	}
 
 	@Override
-	public void beforeTaskSkippedEvent(TaskEvent event) {	
+	public void beforeTaskSkippedEvent(TaskEvent event) {
 	}
 
 	@Override
@@ -354,20 +354,20 @@ public class BAMTaskEventListener extends PersistableEventListener  {
 	@Override
 	public void beforeTaskDelegatedEvent(TaskEvent event) {
 	}
-	
+
 	@Override
 	public void beforeTaskNominatedEvent(TaskEvent event) {
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
-		if ( this == obj ) 
+		if ( this == obj )
 			return true;
-        if ( obj == null ) 
+        if ( obj == null )
         	return false;
-        if ( (obj instanceof BAMTaskEventListener) ) 
+        if ( (obj instanceof BAMTaskEventListener) )
         	return true;
-        
+
         return false;
 	}
 
@@ -376,9 +376,9 @@ public class BAMTaskEventListener extends PersistableEventListener  {
 		final int prime = 31;
         int result = 1;
         result = prime * result + this.getClass().getName().hashCode();
-        
+
         return result;
 	}
-	
+
 
 }

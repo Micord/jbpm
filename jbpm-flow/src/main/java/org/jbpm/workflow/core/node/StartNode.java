@@ -23,6 +23,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.process.core.context.variable.Mappable;
 import org.jbpm.process.core.event.EventTransformer;
 import org.jbpm.process.core.timer.Timer;
@@ -32,23 +33,23 @@ import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of a start node.
- * 
+ *
  */
 public class StartNode extends ExtendedNodeImpl implements Mappable {
 
 	private static final String[] EVENT_TYPES =
 		new String[] { EVENT_NODE_EXIT };
-	
+
     private static final long serialVersionUID = 510l;
-    
+
     private List<Trigger> triggers;
 
     private boolean isInterrupting;
-    
+
     private List<DataAssociation> outMapping = new LinkedList<DataAssociation>();
 
     private Timer timer;
-    
+
     private EventTransformer transformer;
 
     public StartNode() {
@@ -62,44 +63,40 @@ public class StartNode extends ExtendedNodeImpl implements Mappable {
 		}
 		triggers.add(trigger);
 	}
-	
+
 	public void removeTrigger(Trigger trigger) {
 		if (triggers != null) {
 			triggers.remove(trigger);
 		}
 	}
-	
+
 	public List<Trigger> getTriggers() {
 		return triggers;
 	}
-		
+
 	public void setTriggers(List<Trigger> triggers) {
 		this.triggers = triggers;
 	}
-		
+
 	public String[] getActionTypes() {
 		return EVENT_TYPES;
 	}
-	
+
     public void validateAddIncomingConnection(final String type, final Connection connection) {
-        throw new UnsupportedOperationException(
-            "A start node [" + this.getMetaData("UniqueId") + ", " + this.getName() + "] may not have an incoming connection!");
+        throw new BpmnNodeIllegalArgumentException("A start node may not have an incoming connection!", this.getName(), this.getNodeUniqueId());
     }
 
     public void validateRemoveIncomingConnection(final String type, final Connection connection) {
-        throw new UnsupportedOperationException(
-            "A start node [" + this.getMetaData("UniqueId") + ", " + this.getName() + "] may not have an incoming connection!");
+      throw new BpmnNodeIllegalArgumentException("A start node may not have an incoming connection!", this.getName(), this.getNodeUniqueId());
     }
-    
+
     public void validateAddOutgoingConnection(final String type, final Connection connection) {
         super.validateAddOutgoingConnection(type, connection);
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
-            throw new IllegalArgumentException(
-                "A start node [" + this.getMetaData("UniqueId") + ", " + this.getName() + "] only accepts default outgoing connection type!");
+            throw new BpmnNodeIllegalArgumentException("A start node only accepts default outgoing connection type!", this.getName(), this.getNodeUniqueId());
         }
         if (getTo() != null && !"true".equals(System.getProperty("jbpm.enable.multi.con"))) {
-            throw new IllegalArgumentException(
-                "A start node [" + this.getMetaData("UniqueId") + ", " + this.getName() + "] cannot have more than one outgoing connection!");
+            throw new BpmnNodeIllegalArgumentException("A start node cannot have more than one outgoing connection!", this.getName(), this.getNodeUniqueId());
         }
     }
 
@@ -113,17 +110,17 @@ public class StartNode extends ExtendedNodeImpl implements Mappable {
 
     @Override
     public void addInMapping(String parameterName, String variableName) {
-        throw new IllegalArgumentException("A start event [" + this.getMetaData("UniqueId") + ", " + this.getName() + "] does not support input mappings");
+        throw new BpmnNodeIllegalArgumentException("A start event does not support input mappings", this.getName(), this.getNodeUniqueId());
     }
 
     @Override
     public void setInMappings(Map<String, String> inMapping) {
-        throw new IllegalArgumentException("A start event [" + this.getMetaData("UniqueId") + ", " + this.getName() + "] does not support input mappings");
+        throw new BpmnNodeIllegalArgumentException("A start event does not support input mappings", this.getName(), this.getNodeUniqueId());
     }
 
     @Override
     public String getInMapping(String parameterName) {
-        throw new IllegalArgumentException("A start event [" + this.getMetaData("UniqueId") + ", " + this.getName() + "] does not support input mappings");
+        throw new BpmnNodeIllegalArgumentException("A start event does not support input mappings", this.getName(), this.getNodeUniqueId());
     }
 
     @Override
@@ -155,19 +152,19 @@ public class StartNode extends ExtendedNodeImpl implements Mappable {
     public String getOutMapping(String parameterName) {
         return getOutMappings().get(parameterName);
     }
-    
+
     public Map<String, String> getOutMappings() {
-        Map<String,String> out = new HashMap<String, String>(); 
+        Map<String,String> out = new HashMap<String, String>();
         for(DataAssociation assoc : outMapping) {
-            if( assoc.getSources().size() == 1 
-             && (assoc.getAssignments() == null || assoc.getAssignments().size() == 0) 
+            if( assoc.getSources().size() == 1
+             && (assoc.getAssignments() == null || assoc.getAssignments().size() == 0)
              && assoc.getTransformation() == null ) {
                 out.put(assoc.getSources().get(0), assoc.getTarget());
             }
         }
         return out;
     }
-    
+
     public void addOutAssociation(DataAssociation dataAssociation) {
         outMapping.add(dataAssociation);
     }
@@ -183,13 +180,13 @@ public class StartNode extends ExtendedNodeImpl implements Mappable {
     public void setTimer(Timer timer) {
         this.timer = timer;
     }
-    
+
     public void setEventTransformer(EventTransformer transformer) {
 		this.transformer = transformer;
 	}
-	
+
 	public EventTransformer getEventTransformer() {
 		return transformer;
 	}
-    
+
 }

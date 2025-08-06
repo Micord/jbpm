@@ -16,7 +16,7 @@
 
 package org.jbpm.services.task.wih.util;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.services.task.HumanTaskServiceFactory;
 import org.jbpm.services.task.wih.NonManagedLocalHTWorkItemHandler;

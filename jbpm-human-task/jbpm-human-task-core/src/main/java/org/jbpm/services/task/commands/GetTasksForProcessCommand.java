@@ -24,11 +24,11 @@ import org.kie.internal.command.ProcessInstanceIdCommand;
 import org.kie.internal.task.api.TaskContext;
 import org.kie.internal.task.api.TaskPersistenceContext;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 import java.util.List;
 
 @XmlRootElement(name="get-tasks-for-process-command")
@@ -36,22 +36,22 @@ import java.util.List;
 public class GetTasksForProcessCommand extends TaskCommand<List<TaskSummary>> implements ProcessInstanceIdCommand {
 
 	private static final long serialVersionUID = -3784821014329573243L;
-	
+
 	@XmlElement(name="process-instance-id")
 	@XmlSchemaType(name="long")
 	private Long processInstanceId;
-	
+
 	@XmlElement
 	private List<Status> statuses;
-	
+
 	@XmlElement(name="language")
     @XmlSchemaType(name="string")
 	private String language;
-	
+
 	public GetTasksForProcessCommand() {
-		
+
 	}
-	
+
 	public GetTasksForProcessCommand(Long processInstanceId, List<Status> statuses, String language) {
 		this.processInstanceId = processInstanceId;
 		this.statuses = statuses;
@@ -87,15 +87,15 @@ public class GetTasksForProcessCommand extends TaskCommand<List<TaskSummary>> im
     @Override
 	public List<TaskSummary> execute(Context context) {
 		TaskContext ctx = (TaskContext) context;
-		
+
 		TaskPersistenceContext persistenceContext = ctx.getPersistenceContext();
-		
+
 		List<TaskSummary> tasks = (List<TaskSummary>) persistenceContext.queryWithParametersInTransaction("TasksByStatusByProcessId",
-                persistenceContext.addParametersToMap("processInstanceId", processInstanceId, 
+                persistenceContext.addParametersToMap("processInstanceId", processInstanceId,
                                         "status", statuses),
                                         ClassUtil.<List<TaskSummary>>castClass(List.class));
-    
+
         return tasks;
 	}
-	
+
 }

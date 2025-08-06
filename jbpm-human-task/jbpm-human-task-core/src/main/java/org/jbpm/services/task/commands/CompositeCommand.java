@@ -18,18 +18,18 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElements;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlElements;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Arrays;
 import java.util.List;
 
 @XmlRootElement(name="composite-command")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class CompositeCommand<T> extends TaskCommand<T> {
-	
+
 	private static final long serialVersionUID = -5591247478243819049L;
 
 	@XmlElements(value={
@@ -126,14 +126,14 @@ public class CompositeCommand<T> extends TaskCommand<T> {
 
 	@XmlElement
 	private List<TaskCommand<?>> commands;
-	
+
 	public CompositeCommand() {
-		
+
 	}
-	
+
 	public CompositeCommand(TaskCommand<T> mainCommand, TaskCommand<?>...commands) {
 		this.mainCommand = mainCommand;
-		this.commands = Arrays.asList(commands);		
+		this.commands = Arrays.asList(commands);
 	}
 
 	@Override
@@ -165,7 +165,7 @@ public class CompositeCommand<T> extends TaskCommand<T> {
 	@Override
 	public Long getTaskId() {
 		if ( mainCommand != null) {
-			return mainCommand.getTaskId();	
+			return mainCommand.getTaskId();
 		}
 		return this.taskId;
 	}

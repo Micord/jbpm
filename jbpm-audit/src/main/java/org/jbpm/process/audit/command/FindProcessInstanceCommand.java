@@ -20,11 +20,11 @@ import org.jbpm.process.audit.ProcessInstanceLog;
 import org.kie.api.runtime.Context;
 import org.kie.internal.command.ProcessInstanceIdCommand;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.NONE)
@@ -36,15 +36,15 @@ public class FindProcessInstanceCommand extends AuditCommand<ProcessInstanceLog>
     @XmlAttribute(required=true, name="process-instance-id")
     @XmlSchemaType(name="long")
     private Long processInstanceId;
-    
-    public FindProcessInstanceCommand() { 
+
+    public FindProcessInstanceCommand() {
         // no-arg for JAXB
     }
-    
+
     public FindProcessInstanceCommand(long processInstanceId) {
         this.processInstanceId = processInstanceId;
 	}
-	
+
     public ProcessInstanceLog execute(Context cntxt) {
         setLogEnvironment(cntxt);
         return this.auditLogService.findProcessInstance(processInstanceId);

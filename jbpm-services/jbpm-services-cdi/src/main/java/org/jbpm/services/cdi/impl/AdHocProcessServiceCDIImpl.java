@@ -20,8 +20,8 @@ import org.jbpm.kie.services.impl.AdHocProcessServiceImpl;
 import org.jbpm.services.api.DeploymentService;
 import org.jbpm.services.api.RuntimeDataService;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class AdHocProcessServiceCDIImpl extends AdHocProcessServiceImpl {

@@ -17,7 +17,7 @@
 package org.jbpm.executor;
 
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.executor.impl.AvailableJobsExecutor;
 import org.jbpm.executor.impl.ClassCacheManager;
@@ -35,7 +35,7 @@ import org.kie.api.executor.ExecutorService;
 import org.kie.api.executor.ExecutorStoreService;
 
 /**
- * Creates singleton instance of <code>ExecutorService</code> that shall be used outside of CDI 
+ * Creates singleton instance of <code>ExecutorService</code> that shall be used outside of CDI
  * environment.
  */
 public class ExecutorServiceFactory {
@@ -43,11 +43,11 @@ public class ExecutorServiceFactory {
 	private final static String mode = System.getProperty( "org.jbpm.cdi.executor.mode", "singleton" );
 
 	private static ExecutorService serviceInstance;
-    
+
     public static synchronized ExecutorService newExecutorService(EntityManagerFactory emf){
     	return newExecutorService(emf, new ExecutorEventSupportImpl());
     }
-    
+
     public static synchronized ExecutorService newExecutorService(EntityManagerFactory emf, ExecutorEventSupportImpl eventSupport){
         if ( mode.equalsIgnoreCase( "singleton" ) ) {
             if (serviceInstance == null) {
@@ -56,9 +56,9 @@ public class ExecutorServiceFactory {
             return serviceInstance;
         } else {
             return configure(emf, new TransactionalCommandService(emf), eventSupport);
-        }        
+        }
     }
-    
+
     public static synchronized ExecutorService newExecutorService(EntityManagerFactory emf, TransactionalCommandService commandService, ExecutorEventSupportImpl eventSupport){
         if ( mode.equalsIgnoreCase( "singleton" ) ) {
             if (serviceInstance == null) {
@@ -67,20 +67,20 @@ public class ExecutorServiceFactory {
             return serviceInstance;
         } else {
             return configure(emf, commandService, eventSupport);
-        }        
+        }
     }
 
-    
+
     public static synchronized void resetExecutorService(ExecutorService executorService) {
     	if (executorService.equals(serviceInstance)) {
     		serviceInstance = null;
     	}
     }
-    
+
     public static synchronized void clearExecutorService() {
-        
+
         serviceInstance = null;
-        
+
     }
 
     private static ExecutorService configure(EntityManagerFactory emf, TransactionalCommandService commandService, ExecutorEventSupportImpl eventSupport) {
@@ -94,25 +94,25 @@ public class ExecutorServiceFactory {
         ((JPAExecutorStoreService)storeService).setCommandService(commandService);
         ((JPAExecutorStoreService)storeService).setEmf(emf);
         ((JPAExecutorStoreService)storeService).setEventSupport(eventSupport);
-        
+
         AvailableJobsExecutor jobExecutor = new AvailableJobsExecutor();
-        ClassCacheManager classCacheManager = new ClassCacheManager();               
+        ClassCacheManager classCacheManager = new ClassCacheManager();
         jobExecutor.setClassCacheManager(classCacheManager);
         jobExecutor.setQueryService(queryService);
         jobExecutor.setExecutorStoreService(storeService);
         jobExecutor.setEventSupport(eventSupport);
         jobExecutor.setExecutor(executor);
-        
+
         ((ExecutorImpl) executor).setExecutorStoreService(storeService);
         ((ExecutorImpl) executor).setEventSupport(eventSupport);
         ((ExecutorImpl) executor).setJobProcessor(jobExecutor);
         ((ExecutorImpl) executor).setTransactionManager(commandService.getTransactionManager());
-        
+
         // set executor on all instances that requires it
-        ((ExecutorQueryServiceImpl) queryService).setCommandService(commandService);        
+        ((ExecutorQueryServiceImpl) queryService).setCommandService(commandService);
         ((ExecutorRequestAdminServiceImpl) adminService).setCommandService(commandService);
         ((ExecutorRequestAdminServiceImpl) adminService).setExecutor(executor);
-        
+
         // configure services
         ExecutorService service = new ExecutorServiceImpl(executor);
     	((ExecutorServiceImpl)service).setQueryService(queryService);

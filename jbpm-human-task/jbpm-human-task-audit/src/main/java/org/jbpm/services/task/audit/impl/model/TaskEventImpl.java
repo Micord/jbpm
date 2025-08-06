@@ -24,18 +24,18 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Objects;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.Version;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.Version;
 
 import org.kie.internal.task.api.model.InternalTaskData;
 import org.kie.internal.task.api.model.TaskEvent;
@@ -45,7 +45,7 @@ import org.kie.internal.task.api.model.TaskEvent;
  */
 @Entity
 @Table(name = "TaskEvent", indexes = {@Index(name = "IDX_TaskEvent_taskId", columnList = "taskId"), @Index(name = "IDX_TaskEvent_processInstanceId", columnList = "processInstanceId")})
-@SequenceGenerator(name = "taskEventIdSeq", sequenceName = "TASK_EVENT_ID_SEQ")
+@SequenceGenerator(name = "taskEventIdSeq", sequenceName = "TASK_EVENT_ID_SEQ", allocationSize = 1)
 public class TaskEventImpl implements TaskEvent, Serializable {
 
   private static final long serialVersionUID = 6304722095353315479L;
@@ -75,10 +75,10 @@ public class TaskEventImpl implements TaskEvent, Serializable {
   private String correlationKey;
 
   private Integer processType;
-  
+
   private String currentOwner;
 
-  @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+  @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
   private Date logTime;
 
   public TaskEventImpl() {
@@ -116,13 +116,13 @@ public class TaskEventImpl implements TaskEvent, Serializable {
     this(taskId, type, processInstanceId, workItemId, userId, new Date());
     this.message = message;
   }
-  
+
   public TaskEventImpl(org.kie.api.task.TaskEvent event, TaskEventType type) {
       this(event, type, null);
   }
 
   public TaskEventImpl(org.kie.api.task.TaskEvent event, TaskEventType type, String message) {
-      InternalTaskData taskData = (InternalTaskData)event.getTask().getTaskData(); 
+      InternalTaskData taskData = (InternalTaskData)event.getTask().getTaskData();
       this.taskId = event.getTask().getId();
       this.type = type;
       this.processInstanceId = taskData.getProcessInstanceId();

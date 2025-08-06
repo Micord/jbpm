@@ -16,8 +16,8 @@
 
 package org.jbpm.services.task;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.drools.core.impl.EnvironmentFactory;
 import org.junit.After;

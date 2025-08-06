@@ -24,9 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import javax.enterprise.inject.spi.BeanManager;
-import javax.inject.Inject;
-import javax.persistence.EntityManagerFactory;
+import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -59,7 +59,7 @@ import org.kie.internal.runtime.manager.context.ProcessInstanceIdContext;
 
 @RunWith(Arquillian.class)
 public class MultipleRuntimeManagerTest extends AbstractKieServicesBaseTest {
-    
+
     @Deployment()
     public static Archive<?> createDeployment() {
         return ShrinkWrap.create(JavaArchive.class, "jbpm-runtime-manager.jar")
@@ -88,32 +88,32 @@ public class MultipleRuntimeManagerTest extends AbstractKieServicesBaseTest {
                 .addPackage("org.kie.internal.runtime.manager")
                 .addPackage("org.kie.internal.runtime.manager.context")
                 .addPackage("org.kie.internal.runtime.manager.cdi.qualifier")
-                
+
                 .addPackage("org.jbpm.runtime.manager.impl")
-                .addPackage("org.jbpm.runtime.manager.impl.cdi")                               
+                .addPackage("org.jbpm.runtime.manager.impl.cdi")
                 .addPackage("org.jbpm.runtime.manager.impl.factory")
                 .addPackage("org.jbpm.runtime.manager.impl.jpa")
                 .addPackage("org.jbpm.runtime.manager.impl.manager")
                 .addPackage("org.jbpm.runtime.manager.impl.task")
                 .addPackage("org.jbpm.runtime.manager.impl.tx")
-                
+
                 .addPackage("org.jbpm.shared.services.api")
                 .addPackage("org.jbpm.shared.services.impl")
                 .addPackage("org.jbpm.shared.services.impl.tx")
-                
+
                 .addPackage("org.jbpm.kie.services.api")
-                .addPackage("org.jbpm.kie.services.impl")                
+                .addPackage("org.jbpm.kie.services.impl")
                 .addPackage("org.jbpm.kie.services.api.bpmn2")
                 .addPackage("org.jbpm.kie.services.impl.bpmn2")
                 .addPackage("org.jbpm.kie.services.impl.event.listeners")
                 .addPackage("org.jbpm.kie.services.impl.audit")
                 .addPackage("org.jbpm.kie.services.impl.form")
                 .addPackage("org.jbpm.kie.services.impl.form.provider")
-                .addPackage("org.jbpm.kie.services.impl.query")  
-                .addPackage("org.jbpm.kie.services.impl.query.mapper")  
-                .addPackage("org.jbpm.kie.services.impl.query.persistence")  
-                .addPackage("org.jbpm.kie.services.impl.query.preprocessor")  
-                
+                .addPackage("org.jbpm.kie.services.impl.query")
+                .addPackage("org.jbpm.kie.services.impl.query.mapper")
+                .addPackage("org.jbpm.kie.services.impl.query.persistence")
+                .addPackage("org.jbpm.kie.services.impl.query.preprocessor")
+
                 .addPackage("org.jbpm.services.cdi")
                 .addPackage("org.jbpm.services.cdi.impl")
                 .addPackage("org.jbpm.services.cdi.impl.form")
@@ -121,10 +121,10 @@ public class MultipleRuntimeManagerTest extends AbstractKieServicesBaseTest {
                 .addPackage("org.jbpm.services.cdi.producer")
                 .addPackage("org.jbpm.services.cdi.impl.security")
                 .addPackage("org.jbpm.services.cdi.impl.query")
-                
+
                 .addPackage("org.jbpm.kie.services.test")
                 .addPackage("org.jbpm.services.cdi.test") // Identity Provider Test Impl here
-                .addClass("org.jbpm.services.cdi.test.util.CDITestHelperNoTaskService") 
+                .addClass("org.jbpm.services.cdi.test.util.CDITestHelperNoTaskService")
                 .addClass("org.jbpm.services.cdi.test.util.CountDownDeploymentListenerCDIImpl")
                 .addClass("org.jbpm.kie.services.test.objects.CountDownDeploymentListener")
                 .addAsResource("jndi.properties","jndi.properties")
@@ -138,9 +138,9 @@ public class MultipleRuntimeManagerTest extends AbstractKieServicesBaseTest {
         TestUtil.cleanupSingletonSessionId();
         Properties props = new Properties();
         props.setProperty("john", "user");
-        
+
     }
-    
+
     @Override
 	protected void close() {
 		// do nothing here and let CDI close resources
@@ -148,7 +148,7 @@ public class MultipleRuntimeManagerTest extends AbstractKieServicesBaseTest {
 
 	@Override
 	protected void configureServices() {
-		// do nothing here and let CDI configure services 
+		// do nothing here and let CDI configure services
 	}
     /*
      * end of initialization code, tests start here
@@ -156,17 +156,17 @@ public class MultipleRuntimeManagerTest extends AbstractKieServicesBaseTest {
 
     @Inject
     private RuntimeManagerFactory managerFactory;
-    
+
     @Inject
     private EntityManagerFactory emf;
-    
+
     @Inject
     private BeanManager beanManager;
-    
+
     @Test
     public void testAllManagersManager() {
         assertNotNull(managerFactory);
-        
+
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()
     			.newDefaultBuilder()
                 .entityManagerFactory(emf)
@@ -174,11 +174,11 @@ public class MultipleRuntimeManagerTest extends AbstractKieServicesBaseTest {
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-UserTask.bpmn2"), ResourceType.BPMN2)
                 .registerableItemsFactory(InjectableRegisterableItemsFactory.getFactory(beanManager, new ManagedAuditEventBuilderImpl()))
                 .get();
-        
+
         RuntimeManager manager = managerFactory.newSingletonRuntimeManager(environment);
         testProcessStartOnManager(manager, EmptyContext.get());
         manager.close();
-        
+
         environment = RuntimeEnvironmentBuilder.Factory.get()
     			.newDefaultBuilder()
                 .entityManagerFactory(emf)
@@ -186,11 +186,11 @@ public class MultipleRuntimeManagerTest extends AbstractKieServicesBaseTest {
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-UserTask.bpmn2"), ResourceType.BPMN2)
                 .registerableItemsFactory(InjectableRegisterableItemsFactory.getFactory(beanManager, new ManagedAuditEventBuilderImpl()))
                 .get();
-        
+
         manager = managerFactory.newPerRequestRuntimeManager(environment);
         testProcessStartOnManager(manager, EmptyContext.get());
         manager.close();
-        
+
         environment = RuntimeEnvironmentBuilder.Factory.get()
     			.newDefaultBuilder()
                 .entityManagerFactory(emf)
@@ -198,46 +198,46 @@ public class MultipleRuntimeManagerTest extends AbstractKieServicesBaseTest {
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-UserTask.bpmn2"), ResourceType.BPMN2)
                 .registerableItemsFactory(InjectableRegisterableItemsFactory.getFactory(beanManager, new ManagedAuditEventBuilderImpl()))
                 .get();
-        
+
         manager = managerFactory.newPerProcessInstanceRuntimeManager(environment);
         testProcessStartOnManager(manager, ProcessInstanceIdContext.get());
         manager.close();
-    }    
-    
-    
+    }
+
+
     private void testProcessStartOnManager(RuntimeManager manager, Context<?> context) {
         assertNotNull(manager);
-        
+
         RuntimeEngine runtime = manager.getRuntimeEngine(context);
         assertNotNull(runtime);
-        
+
         KieSession ksession = runtime.getKieSession();
         assertNotNull(ksession);
-        
+
         ProcessInstance processInstance = ksession.startProcess("UserTask");
         assertNotNull(processInstance);
-        
+
         List<Status> statuses = new ArrayList<Status>();
         statuses.add(Status.Reserved);
         List<TaskSummary> tasks = runtime.getTaskService().getTasksOwnedByStatus("john", statuses, "en-UK");
         assertNotNull(tasks);
         assertEquals(1, tasks.size());
-        
+
         AuditService logService = runtime.getAuditService();
-        
+
         List<? extends ProcessInstanceLog> logs = logService.findActiveProcessInstances("UserTask");
-        assertNotNull(logs);      
+        assertNotNull(logs);
         assertEquals(1, logs.size());
-        
+
         String externalId = logs.get(0).getExternalId();
-        assertEquals(manager.getIdentifier(), externalId);	
-        
+        assertEquals(manager.getIdentifier(), externalId);
+
         runtime.getTaskService().start(tasks.get(0).getId(), "john");
-        
+
         runtime.getTaskService().complete(tasks.get(0).getId(), "john", null);
-        
+
         processInstance = ksession.getProcessInstance(processInstance.getId());
         assertNull(processInstance);
     }
-    
+
 }

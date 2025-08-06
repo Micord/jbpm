@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.List;
 
 import javax.naming.InitialContext;
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 
 import org.drools.persistence.jta.JtaTransactionManager;
 import org.jbpm.test.JbpmTestCase;

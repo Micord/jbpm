@@ -15,11 +15,11 @@
  */
 package org.jbpm.services.ejb.impl;
 
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.ConcurrencyManagementType;
-import javax.ejb.Lock;
-import javax.ejb.LockType;
-import javax.ejb.Singleton;
+import jakarta.ejb.ConcurrencyManagement;
+import jakarta.ejb.ConcurrencyManagementType;
+import jakarta.ejb.Lock;
+import jakarta.ejb.LockType;
+import jakarta.ejb.Singleton;
 
 import org.jbpm.kie.services.impl.FormManagerServiceImpl;
 
@@ -39,5 +39,5 @@ public class FormManagerServiceEJBImpl extends FormManagerServiceImpl{
 	public void unRegisterForms(String deploymentId) {
 		super.unRegisterForms(deploymentId);
 	}
-    
+
 }

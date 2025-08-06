@@ -34,13 +34,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.Queue;
-import javax.jms.Session;
-import javax.jms.TextMessage;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
+import jakarta.jms.MessageProducer;
+import jakarta.jms.Queue;
+import jakarta.jms.Session;
+import jakarta.jms.TextMessage;
 import javax.naming.InitialContext;
 
 import org.apache.commons.io.input.ClassLoaderObjectInputStream;
@@ -73,9 +73,9 @@ import org.slf4j.LoggerFactory;
  *  <li>retry count - default 3 retries - use system property org.kie.executor.retry.count</li>
  *  <li>execution interval - default 3 seconds - use system property org.kie.executor.interval</li>
  * </ul>
- * Additionally executor can be disable to not start at all when system property org.kie.executor.disabled is 
+ * Additionally executor can be disable to not start at all when system property org.kie.executor.disabled is
  * set to true
- * Executor can be used with JMS as the medium to notify about jobs to be executed instead of relying strictly 
+ * Executor can be used with JMS as the medium to notify about jobs to be executed instead of relying strictly
  * on poll mechanism that is available by default. JMS support is configurable and is enabled by default
  * although it requires JMS resources (connection factory and destination) to properly operate. If any of
  * these will not be found it will deactivate JMS support.
@@ -243,9 +243,9 @@ public class ExecutorImpl implements Executor {
      */
     public void init() {
         if (!"true".equalsIgnoreCase(System.getProperty("org.kie.executor.disabled"))) {
-            logger.info("Starting jBPM Executor Component ...\n" + 
+            logger.info("Starting jBPM Executor Component ...\n" +
                         " \t - Default executor owner is set to {}\n" +
-                        " \t - Thread Pool Size: {}" + "\n" + 
+                        " \t - Thread Pool Size: {}" + "\n" +
                         " \t - Retries per Request: {}\n" +
                         " \t - Load from storage interval: {} {} (if less or equal 0 only initial sync with storage) \n",
                         ExecutorService.EXECUTOR_ID_GET.get(), threadPoolSize, retries, interval, timeunit.toString());
@@ -393,10 +393,10 @@ public class ExecutorImpl implements Executor {
 
         eventSupport.fireBeforeJobScheduled(requestInfo, null);
         try {
-            
+
             Consumer<Object> function = null;
             if (useJMS) {
-                // send JMS only for immediate job requests not for these that should be executed in future                 
+                // send JMS only for immediate job requests not for these that should be executed in future
                 if (date == null) {
                     executorStoreService.persistRequest(requestInfo, null);
                     logger.debug("Sending JMS message to trigger job execution for job {}", requestInfo.getId());
@@ -412,8 +412,8 @@ public class ExecutorImpl implements Executor {
                 function = scheduleExecution(requestInfo, date);
                 executorStoreService.persistRequest(requestInfo, function);
             }
-            
-            
+
+
 
             logger.debug("Scheduled request for Command: {} - requestId: {} with {} retries", commandId, requestInfo.getId(), requestInfo.getRetries());
             eventSupport.fireAfterJobScheduled(requestInfo, null);
@@ -428,11 +428,11 @@ public class ExecutorImpl implements Executor {
             scheduleExecutionViaSync(requestInfo, date);
         };
     }
-    
+
     public void scheduleExecutionViaSync(final RequestInfo requestInfo, final Date date) {
-        
+
         transactionManager.registerTransactionSynchronization(new ScheduleTaskTransactionSynchronization(scheduler, requestInfo, date, jobProcessor));
-        
+
     }
 
     public void clearExecution(Long requestId) {
@@ -447,7 +447,7 @@ public class ExecutorImpl implements Executor {
         RequestInfo job = (RequestInfo) executorStoreService.findRequest(requestId);
         eventSupport.fireBeforeJobCancelled(job, null);
         try {
-            
+
             executorStoreService.removeRequest(requestId, (T) -> {
                     if (scheduler != null) {
                         ((PrioritisedScheduledThreadPoolExecutor) scheduler).cancel(requestId);
@@ -603,13 +603,13 @@ public class ExecutorImpl implements Executor {
 
         return new PrioritisedScheduledThreadPoolExecutor(threadPoolSize, threadFactory);
     }
-    
+
     protected String getDeploymentId(CommandContext ctx) {
         String deploymentId = (String) ctx.getData("DeploymentId");
         if (deploymentId == null) {
             deploymentId = (String) ctx.getData("deploymentId");
         }
-        
+
         return deploymentId;
     }
 

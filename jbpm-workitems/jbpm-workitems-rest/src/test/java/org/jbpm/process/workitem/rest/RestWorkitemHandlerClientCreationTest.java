@@ -15,7 +15,7 @@
  */
 package org.jbpm.process.workitem.rest;
 
-import javax.ws.rs.ext.RuntimeDelegate;
+import jakarta.ws.rs.ext.RuntimeDelegate;
 
 import org.apache.cxf.endpoint.Server;
 import org.apache.cxf.jaxrs.JAXRSServerFactoryBean;
@@ -134,7 +134,7 @@ public class RestWorkitemHandlerClientCreationTest {
                               "name=value");
         workItem.setParameter("CookiePath",
                               "/");
-        
+
         WorkItemManager manager = new TestWorkItemManager();
         handler.executeWorkItem(workItem,
                                 manager);

@@ -67,7 +67,7 @@ public abstract class AbstractWorkingMemoryDbLoggerTest extends AbstractBaseTest
 
     @After
     public void tearDown() throws Exception {
-        javax.transaction.TransactionManager txm = com.arjuna.ats.jta.TransactionManager.transactionManager();
+        jakarta.transaction.TransactionManager txm = com.arjuna.ats.jta.TransactionManager.transactionManager();
         assertTrue("There is still a transaction running!", txm.getTransaction() == null );
         
         cleanUp(context);

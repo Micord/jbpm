@@ -19,21 +19,21 @@ package org.jbpm.executor.cdi.impl;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.spi.AnnotatedType;
-import javax.enterprise.inject.spi.BeanManager;
-import javax.enterprise.inject.spi.Extension;
-import javax.enterprise.inject.spi.ProcessAnnotatedType;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.spi.AnnotatedType;
+import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.enterprise.inject.spi.Extension;
+import jakarta.enterprise.inject.spi.ProcessAnnotatedType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ExcludeNonCDIImplExtension implements Extension {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(ExcludeNonCDIImplExtension.class);
-	
+
 	private Set<String> excluded = new HashSet<String>();
-	
+
 	public ExcludeNonCDIImplExtension() {
 		excluded.add("org.jbpm.executor.impl");
 	}
@@ -44,7 +44,7 @@ public class ExcludeNonCDIImplExtension implements Extension {
         final Class<X> javaClass = annotatedType.getJavaClass();
         final Package pkg = javaClass.getPackage();
 
-  
+
         if (pkg != null && excluded.contains(pkg.getName())) {
         	logger.debug("jBPM Exeutor CDI integration :: excluding package {}", pkg.getName());
             pat.veto();
@@ -52,7 +52,7 @@ public class ExcludeNonCDIImplExtension implements Extension {
         	logger.debug("jBPM Exeutor CDI integration :: excluding class {}" + javaClass.getName());
         	pat.veto();
         }
-        
+
         return;
     }
 

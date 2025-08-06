@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.workflow.core.NodeContainer;
 import org.jbpm.workflow.core.impl.ConnectionImpl;
 import org.jbpm.workflow.core.impl.NodeContainerImpl;
@@ -32,19 +33,19 @@ import org.kie.api.definition.process.Node;
 import org.kie.api.definition.process.NodeType;
 
 /**
- * 
+ *
  */
 public class CompositeNode extends StateBasedNode implements NodeContainer, EventNodeInterface {
 
     private static final long serialVersionUID = 510l;
-    
+
     private org.jbpm.workflow.core.NodeContainer nodeContainer;
     private Map<String, CompositeNode.NodeAndType> inConnectionMap = new HashMap<String, CompositeNode.NodeAndType>();
     private Map<String, CompositeNode.NodeAndType> outConnectionMap = new HashMap<String, CompositeNode.NodeAndType>();
 	private boolean cancelRemainingInstances = true;
 
 	private boolean autoComplete = true;
-	
+
     public CompositeNode() {
         this(NodeType.INTERNAL);
     }
@@ -53,7 +54,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
         super(type);
         this.nodeContainer = new NodeContainerImpl();
     }
-    
+
     public Node getNode(long id) {
         return nodeContainer.getNode(id);
     }
@@ -61,7 +62,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
     public Node getNodeByUniqueId(String id) {
         return nodeContainer.getNodeByUniqueId(id);
     }
-    
+
     public Node internalGetNode(long id) {
     	return getNode(id);
     }
@@ -76,7 +77,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
     	}
     	return subNodes.toArray(new Node[subNodes.size()]);
     }
-    
+
     public Node[] internalGetNodes() {
     	return getNodes();
     }
@@ -97,20 +98,20 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
     	nodeContainer.addNode(node);
         ((org.jbpm.workflow.core.Node) node).setNodeContainer(this);
     }
-    
+
     protected void internalAddNode(Node node) {
     	addNode(node);
     }
-    
+
     public void removeNode(Node node) {
         nodeContainer.removeNode(node);
         ((org.jbpm.workflow.core.Node) node).setNodeContainer(null);
     }
-    
+
     protected void internalRemoveNode(Node node) {
     	removeNode(node);
     }
-    
+
     @Override
     public boolean acceptsEvent(String type, Object event, Function<String, Object> resolver) {
         for (Node node: internalGetNodes()) {
@@ -133,11 +134,11 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 		}
 		return false;
 	}
-    
+
     public void linkIncomingConnections(String inType, long inNodeId, String inNodeType) {
         linkIncomingConnections(inType, new NodeAndType(nodeContainer, inNodeId, inNodeType));
     }
-    
+
     public void linkIncomingConnections(String inType, CompositeNode.NodeAndType inNode) {
         CompositeNode.NodeAndType oldNodeAndType = inConnectionMap.get(inType);
         if (oldNodeAndType != null) {
@@ -145,7 +146,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
         		return;
         	} else {
         		// remove old start nodes + connections
-        		List<Connection> oldInConnections = 
+        		List<Connection> oldInConnections =
         			oldNodeAndType.getNode().getIncomingConnections(oldNodeAndType.getType());
         		if (oldInConnections != null) {
         			for (Connection connection: new ArrayList<Connection>(oldInConnections)) {
@@ -165,17 +166,17 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 		        internalAddNode(start);
 		        if (inNode.getNode() != null) {
 			        new ConnectionImpl(
-			            start, org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE, 
+			            start, org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE,
 			            inNode.getNode(), inNode.getType());
 		        }
 	        }
         }
     }
-    
+
     public void linkOutgoingConnections(long outNodeId, String outNodeType, String outType) {
         linkOutgoingConnections(new NodeAndType(this, outNodeId, outNodeType), outType);
     }
-    
+
     public void linkOutgoingConnections(CompositeNode.NodeAndType outNode, String outType) {
         CompositeNode.NodeAndType oldNodeAndType = outConnectionMap.get(outType);
         if (oldNodeAndType != null) {
@@ -183,7 +184,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
         		return;
         	} else {
         		// remove old end nodes + connections
-        		List<Connection> oldOutConnections = 
+        		List<Connection> oldOutConnections =
         			oldNodeAndType.getNode().getOutgoingConnections(oldNodeAndType.getType());
     			for (Connection connection: new ArrayList<Connection>(oldOutConnections)) {
     				if (connection.getTo() instanceof CompositeNodeEnd) {
@@ -201,7 +202,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 		        internalAddNode(end);
 		        if (outNode.getNode() != null) {
 			        new ConnectionImpl(
-			            outNode.getNode(), outNode.getType(), 
+			            outNode.getNode(), outNode.getType(),
 			            end, org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE);
 		        }
 	        }
@@ -219,7 +220,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
     public CompositeNode.NodeAndType getLinkedOutgoingNode(String outType) {
         return outConnectionMap.get(outType);
     }
-    
+
     public CompositeNode.NodeAndType internalGetLinkedOutgoingNode(String outType) {
         return outConnectionMap.get(outType);
     }
@@ -227,16 +228,16 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
     public Map<String, CompositeNode.NodeAndType> getLinkedIncomingNodes() {
         return inConnectionMap;
     }
-    
+
     public Map<String, CompositeNode.NodeAndType> getLinkedOutgoingNodes() {
         return outConnectionMap;
     }
-    
+
     public void validateAddIncomingConnection(final String type, final Connection connection) {
     	CompositeNode.NodeAndType nodeAndType = internalGetLinkedIncomingNode(type);
     	if (connection.getFrom().getNodeContainer() == this) {
     		if (nodeAndType != null) {
-    			throw new IllegalArgumentException("Cannot link incoming connection type more than once: " + type);
+    			throw new BpmnNodeIllegalArgumentException("Cannot link incoming connection type more than once: ", type);
     		}
     	} else {
 	        if (nodeAndType != null) {
@@ -247,7 +248,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 	        }
     	}
     }
-    
+
     public void addIncomingConnection(String type, Connection connection) {
     	if (connection.getFrom().getNodeContainer() == this) {
     		linkOutgoingConnections(connection.getFrom().getId(), connection.getFromType(), org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE);
@@ -260,18 +261,18 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 		        NodeImpl node = (NodeImpl) inNode.getNode();
 	        	if (node != null) {
 			        new ConnectionImpl(
-			            start, org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE, 
+			            start, org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE,
 			            inNode.getNode(), inNode.getType());
 	        	}
 	        }
     	}
     }
-    
+
     public void validateAddOutgoingConnection(final String type, final Connection connection) {
         CompositeNode.NodeAndType nodeAndType = internalGetLinkedOutgoingNode(type);
         if (connection.getTo().getNodeContainer() == this) {
     		if (nodeAndType != null) {
-    			throw new IllegalArgumentException("Cannot link outgoing connection type more than once: " + type);
+    			throw new BpmnNodeIllegalArgumentException("Cannot link outgoing connection type more than once: ", type, connection.getTo().getNodeUniqueId());
     		}
     	} else {
     		if (nodeAndType != null) {
@@ -282,12 +283,12 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 	        }
     	}
 	}
-    
+
     public void addOutgoingConnection(String type, Connection connection) {
     	if (connection.getTo().getNodeContainer() == this) {
     		linkIncomingConnections(
 				org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE,
-				connection.getTo().getId(),	connection.getToType());    		
+				connection.getTo().getId(),	connection.getToType());
     	} else {
 	        super.addOutgoingConnection(type, connection);
 	        CompositeNode.NodeAndType outNode = internalGetLinkedOutgoingNode(type);
@@ -297,13 +298,13 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 		        NodeImpl node = (NodeImpl) outNode.getNode();
 	        	if (node != null) {
 	        		new ConnectionImpl(
-        				outNode.getNode(), outNode.getType(), 
+        				outNode.getNode(), outNode.getType(),
         				end, org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE);
 	        	}
 	        }
     	}
     }
-    
+
     public void validateRemoveIncomingConnection(final String type, final Connection connection) {
         CompositeNode.NodeAndType nodeAndType = internalGetLinkedIncomingNode(type);
         if (nodeAndType != null) {
@@ -317,7 +318,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 	        	"Could not find internal incoming connection for node");
         }
     }
-    
+
     public void removeIncomingConnection(String type, Connection connection) {
         super.removeIncomingConnection(type, connection);
         CompositeNode.NodeAndType nodeAndType = internalGetLinkedIncomingNode(type);
@@ -334,7 +335,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 	        	"Could not find internal incoming connection for node");
         }
     }
-    
+
     public void validateRemoveOutgoingConnection(final String type, final Connection connection) {
         CompositeNode.NodeAndType nodeAndType = internalGetLinkedOutgoingNode(type);
         if (nodeAndType != null) {
@@ -348,7 +349,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 	            "Could not find internal outgoing connection for node");
         }
     }
-    
+
     public void removeOutgoingConnection(String type, Connection connection) {
         super.removeOutgoingConnection(type, connection);
         CompositeNode.NodeAndType nodeAndType = internalGetLinkedOutgoingNode(type);
@@ -365,7 +366,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 	            "Could not find internal outgoing connection for node");
         }
     }
-    
+
 	public boolean isCancelRemainingInstances() {
 		return cancelRemainingInstances;
 	}
@@ -373,11 +374,11 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
 	public void setCancelRemainingInstances(boolean cancelRemainingInstances) {
 		this.cancelRemainingInstances = cancelRemainingInstances;
 	}
-	
+
 	public boolean isAutoComplete() {
         return autoComplete;
     }
-    
+
     public void setAutoComplete(boolean autoComplete) {
         this.autoComplete = autoComplete;
     }
@@ -385,12 +386,12 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
     public static class NodeAndType implements Serializable {
 
         private static final long serialVersionUID = 510l;
-		
+
         private NodeContainer nodeContainer;
         private long nodeId;
         private String type;
         private transient Node node;
-        
+
         public NodeAndType(NodeContainer nodeContainer, long nodeId, String type) {
             if (type == null) {
                 throw new IllegalArgumentException(
@@ -400,7 +401,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
             this.type = type;
             this.nodeContainer = nodeContainer;
         }
-        
+
         public NodeAndType(Node node, String type) {
             if (node == null || type == null) {
                 throw new IllegalArgumentException(
@@ -410,7 +411,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
             this.node = node;
             this.type = type;
         }
-        
+
         public Node getNode() {
             if (node == null) {
                 try {
@@ -421,7 +422,7 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
             }
             return node;
         }
-        
+
         public long getNodeId() {
             return nodeId;
         }
@@ -429,30 +430,30 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
         public String getType() {
             return type;
         }
-        
+
         public boolean equals(Object o) {
             if (o instanceof NodeAndType) {
                 return nodeId == ((NodeAndType) o).nodeId
-                    && type.equals(((NodeAndType) o).type); 
+                    && type.equals(((NodeAndType) o).type);
             }
             return false;
         }
-        
+
         public int hashCode() {
             return 7*(int)nodeId + 13*type.hashCode();
         }
-        
+
     }
-    
+
     public static class CompositeNodeStart extends NodeImpl {
 
         private static final long serialVersionUID = 510l;
-        
+
         private CompositeNode parentNode;
         private long inNodeId;
         private transient Node inNode;
         private String inType;
-        
+
         public CompositeNodeStart(CompositeNode parentNode, Node outNode, String outType) {
             super(NodeType.INTERNAL);
             setName("Composite node start");
@@ -462,33 +463,33 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
             this.parentNode = parentNode;
             setMetaData("hidden", true);
        }
-        
+
         public Node getInNode() {
             if (inNode == null) {
                 inNode = ((NodeContainer) parentNode.getNodeContainer()).internalGetNode(inNodeId);
             }
             return inNode;
         }
-        
+
         public long getInNodeId() {
             return inNodeId;
         }
-        
+
         public String getInType() {
             return inType;
         }
-        
+
     }
-    
+
     public static class CompositeNodeEnd extends NodeImpl {
 
         private static final long serialVersionUID = 510l;
-        
+
         private CompositeNode parentNode;
         private long outNodeId;
         private transient Node outNode;
         private String outType;
-        
+
         public CompositeNodeEnd(CompositeNode parentNode, Node outNode, String outType) {
             super(NodeType.INTERNAL);
             setName("Composite node end");
@@ -498,22 +499,22 @@ public class CompositeNode extends StateBasedNode implements NodeContainer, Even
             this.parentNode = parentNode;
             setMetaData("hidden", true);
         }
-        
+
         public Node getOutNode() {
             if (outNode == null) {
                 outNode = ((NodeContainer) parentNode.getNodeContainer()).internalGetNode(outNodeId);
             }
             return outNode;
         }
-        
+
         public long getOutNodeId() {
             return outNodeId;
         }
-        
+
         public String getOutType() {
             return outType;
         }
-        
+
     }
 
 }

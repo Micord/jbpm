@@ -17,7 +17,7 @@
 package org.jbpm.test.container.test.ejbservices.tx;
 
 import javax.naming.InitialContext;
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 
 import org.assertj.core.api.Assertions;
 import org.jbpm.test.container.AbstractRuntimeEJBServicesTest;

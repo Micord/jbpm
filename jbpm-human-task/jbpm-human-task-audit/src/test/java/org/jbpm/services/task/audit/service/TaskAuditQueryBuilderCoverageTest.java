@@ -19,8 +19,8 @@ package org.jbpm.services.task.audit.service;
 import static org.jbpm.query.QueryBuilderCoverageTestUtil.hackTheDatabaseMetadataLoggerBecauseTheresALogbackXmlInTheClasspath;
 import static org.jbpm.query.QueryBuilderCoverageTestUtil.queryBuilderCoverageTest;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.persistence.correlation.JPACorrelationKeyFactory;
 import org.jbpm.query.QueryBuilderCoverageTestUtil.ModuleSpecificInputFiller;
@@ -151,8 +151,8 @@ public class TaskAuditQueryBuilderCoverageTest extends HumanTaskServicesBaseTest
                     Status [] statusArr = { Status.Completed, Status.Suspended };
                     return statusArr;
                 } else if( elemType.equals(TaskVariable.VariableType.class) ) {
-                    VariableType [] typeArr = { 
-                            taskVariableType++ % 2 == 0 ? TaskVariable.VariableType.INPUT : VariableType.OUTPUT 
+                    VariableType [] typeArr = {
+                            taskVariableType++ % 2 == 0 ? TaskVariable.VariableType.INPUT : VariableType.OUTPUT
                     };
                     return typeArr;
                 }

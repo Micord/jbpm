@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.drools.persistence.api.TransactionManager;
 import org.drools.persistence.api.TransactionManagerFactory;
@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * - if job that previously failed is completed it will be eligible for auto ack
  * - if job that previously failed is cancelled it will be eligible for auto ack
  * - if job that previously failed is rescheduled it will be eligible for auto ack
- * 
+ *
  * Following parameters are supported by this command:
  * <ul>
  *  <li>EmfName - name of entity manager factory to be used for queries (valid persistence unit name)</li>
@@ -48,7 +48,7 @@ public class JobAutoAckErrorCommand extends AutoAckErrorCommand {
     private static final Logger logger = LoggerFactory.getLogger(JobAutoAckErrorCommand.class);
 
     private static final String RULE = "Jobs that previously failed but now are in one of the statuses - queued, completed or cancelled";
-    
+
 
     @Override
     protected List<ExecutionErrorInfo> findErrorsToAck(EntityManager em) {
@@ -71,7 +71,7 @@ public class JobAutoAckErrorCommand extends AutoAckErrorCommand {
             txm.rollback(txOwner);
         }
         return errorsToAck;
-        
+
     }
 
     @Override

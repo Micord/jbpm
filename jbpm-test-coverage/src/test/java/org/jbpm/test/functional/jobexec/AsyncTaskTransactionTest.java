@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import javax.naming.InitialContext;
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 
 import org.assertj.core.api.Assertions;
 import org.jbpm.executor.impl.ExecutorServiceImpl;

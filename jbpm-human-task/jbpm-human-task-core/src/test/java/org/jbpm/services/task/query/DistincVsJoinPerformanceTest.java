@@ -25,20 +25,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.persistence.Query;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Join;
-import javax.persistence.criteria.JoinType;
-import javax.persistence.criteria.ListJoin;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
-import javax.persistence.criteria.Selection;
-import javax.persistence.metamodel.Attribute;
-import javax.persistence.metamodel.PluralAttribute;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import jakarta.persistence.Query;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.ListJoin;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Selection;
+import jakarta.persistence.metamodel.Attribute;
+import jakarta.persistence.metamodel.PluralAttribute;
 
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.internal.SessionImpl;
@@ -66,7 +66,7 @@ import org.kie.internal.task.api.InternalTaskService;
 import org.kie.internal.task.api.model.InternalTaskData;
 
 /**
- * 
+ *
  * Verifying that the new JPA Criteria API approach is more performant (primarilly because of better use of joins!)
  *
  */
@@ -75,9 +75,9 @@ public class DistincVsJoinPerformanceTest extends HumanTaskServicesBaseTest {
 
     private PoolingDataSourceWrapper pds;
     private EntityManagerFactory emf;
-    
+
     private static final String stakeHolder = "vampire";
-    
+
     @Before
     public void setup() {
         pds = setupPoolingDataSource();
@@ -87,7 +87,7 @@ public class DistincVsJoinPerformanceTest extends HumanTaskServicesBaseTest {
                                                 .entityManagerFactory(emf)
                                                 .getTaskService();
     }
-    
+
     @After
     public void clean() {
         super.tearDown();
@@ -98,8 +98,8 @@ public class DistincVsJoinPerformanceTest extends HumanTaskServicesBaseTest {
             pds.close();
         }
     }
-    
-        
+
+
     @Test
     public void performanceTest() {
         long workItemId = 59;
@@ -108,18 +108,18 @@ public class DistincVsJoinPerformanceTest extends HumanTaskServicesBaseTest {
         String potOwner = "Maelcum";
         String deploymentId = "Dixie Flatline";
         String name = "Complete Mission";
-        
+
         int total = 100;
-       for( int i = 0; i < total; ++i ) { 
+       for( int i = 0; i < total; ++i ) {
                // Add two more tasks, in order to have a quorum
                 ++workItemId;
                 ++procInstId;
                 busAdmin = "Wintermute";
                 potOwner = "Maelcum";
                 deploymentId = "Dixie Flatline";
-                name = "Complete Mission";        
+                name = "Complete Mission";
                addTask(workItemId, procInstId, busAdmin, potOwner, name, deploymentId);
-               
+
                // Add two more tasks, in order to have a quorum
                ++workItemId;
                ++procInstId;
@@ -129,18 +129,18 @@ public class DistincVsJoinPerformanceTest extends HumanTaskServicesBaseTest {
                name = "Resurrect";
                addTask(workItemId, procInstId, busAdmin, potOwner, name, deploymentId);
        }
-        
+
         List<String> groupIds = new ArrayList<String>();
         groupIds.add("Ninja");
         String userId = "Hideo";
-        
+
         EntityManager em  = emf.createEntityManager();
         CriteriaBuilder builder = em.getCriteriaBuilder();
-      
+
         long joinTotal = 0;
         long selectTotal = 0;
-       
-        for( int i = 0; i < 500; ++i ) { 
+
+        for( int i = 0; i < 500; ++i ) {
 
             // Add two more tasks, in order to have a quorum
             ++workItemId;
@@ -153,14 +153,14 @@ public class DistincVsJoinPerformanceTest extends HumanTaskServicesBaseTest {
             ++total;
 
             long selectDur, joinDur;
-            if( i % 2 == 0 ) { 
+            if( i % 2 == 0 ) {
                 selectDur = doSelectQuery(em, userId, groupIds, total);
                 joinDur = doJoinQuery(em, userId, groupIds, total);
-            } else { 
+            } else {
                 joinDur = doJoinQuery(em, userId, groupIds, total);
                 selectDur = doSelectQuery(em, userId, groupIds, total);
             }
-            
+
             System.out.println( "API: " + joinDur + " JPQL: " + selectDur);
             joinTotal += joinDur;
             selectTotal += selectDur;
@@ -169,16 +169,16 @@ public class DistincVsJoinPerformanceTest extends HumanTaskServicesBaseTest {
         selectTotal /= 20;
         assertTrue( "Join [" + joinTotal + "ms] took longer than Select [" + selectTotal + "ms]!",
                 joinTotal < selectTotal );
-        
+
     }
 
-    private long doJoinQuery(EntityManager em, String userId, List<String> groupIds, int total) { 
+    private long doJoinQuery(EntityManager em, String userId, List<String> groupIds, int total) {
         CriteriaBuilder builder = em.getCriteriaBuilder();
-        
+
         CriteriaQuery<TaskImpl> joinQuery = builder.createQuery(TaskImpl.class);
         Root<TaskImpl> taskRoot = joinQuery.from(TaskImpl.class);
         Join<TaskImpl, TaskDataImpl> join = taskRoot.join(TaskImpl_.taskData);
-      
+
         Selection select = getTaskSummarySelect(builder, taskRoot);
         joinQuery.select(select);
         Join<TaskImpl, PeopleAssignmentsImpl> peopleAssign = taskRoot.join(TaskImpl_.peopleAssignments);
@@ -189,26 +189,26 @@ public class DistincVsJoinPerformanceTest extends HumanTaskServicesBaseTest {
         List<Predicate> predicates = new ArrayList<Predicate>();
         predicates.add( builder.equal(taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.actualOwner).get(UserImpl_.id), userId) );
         predicates.add( builder.equal(taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.createdBy).get(UserImpl_.id), userId) );
-        
-        predicates.add( builder.or( 
-                builder.equal( busAdmins.get(OrganizationalEntityImpl_.id), userId ), 
+
+        predicates.add( builder.or(
+                builder.equal( busAdmins.get(OrganizationalEntityImpl_.id), userId ),
                 busAdmins.get(OrganizationalEntityImpl_.id).in(groupIds) ) );
-        predicates.add( builder.or( 
-                builder.equal( potOwners.get(OrganizationalEntityImpl_.id), userId ), 
+        predicates.add( builder.or(
+                builder.equal( potOwners.get(OrganizationalEntityImpl_.id), userId ),
                 potOwners.get(OrganizationalEntityImpl_.id).in(groupIds) ) );
-        predicates.add( builder.or( 
-                builder.equal( stakeHols.get(OrganizationalEntityImpl_.id), userId ), 
+        predicates.add( builder.or(
+                builder.equal( stakeHols.get(OrganizationalEntityImpl_.id), userId ),
                 stakeHols.get(OrganizationalEntityImpl_.id).in(groupIds) ) );
 
-        if( ! predicates.isEmpty() ) { 
+        if( ! predicates.isEmpty() ) {
             joinQuery.where(builder.or(predicates.toArray(new Predicate[predicates.size()])));
         }
 
-        return timeQueryExecution(em, joinQuery, null, total); 
+        return timeQueryExecution(em, joinQuery, null, total);
     }
-    
-    private long doSelectQuery(EntityManager em, String userId, List<String> groupIds, int total) { 
-        String selectFrom = 
+
+    private long doSelectQuery(EntityManager em, String userId, List<String> groupIds, int total) {
+        String selectFrom =
                 "SELECT distinct new org.jbpm.services.task.query.TaskSummaryImpl(\n" +
                 "       t.id,\n" +
                 "       t.name,\n" +
@@ -231,10 +231,10 @@ public class DistincVsJoinPerformanceTest extends HumanTaskServicesBaseTest {
               + "     OrganizationalEntityImpl businessAdministrators\n"
               + "WHERE ";
         StringBuffer queryStr = new StringBuffer(selectFrom);
-       
+
         String userIdParam = "U";
         String groupIdsParam = "G";
-        
+
         queryStr
         .append("t.taskData.createdBy.id = :").append(userIdParam).append("\n OR ")
         .append("( stakeHolders.id in :").append(groupIdsParam).append(" and\n")
@@ -245,88 +245,75 @@ public class DistincVsJoinPerformanceTest extends HumanTaskServicesBaseTest {
         .append("( businessAdministrators.id in :").append(groupIdsParam).append(" and\n")
         .append("  businessAdministrators in elements ( t.peopleAssignments.businessAdministrators ) )")
         .append(" )\n");
-       
+
         Query realQuery = em.createQuery(queryStr.toString());
         realQuery.setParameter(userIdParam, userId);
         realQuery.setParameter(groupIdsParam, groupIds);
-        
-        return  timeQueryExecution(em, null, realQuery, total); 
+
+        return  timeQueryExecution(em, null, realQuery, total);
     }
-    
-    private String [] createOriginalAndExpectedKeys(Attribute embeddedAttr, PluralAttribute listAttr) { 
-        String originalKey = embeddedAttr.getDeclaringType().getJavaType().getName() 
+
+    private String [] createOriginalAndExpectedKeys(Attribute embeddedAttr, PluralAttribute listAttr) {
+        String originalKey = embeddedAttr.getDeclaringType().getJavaType().getName()
                 + "." + embeddedAttr.getName()
                 + "." + listAttr.getName();
-        
+
         String copyKey = listAttr.getDeclaringType().getJavaType().getName()
-                + "." + listAttr.getName(); 
+                + "." + listAttr.getName();
         String [] keys = { originalKey, copyKey };
         return keys;
     }
-    
-    private void copyCollectionPersisterKeys(Attribute embeddedAttr, PluralAttribute listAttr, EntityManager em) {
-        String [] keys = createOriginalAndExpectedKeys(embeddedAttr, listAttr);
-        try {
-            SessionImpl session = (SessionImpl) em.getDelegate();
-            SessionFactoryImplementor sessionFactory = session.getSessionFactory();
-            CollectionPersister persister =   sessionFactory.getCollectionPersister(keys[0]);
-            sessionFactory.getCollectionPersisters().put(keys[1], persister);
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-    
-    private Selection<TaskSummaryImpl> getTaskSummarySelect(CriteriaBuilder builder, Root<TaskImpl> taskRoot) { 
-        Selection<TaskSummaryImpl> select = builder.construct(TaskSummaryImpl.class, 
-                taskRoot.get(TaskImpl_.id), 
-                taskRoot.get(TaskImpl_.name), 
-                taskRoot.get(TaskImpl_.subject), 
-                taskRoot.get(TaskImpl_.description), 
+
+    private Selection<TaskSummaryImpl> getTaskSummarySelect(CriteriaBuilder builder, Root<TaskImpl> taskRoot) {
+        Selection<TaskSummaryImpl> select = builder.construct(TaskSummaryImpl.class,
+                taskRoot.get(TaskImpl_.id),
+                taskRoot.get(TaskImpl_.name),
+                taskRoot.get(TaskImpl_.subject),
+                taskRoot.get(TaskImpl_.description),
 
                 taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.status),
-                taskRoot.get(TaskImpl_.priority), 
+                taskRoot.get(TaskImpl_.priority),
 
-                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.skipable), 
+                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.skipable),
 
                 taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.actualOwner).get(UserImpl_.id),
-                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.createdBy).get(UserImpl_.id), 
+                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.createdBy).get(UserImpl_.id),
 
-                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.createdOn), 
+                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.createdOn),
 
-                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.activationTime), 
-                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.expirationTime), 
+                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.activationTime),
+                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.expirationTime),
 
-                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.processId), 
-                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.processSessionId), 
-                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.processInstanceId), 
-                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.deploymentId), 
+                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.processId),
+                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.processSessionId),
+                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.processInstanceId),
+                taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.deploymentId),
 
                 taskRoot.get(TaskImpl_.subTaskStrategy),
                 taskRoot.get(TaskImpl_.taskData).get(TaskDataImpl_.parentId)
                 );
         return select;
     }
-    
-    private long timeQueryExecution(EntityManager em, CriteriaQuery query, Query realQuery, int total) { 
-        
-        if( realQuery == null ) { 
+
+    private long timeQueryExecution(EntityManager em, CriteriaQuery query, Query realQuery, int total) {
+
+        if( realQuery == null ) {
             realQuery = em.createQuery(query);
             realQuery.setMaxResults(2000);
         }
-        
-        long start = System.nanoTime(); 
+
+        long start = System.nanoTime();
         List<TaskSummary> results = realQuery.getResultList();
-        long end = System.nanoTime(); 
-       
+        long end = System.nanoTime();
+
         assertEquals( "query results", total, results.size() );
-        
-        return (end - start)/1000000; 
+
+        return (end - start)/1000000;
     }
-   
-    private TaskImpl addTask( long workItemId, long procInstId, String busAdmin, String potOwner, String name, String deploymentId) { 
+
+    private TaskImpl addTask( long workItemId, long procInstId, String busAdmin, String potOwner, String name, String deploymentId) {
         String str = "(with (new Task()) { priority = 55, taskData = (with( new TaskData()) { } ), ";
-        
+
         String potOwnerType = potOwner.equals("Hideo") ? "User" : "Group";
         str += "peopleAssignments = (with ( new PeopleAssignments() ) { "
                 + "taskStakeholders = [new User('" + stakeHolder + "')],"

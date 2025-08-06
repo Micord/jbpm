@@ -15,9 +15,9 @@
  */
 package org.jbpm.services.task.audit.service;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.services.task.HumanTaskServiceFactory;
 import org.jbpm.services.task.audit.JPATaskLifeCycleEventListener;
@@ -32,7 +32,7 @@ public class LocalTaskAuditTest extends TaskAuditBaseTest {
 
 	private PoolingDataSourceWrapper pds;
 	private EntityManagerFactory emf;
-	
+
 	@Before
 	public void setup() {
 		pds = setupPoolingDataSource();
@@ -43,10 +43,10 @@ public class LocalTaskAuditTest extends TaskAuditBaseTest {
 												.listener(new JPATaskLifeCycleEventListener(true))
 												.listener(new BAMTaskEventListener(true))
 												.getTaskService();
-                
+
         this.taskAuditService = TaskAuditServiceFactory.newTaskAuditServiceConfigurator().setTaskService(taskService).getTaskAuditService();
 	}
-	
+
 	@After
 	public void clean() {
 		if (emf != null) {

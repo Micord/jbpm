@@ -18,7 +18,7 @@ package org.jbpm.kie.test.objects;
 
 import java.io.Serializable;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class Person extends Thing implements Serializable {

@@ -17,10 +17,10 @@
 package org.jbpm.executor.ejb.impl;
 
 
-import javax.annotation.PreDestroy;
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.ConcurrencyManagementType;
-import javax.ejb.Singleton;
+import jakarta.annotation.PreDestroy;
+import jakarta.ejb.ConcurrencyManagement;
+import jakarta.ejb.ConcurrencyManagementType;
+import jakarta.ejb.Singleton;
 
 import org.jbpm.executor.impl.ClassCacheManager;
 

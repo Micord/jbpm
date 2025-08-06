@@ -27,13 +27,13 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.Queue;
-import javax.jms.Session;
-import javax.jms.TextMessage;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
+import jakarta.jms.MessageProducer;
+import jakarta.jms.Queue;
+import jakarta.jms.Session;
+import jakarta.jms.TextMessage;
 
 import org.jbpm.casemgmt.api.event.CaseDataEvent;
 import org.jbpm.casemgmt.api.event.CaseReopenEvent;
@@ -47,128 +47,128 @@ import org.kie.api.task.model.OrganizationalEntity;
 
 public class AsyncCaseInstanceAuditEventProducerTest {
 
-    private ConnectionFactory connectionFactory;    
+    private ConnectionFactory connectionFactory;
     private Queue queue;
-    
+
     private Connection connection;
     private Session session;
     private MessageProducer producer;
-    
+
     private TextMessage message;
-    
+
     private AsyncCaseInstanceAuditEventProducer logProducer;
-    
+
     @Before
     public void configure() throws JMSException {
-        
-        this.connectionFactory = mock(ConnectionFactory.class);        
+
+        this.connectionFactory = mock(ConnectionFactory.class);
         this.queue = mock(Queue.class);
-        
+
         connection = mock(Connection.class);
         session = mock(Session.class);
         producer = mock(MessageProducer.class);
-        
+
         message = mock(TextMessage.class);
-        
-        when(connectionFactory.createConnection()).thenReturn(connection);        
+
+        when(connectionFactory.createConnection()).thenReturn(connection);
         when(connection.createSession(true, Session.AUTO_ACKNOWLEDGE)).thenReturn(session);
-        
+
         when(session.createProducer(any())).thenReturn(producer);
         when(session.createTextMessage(any())).thenReturn(message);
-        
+
         logProducer = new AsyncCaseInstanceAuditEventProducer();
         logProducer.setConnectionFactory(connectionFactory);
         logProducer.setQueue(queue);
         logProducer.setTransacted(true);
     }
-    
+
     @After
     public void assertClose() throws JMSException {
         verify(producer, times(1)).close();
         verify(session, times(1)).close();
         verify(connection, times(1)).close();
     }
-    
+
     @Test
     public void testCaseStarted() throws JMSException {
         CaseFileInstanceImpl caseFile = new CaseFileInstanceImpl("TEST-01", "case");
         CaseStartEvent event = new CaseStartEvent("user", "TEST-01", "test", "case", caseFile, 1L);
-        
+
         logProducer.afterCaseStarted(event);
-        
+
         verify(message, times(1)).setStringProperty(eq("LogType"), eq("Case"));
         verify(message, times(1)).setIntProperty(eq("EventType"), eq(AFTER_CASE_STARTED_EVENT_TYPE));
         verify(producer, times(1)).setPriority(eq(8));
         verify(producer, times(1)).send(eq(message));
     }
-    
+
     @Test
     public void testCaseReopen() throws JMSException {
         CaseFileInstanceImpl caseFile = new CaseFileInstanceImpl("TEST-01", "case");
         CaseReopenEvent event = new CaseReopenEvent("user", "TEST-01", caseFile, "test", "case", new HashMap<>());
-        
+
         logProducer.afterCaseReopen(event);
-        
+
         verify(message, times(1)).setStringProperty(eq("LogType"), eq("Case"));
         verify(message, times(1)).setIntProperty(eq("EventType"), eq(AFTER_CASE_REOPEN_EVENT_TYPE));
         verify(producer, times(1)).setPriority(eq(4));
         verify(producer, times(1)).send(eq(message));
     }
-    
+
     @Test
     public void testCaseRoleAssignmentAdded() throws JMSException {
         OrganizationalEntity entity = mock(OrganizationalEntity.class);
         when(entity.getId()).thenReturn("john");
         CaseFileInstanceImpl caseFile = new CaseFileInstanceImpl("TEST-01", "case");
         CaseRoleAssignmentEvent event = new CaseRoleAssignmentEvent("user", "TEST-01", caseFile, "owner", entity);
-        
+
         logProducer.afterCaseRoleAssignmentAdded(event);
-        
+
         verify(message, times(1)).setStringProperty(eq("LogType"), eq("Case"));
         verify(message, times(1)).setIntProperty(eq("EventType"), eq(AFTER_CASE_ROLE_ASSIGNMENT_ADDED_EVENT_TYPE));
         verify(producer, times(1)).setPriority(eq(4));
         verify(producer, times(1)).send(eq(message));
     }
-    
+
     @Test
     public void testCaseRoleAssignmentRemoved() throws JMSException {
         OrganizationalEntity entity = mock(OrganizationalEntity.class);
         when(entity.getId()).thenReturn("john");
         CaseFileInstanceImpl caseFile = new CaseFileInstanceImpl("TEST-01", "case");
         CaseRoleAssignmentEvent event = new CaseRoleAssignmentEvent("user", "TEST-01", caseFile, "owner", entity);
-        
+
         logProducer.afterCaseRoleAssignmentRemoved(event);
-        
+
         verify(message, times(1)).setStringProperty(eq("LogType"), eq("Case"));
         verify(message, times(1)).setIntProperty(eq("EventType"), eq(AFTER_CASE_ROLE_ASSIGNMENT_REMOVED_EVENT_TYPE));
         verify(producer, times(1)).setPriority(eq(4));
         verify(producer, times(1)).send(eq(message));
     }
-    
+
     @Test
     public void testCaseDataAdded() throws JMSException {
         Map<String, Object> data = new HashMap<>();
         data.put("test", "value");
         CaseFileInstanceImpl caseFile = new CaseFileInstanceImpl("TEST-01", "case");
         CaseDataEvent event = new CaseDataEvent("user", "TEST-01", caseFile, "case", data);
-        
+
         logProducer.afterCaseDataAdded(event);
-        
+
         verify(message, times(1)).setStringProperty(eq("LogType"), eq("Case"));
         verify(message, times(1)).setIntProperty(eq("EventType"), eq(AFTER_CASE_DATA_ADDED_EVENT_TYPE));
         verify(producer, times(1)).setPriority(eq(4));
         verify(producer, times(1)).send(eq(message));
     }
-    
+
     @Test
     public void testCaseDataRemoved() throws JMSException {
         Map<String, Object> data = new HashMap<>();
         data.put("test", "value");
         CaseFileInstanceImpl caseFile = new CaseFileInstanceImpl("TEST-01", "case");
         CaseDataEvent event = new CaseDataEvent("user", "TEST-01", caseFile, "case", data);
-        
+
         logProducer.afterCaseDataRemoved(event);
-        
+
         verify(message, times(1)).setStringProperty(eq("LogType"), eq("Case"));
         verify(message, times(1)).setIntProperty(eq("EventType"), eq(AFTER_CASE_DATA_REMOVED_EVENT_TYPE));
         verify(producer, times(1)).setPriority(eq(4));

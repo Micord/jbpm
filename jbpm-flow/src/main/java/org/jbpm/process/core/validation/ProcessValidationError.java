@@ -16,6 +16,7 @@
 
 package org.jbpm.process.core.validation;
 
+import org.kie.api.definition.process.Node;
 import org.kie.api.definition.process.Process;
 
 /**
@@ -27,5 +28,9 @@ public interface ProcessValidationError {
     Process getProcess();
     
     String getMessage();
-    
+
+    Node getNode();
+
+    String getRawMessage();
+
 }

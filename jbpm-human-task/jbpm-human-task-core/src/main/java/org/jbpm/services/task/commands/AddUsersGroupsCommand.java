@@ -21,11 +21,11 @@ import org.kie.api.task.model.Group;
 import org.kie.api.task.model.User;
 import org.kie.internal.task.api.TaskIdentityService;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Map;
 
 
@@ -38,11 +38,11 @@ public class AddUsersGroupsCommand extends TaskCommand<Void> {
 	@XmlJavaTypeAdapter(JaxbMapAdapter.class)
 	@XmlElement
 	private Map<String, User> users;
-	
+
 	@XmlJavaTypeAdapter(JaxbMapAdapter.class)
 	@XmlElement
 	private Map<String, Group> groups;
-    
+
     public AddUsersGroupsCommand() {
     }
 
@@ -54,7 +54,7 @@ public class AddUsersGroupsCommand extends TaskCommand<Void> {
 
     public Void execute(Context cntxt) {
         TaskContext context = (TaskContext) cntxt;
-        
+
         TaskIdentityService identityService = context.getTaskIdentityService();
         for (User user : users.values()) {
         	identityService.addUser(user);
@@ -64,7 +64,7 @@ public class AddUsersGroupsCommand extends TaskCommand<Void> {
         	identityService.addGroup(group);
         }
         return null;
-    	 
+
     }
 
 }

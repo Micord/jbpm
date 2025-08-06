@@ -19,10 +19,10 @@ import org.jbpm.services.task.impl.model.xml.JaxbOrganizationalEntity;
 import org.kie.api.runtime.Context;
 import org.kie.api.task.model.OrganizationalEntity;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 import static org.jbpm.services.task.impl.model.xml.AbstractJaxbTaskObject.convertListFromInterfaceToJaxbImpl;
@@ -46,10 +46,10 @@ public class NominateTaskCommand extends UserGroupCallbackTaskCommand<Void> {
 
 	@XmlElement
     private List<JaxbOrganizationalEntity> potentialOwners;
-    
+
     public NominateTaskCommand() {
     }
-    
+
     public NominateTaskCommand(long taskId, String userId, List<OrganizationalEntity> potentialOwners) {
         this.taskId = taskId;
         this.userId = userId;
@@ -74,6 +74,6 @@ public class NominateTaskCommand extends UserGroupCallbackTaskCommand<Void> {
     public List<JaxbOrganizationalEntity> getPotentialOwners() {
         return potentialOwners;
     }
-    
-    
+
+
 }

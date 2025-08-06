@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm</artifactId>
-    <version>7.74.1.Final</version>
+    <version>7.74.1.Final-Micord.1</version>
   </parent>
 
   <artifactId>jbpm-audit</artifactId>
@@ -88,8 +88,8 @@
 
     <dependency>
       <!--  only needed for metadata generation -->
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-jpamodelgen</artifactId>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-processor</artifactId>
       <optional>true</optional>
       <scope>provided</scope>
       <exclusions>
@@ -99,6 +99,11 @@
           <artifactId>jaxb-api</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging</artifactId>
     </dependency>
 
     <!-- TEST -->
@@ -117,7 +122,7 @@
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
     <!-- Test: persistence -->
     <dependency>
       <groupId>org.jbpm</groupId>
@@ -125,14 +130,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-entitymanager</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hibernate</groupId>
+      <groupId>org.hibernate.orm</groupId>
       <artifactId>hibernate-core</artifactId>
-      <scope>test</scope>
+      <scope>provided</scope>
       <exclusions>
         <!-- collides with jakarta.xml.bind-api -->
         <exclusion>
@@ -162,7 +162,7 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-    
+
     <!-- Test: jms -->
     <dependency>
       <groupId>org.hornetq</groupId>
@@ -177,7 +177,7 @@
         </exclusion>
       </exclusions>
     </dependency>
-    
+
     <!-- Test: logging -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -185,7 +185,7 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  
+
   <build>
     <testResources>
       <testResource>
@@ -200,7 +200,7 @@
 
     <plugins>
       <plugin>
-        <!--  ensure that db files are deleted before _any_ run 
+        <!--  ensure that db files are deleted before _any_ run
               otherwise we get tests failing because of leftover db's -->
         <artifactId>maven-clean-plugin</artifactId>
         <configuration>
@@ -238,7 +238,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <annotationProcessors>
-            <annotationProcessor>org.hibernate.jpamodelgen.JPAMetaModelEntityProcessor</annotationProcessor>
+            <annotationProcessor>org.hibernate.processor.HibernateProcessor</annotationProcessor>
           </annotationProcessors>
         </configuration>
       </plugin>

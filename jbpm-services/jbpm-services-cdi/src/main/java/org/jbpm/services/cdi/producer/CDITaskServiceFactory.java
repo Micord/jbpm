@@ -15,15 +15,15 @@
  */
 package org.jbpm.services.cdi.producer;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import org.kie.api.task.TaskService;
 import org.kie.internal.runtime.manager.TaskServiceFactory;
 
 /**
- * CDI based task service factory that will always deliver the same instance of the 
+ * CDI based task service factory that will always deliver the same instance of the
  * <code>TaskService</code> that was injected into it.
  *
  */
@@ -31,8 +31,8 @@ import org.kie.internal.runtime.manager.TaskServiceFactory;
 public class CDITaskServiceFactory implements TaskServiceFactory {
 
     @Inject
-    private Instance<TaskService> taskService;    
-    
+    private Instance<TaskService> taskService;
+
     @Override
     public TaskService newTaskService() {
         return taskService.get();

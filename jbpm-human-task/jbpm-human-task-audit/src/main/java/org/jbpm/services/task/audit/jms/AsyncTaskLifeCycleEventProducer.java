@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.Queue;
-import javax.jms.Session;
-import javax.jms.TextMessage;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
+import jakarta.jms.MessageProducer;
+import jakarta.jms.Queue;
+import jakarta.jms.Session;
+import jakarta.jms.TextMessage;
 
 import org.jbpm.services.task.audit.TaskLifeCycleEventConstants;
 import org.jbpm.services.task.audit.impl.model.AuditTaskData;
@@ -58,16 +58,16 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
 
     private static final Logger logger = LoggerFactory.getLogger(AsyncTaskLifeCycleEventProducer.class);
 
-    private ConnectionFactory connectionFactory;    
+    private ConnectionFactory connectionFactory;
     private Queue queue;
     private boolean transacted = true;
     private XStream xstream;
-    
+
     public AsyncTaskLifeCycleEventProducer() {
         super(null);
         initXStream();
     }
-    
+
     private void initXStream() {
         if(xstream==null) {
             xstream = createTrustingXStream();
@@ -75,7 +75,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
             xstream.denyTypes(voidDeny);
         }
     }
-    
+
     public ConnectionFactory getConnectionFactory() {
         return connectionFactory;
     }
@@ -91,7 +91,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
     public void setQueue(Queue queue) {
         this.queue = queue;
     }
-    
+
     public boolean isTransacted() {
         return transacted;
     }
@@ -99,17 +99,17 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
     public void setTransacted(boolean transacted) {
         this.transacted = transacted;
     }
-    
+
     @Override
     public void afterTaskStartedEvent(TaskEvent event) {
         Task ti = event.getTask();
-        
-        TaskEventImpl taskEvent = new TaskEventImpl(event, org.kie.internal.task.api.model.TaskEvent.TaskEventType.STARTED);                     
-        AuditTaskImpl auditTaskImpl = createAuditTask(ti, event.getEventDate());         
+
+        TaskEventImpl taskEvent = new TaskEventImpl(event, org.kie.internal.task.api.model.TaskEvent.TaskEventType.STARTED);
+        AuditTaskImpl auditTaskImpl = createAuditTask(ti, event.getEventDate());
         auditTaskImpl.setStatus(ti.getTaskData().getStatus().name());
         auditTaskImpl.setActualOwner(getActualOwner(ti));
         auditTaskImpl.setLastModificationDate(event.getEventDate());
-        
+
         sendMessage(new AuditTaskData(auditTaskImpl, taskEvent), 5);
     }
 
@@ -117,13 +117,13 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
     public void afterTaskActivatedEvent(TaskEvent event) {
         Task ti = event.getTask();
         TaskEventImpl taskEvent = new TaskEventImpl(event, org.kie.internal.task.api.model.TaskEvent.TaskEventType.ACTIVATED);
-                  
+
         AuditTaskImpl auditTaskImpl = createAuditTask(ti, event.getEventDate());
         auditTaskImpl.setStatus(ti.getTaskData().getStatus().name());
         auditTaskImpl.setActualOwner(getActualOwner(ti));
-        auditTaskImpl.setDescription(ti.getDescription());    
+        auditTaskImpl.setDescription(ti.getDescription());
         auditTaskImpl.setLastModificationDate(event.getEventDate());
-       
+
         sendMessage(new AuditTaskData(auditTaskImpl, taskEvent), 8);
     }
 
@@ -138,7 +138,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
         auditTaskImpl.setActualOwner(getActualOwner(ti));
         auditTaskImpl.setDescription(ti.getDescription());
         auditTaskImpl.setLastModificationDate(event.getEventDate());
-        
+
         sendMessage(new AuditTaskData(auditTaskImpl, taskEvent), 8);
 
     }
@@ -197,8 +197,8 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
 
     @Override
     public void afterTaskAddedEvent(TaskEvent event) {
-        Task ti = event.getTask();   
-        AuditTaskImpl auditTask = createAuditTask(ti, event.getEventDate());            
+        Task ti = event.getTask();
+        AuditTaskImpl auditTask = createAuditTask(ti, event.getEventDate());
         TaskEventImpl taskEvent = new TaskEventImpl(event, org.kie.internal.task.api.model.TaskEvent.TaskEventType.ADDED);
         sendMessage(new AuditTaskData(auditTask, taskEvent), 9);
     }
@@ -222,7 +222,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
     }
 
     @Override
-    public void afterTaskReleasedEvent(TaskEvent event) {        
+    public void afterTaskReleasedEvent(TaskEvent event) {
         Task ti = event.getTask();
         AuditTaskImpl auditTaskImpl = createAuditTask(ti, event.getEventDate());
 
@@ -312,7 +312,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
         auditTaskImpl.setLastModificationDate(event.getEventDate());
         sendMessage(new AuditTaskData(auditTaskImpl, taskEvent), 4);
     }
-    
+
     @Override
     public void afterTaskNominatedEvent(TaskEvent event) {
         Task ti = event.getTask();
@@ -341,16 +341,16 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
     @Override
     public void afterTaskUpdatedEvent(TaskEvent event) {
         Task ti = event.getTask();
-        
+
         List<TaskEventImpl> taskEvents = new ArrayList<>();
-        
+
         TaskPersistenceContext persistenceContext = getPersistenceContext(((TaskContext)event.getTaskContext()).getPersistenceContext());
         try {
-            AuditTaskImpl auditTaskImpl = getAuditTask(persistenceContext, ti); 
+            AuditTaskImpl auditTaskImpl = getAuditTask(persistenceContext, ti);
             if((ti.getDescription() != null && !ti.getDescription().equals(auditTaskImpl.getDescription()))
                     || (ti.getDescription() == null && auditTaskImpl.getDescription() != null)){
                 String message = getUpdateFieldLog("Description", auditTaskImpl.getDescription(), ti.getDescription());
-    
+
                 TaskEventImpl taskEvent = new TaskEventImpl(event, org.kie.internal.task.api.model.TaskEvent.TaskEventType.UPDATED, message);
                 taskEvents.add(taskEvent);
             }
@@ -365,9 +365,9 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
                 TaskEventImpl taskEvent = new TaskEventImpl(event, org.kie.internal.task.api.model.TaskEvent.TaskEventType.UPDATED, message);
                 taskEvents.add(taskEvent);
             }
-    
-            if((auditTaskImpl.getDueDate() != null && ti.getTaskData().getExpirationTime() != null 
-                    && auditTaskImpl.getDueDate().getTime() != ti.getTaskData().getExpirationTime().getTime()) 
+
+            if((auditTaskImpl.getDueDate() != null && ti.getTaskData().getExpirationTime() != null
+                    && auditTaskImpl.getDueDate().getTime() != ti.getTaskData().getExpirationTime().getTime())
                     || (auditTaskImpl.getDueDate() == null && ti.getTaskData().getExpirationTime() != null)
                     || (auditTaskImpl.getDueDate() != null && ti.getTaskData().getExpirationTime() == null)){
                 String fromDate = (auditTaskImpl.getDueDate() != null ? new Date(auditTaskImpl.getDueDate().getTime()).toString(): null);
@@ -378,13 +378,13 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
                 TaskEventImpl taskEvent = new TaskEventImpl(event, org.kie.internal.task.api.model.TaskEvent.TaskEventType.UPDATED, message);
                 taskEvents.add(taskEvent);
             }
-    
+
             auditTaskImpl.setDescription(ti.getDescription());
             auditTaskImpl.setName(ti.getName());
             auditTaskImpl.setPriority(ti.getPriority());
             auditTaskImpl.setDueDate(ti.getTaskData().getExpirationTime());
             auditTaskImpl.setLastModificationDate(event.getEventDate());
-            
+
             sendMessage(new AuditTaskData(auditTaskImpl, taskEvents), 4);
         } finally {
             cleanup(persistenceContext);
@@ -397,35 +397,35 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
         String userId = event.getTaskContext().getUserId();
         Task ti = event.getTask();
         TaskEventImpl taskEvent = new TaskEventImpl(event, org.kie.internal.task.api.model.TaskEvent.TaskEventType.DELEGATED, userId);
-                
+
         AuditTaskImpl auditTaskImpl = createAuditTask(ti, event.getEventDate());
         auditTaskImpl.setDescription(ti.getDescription());
-        auditTaskImpl.setName(ti.getName());  
+        auditTaskImpl.setName(ti.getName());
         auditTaskImpl.setActivationTime(ti.getTaskData().getActivationTime());
         auditTaskImpl.setPriority(ti.getPriority());
         auditTaskImpl.setDueDate(ti.getTaskData().getExpirationTime());
         auditTaskImpl.setStatus(ti.getTaskData().getStatus().name());
         auditTaskImpl.setActualOwner(getActualOwner(ti));
         auditTaskImpl.setLastModificationDate(event.getEventDate());
-        
+
         sendMessage(new AuditTaskData(auditTaskImpl, taskEvent), 4);
     }
 
-    
+
     @Override
     public void afterTaskOutputVariableChangedEvent(TaskEvent event, Map<String, Object> variables) {
-        Task task = event.getTask();        
+        Task task = event.getTask();
 
         if (variables == null || variables.isEmpty()) {
             return;
         }
-        
+
         List<TaskVariableImpl> taskVariables = indexVariables(task, variables, VariableType.OUTPUT);
         String message = "Task output data updated";
         TaskEventImpl taskEvent = new TaskEventImpl(event, org.kie.internal.task.api.model.TaskEvent.TaskEventType.UPDATED, message);
         AuditTaskImpl auditTaskImpl = createAuditTask(task, event.getEventDate());
         auditTaskImpl.setLastModificationDate(event.getEventDate());
-        
+
         sendMessage(new AuditTaskData(auditTaskImpl, Collections.singletonList(taskEvent), null, taskVariables), 2);
     }
 
@@ -434,12 +434,12 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
         if (variables == null || variables.isEmpty()) {
             return;
         }
-        Task task = event.getTask();               
+        Task task = event.getTask();
         List<TaskVariableImpl> taskVariables = indexVariables(task, variables, VariableType.INPUT);
-        
+
         sendMessage(new AuditTaskData(null, null, taskVariables, null), 2);
     }
-    
+
     protected List<TaskVariableImpl> indexVariables(Task task, Map<String, Object> variables, VariableType type) {
         TaskIndexerManager manager = TaskIndexerManager.get();
         List<TaskVariableImpl> taskVariables = new ArrayList<>();
@@ -448,7 +448,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
                 continue;
             }
             List<TaskVariable> taskVars = manager.index(task, variable.getKey(), variable.getValue());
-            
+
             if (taskVars != null) {
                 for (TaskVariable tVariable : taskVars) {
                     tVariable.setType(type);
@@ -456,26 +456,26 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
                 }
             }
         }
-        
+
         return taskVariables;
     }
-    
+
     @Override
-    public void afterTaskAssignmentsAddedEvent(TaskEvent event, AssignmentType type, List<OrganizationalEntity> entities) {                
-        assignmentsUpdated(event, type, entities, "] have been added");    
+    public void afterTaskAssignmentsAddedEvent(TaskEvent event, AssignmentType type, List<OrganizationalEntity> entities) {
+        assignmentsUpdated(event, type, entities, "] have been added");
     }
 
     @Override
     public void afterTaskAssignmentsRemovedEvent(TaskEvent event, AssignmentType type, List<OrganizationalEntity> entities) {
         assignmentsUpdated(event, type, entities, "] have been removed");
     }
-    
+
     protected void assignmentsUpdated(TaskEvent event, AssignmentType type, List<OrganizationalEntity> entities, String messageSufix) {
         if (entities == null || entities.isEmpty()) {
             return;
         }
         StringBuilder message = new StringBuilder();
-        
+
         switch (type) {
             case POT_OWNER:
                 message.append("Potential owners [");
@@ -491,7 +491,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
         }
         message.append(entities.stream().map(oe -> oe.getId()).collect(Collectors.joining(",")));
         message.append(messageSufix);
-        
+
         TaskEventImpl taskEvent = new TaskEventImpl(event, org.kie.internal.task.api.model.TaskEvent.TaskEventType.UPDATED, message.toString());
         sendMessage(new AuditTaskData(null, taskEvent), 2);
     }
@@ -499,7 +499,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
     /*
      * Helper methods
      */
-    
+
 
 
     protected String getUpdateFieldLog(String fieldName, String previousValue, String value){
@@ -507,16 +507,16 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
                 + " {From: '"+ (previousValue!=null ? previousValue :  "" )
                 + "' to: '"+ (value!=null ? value :  "" ) + "'}" ;
     }
-    
+
     protected String getActualOwner(Task ti) {
         String userId = "";
         if (ti.getTaskData().getActualOwner() != null) {
             userId = ti.getTaskData().getActualOwner().getId();
         }
-        
+
         return userId;
     }
-    
+
     protected AuditTaskImpl createAuditTask(Task ti, Date date) {
         AuditTaskImpl auditTaskImpl = new AuditTaskImpl(
                 ti.getId(),
@@ -537,10 +537,10 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
                 ti.getTaskData().getWorkItemId(),
                 date
             );
-        
+
         return auditTaskImpl;
     }
-    
+
     protected void sendMessage(AuditTaskData auditTaskData, int priority) {
         if (connectionFactory == null && queue == null) {
             throw new IllegalStateException("ConnectionFactory and Queue cannot be null");
@@ -555,7 +555,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
             String eventXml = xstream.toXML(auditTaskData);
             TextMessage message = queueSession.createTextMessage(eventXml);
             message.setStringProperty("LogType", "Task");
-            producer = queueSession.createProducer(queue);  
+            producer = queueSession.createProducer(queue);
             producer.setPriority(priority);
             producer.send(message);
         } catch (Exception e) {
@@ -568,7 +568,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
                     logger.warn("Error when closing producer", e);
                 }
             }
-            
+
             if (queueSession != null) {
                 try {
                     queueSession.close();
@@ -576,7 +576,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
                     logger.warn("Error when closing queue session", e);
                 }
             }
-            
+
             if (queueConnection != null) {
                 try {
                     queueConnection.close();
@@ -586,19 +586,19 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
             }
         }
     }
-    
+
     protected AuditTaskImpl getAuditTask(TaskPersistenceContext persistenceContext, Task ti) {
-        AuditTaskImpl auditTaskImpl = persistenceContext.queryWithParametersInTransaction("getAuditTaskById", true, 
+        AuditTaskImpl auditTaskImpl = persistenceContext.queryWithParametersInTransaction("getAuditTaskById", true,
                 persistenceContext.addParametersToMap("taskId", ti.getId()),
                 ClassUtil.<AuditTaskImpl>castClass(AuditTaskImpl.class));
-        
+
         return auditTaskImpl;
     }
-    
+
     /*
      * Not implemented task life cycle methods
      */
-    
+
     @Override
     public void beforeTaskActivatedEvent(TaskEvent event) {
 
@@ -636,7 +636,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
 
     @Override
     public void beforeTaskAddedEvent(TaskEvent event) {
-        
+
     }
 
     @Override
@@ -663,15 +663,15 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
     public void beforeTaskDelegatedEvent(TaskEvent event) {
 
     }
-    
+
     @Override
     public void beforeTaskNominatedEvent(TaskEvent event) {
 
-    }    
+    }
     @Override
     public void beforeTaskUpdatedEvent(TaskEvent event) {
-        
-        
+
+
     }
     @Override
     public void beforeTaskReassignedEvent(TaskEvent event) {
@@ -690,13 +690,13 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
 
     @Override
     public boolean equals(Object obj) {
-        if ( this == obj ) 
+        if ( this == obj )
             return true;
-        if ( obj == null ) 
+        if ( obj == null )
             return false;
-        if ( (obj instanceof AsyncTaskLifeCycleEventProducer) ) 
+        if ( (obj instanceof AsyncTaskLifeCycleEventProducer) )
             return true;
-        
+
         return false;
     }
 
@@ -705,7 +705,7 @@ public class AsyncTaskLifeCycleEventProducer extends PersistableEventListener im
         final int prime = 31;
         int result = 1;
         result = prime * result + this.getClass().getName().hashCode();
-        
+
         return result;
     }
 

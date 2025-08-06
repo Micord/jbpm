@@ -16,21 +16,22 @@
 
 package org.jbpm.workflow.core.node;
 
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.workflow.core.impl.ExtendedNodeImpl;
 import org.kie.api.definition.process.Connection;
 import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of a fault node.
- * 
+ *
  */
 public class FaultNode extends ExtendedNodeImpl {
 
 	private static final String[] EVENT_TYPES =
 		new String[] { EVENT_NODE_ENTER };
-	
+
 	private static final long serialVersionUID = 510l;
-	
+
 	private String faultName;
 	private String faultVariable;
 	private boolean terminateParent = false;
@@ -54,7 +55,7 @@ public class FaultNode extends ExtendedNodeImpl {
 	public void setFaultName(String faultName) {
 		this.faultName = faultName;
 	}
-	
+
 	public boolean isTerminateParent() {
         return terminateParent;
     }
@@ -66,18 +67,18 @@ public class FaultNode extends ExtendedNodeImpl {
     public String[] getActionTypes() {
 		return EVENT_TYPES;
 	}
-	
+
     public void validateAddIncomingConnection(final String type, final Connection connection) {
         super.validateAddIncomingConnection(type, connection);
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getTo().getMetaData().get("UniqueId") + ", " + connection.getTo().getName() 
-                    + "] only accepts default incoming connection type!");
+					throw new BpmnNodeIllegalArgumentException("This type of node only accepts default incoming connection type!",
+							connection.getFrom().getName(),
+							connection.getFrom().getNodeUniqueId());
         }
         if (getFrom() != null) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getTo().getMetaData().get("UniqueId") + ", " + connection.getTo().getName() 
-                    + "] cannot have more than one incoming connection!");
+					throw new BpmnNodeIllegalArgumentException("This type of node cannot have more than one incoming connection!",
+							connection.getTo().getName(),
+							connection.getTo().getNodeUniqueId());
         }
     }
 

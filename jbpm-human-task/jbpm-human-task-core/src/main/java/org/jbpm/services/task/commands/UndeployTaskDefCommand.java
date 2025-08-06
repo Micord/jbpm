@@ -17,11 +17,11 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 
 @XmlRootElement(name="undeploy-task-def-command")
@@ -34,10 +34,10 @@ public class UndeployTaskDefCommand extends TaskCommand<Void> {
 	@XmlElement
 	@XmlSchemaType(name="string")
 	private String taskDefId;
-	
+
 	public UndeployTaskDefCommand() {
 	}
-	
+
     public UndeployTaskDefCommand(String taskDefId) {
         this.taskDefId = taskDefId;
     }
@@ -46,6 +46,6 @@ public class UndeployTaskDefCommand extends TaskCommand<Void> {
         TaskContext context = (TaskContext) cntxt;
         context.getTaskDefService().undeployTaskDef(taskDefId);
     	return null;
-           
+
     }
 }

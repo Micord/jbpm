@@ -20,11 +20,11 @@ import org.jbpm.process.audit.ProcessInstanceLog;
 import org.kie.api.runtime.Context;
 import org.kie.internal.command.ProcessInstanceIdCommand;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 import java.util.List;
 
 @XmlRootElement
@@ -37,20 +37,20 @@ public class FindSubProcessInstancesCommand extends AuditCommand<List<ProcessIns
     @XmlAttribute(required=true, name="process-instance-id")
     @XmlSchemaType(name="long")
     private Long processInstanceId;
-    
-    public FindSubProcessInstancesCommand() { 
+
+    public FindSubProcessInstancesCommand() {
         // no-arg for JAXB
     }
-    
+
     public FindSubProcessInstancesCommand(long processInstanceId) {
         this.processInstanceId = processInstanceId;
 	}
-	
+
     public List<ProcessInstanceLog> execute(Context cntxt) {
         setLogEnvironment(cntxt);
         return this.auditLogService.findSubProcessInstances(processInstanceId);
     }
-   
+
     @Override
     public Long getProcessInstanceId() {
         return processInstanceId;

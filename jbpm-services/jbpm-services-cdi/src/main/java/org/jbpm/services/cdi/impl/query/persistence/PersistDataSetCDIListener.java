@@ -16,9 +16,9 @@
 
 package org.jbpm.services.cdi.impl.query.persistence;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 
 import org.dashbuilder.dataset.events.DataSetDefModifiedEvent;
 import org.dashbuilder.dataset.events.DataSetDefRegisteredEvent;
@@ -31,30 +31,30 @@ import org.jbpm.shared.services.impl.TransactionalCommandService;
 public class PersistDataSetCDIListener extends PersistDataSetListener {
 
     public PersistDataSetCDIListener() {
-        
+
     }
-    
+
     @Inject
     public PersistDataSetCDIListener(TransactionalCommandService commandService) {
         super(commandService);
     }
 
-    
+
     public void onDataSetDefStale(@Observes DataSetStaleEvent event) {
         super.onDataSetDefStale(event.getDataSetDef());
     }
 
-    
+
     public void onDataSetDefModified(@Observes DataSetDefModifiedEvent event) {
         super.onDataSetDefModified(event.getOldDataSetDef(), event.getNewDataSetDef());
     }
 
-    
+
     public void onDataSetDefRegistered(@Observes DataSetDefRegisteredEvent event) {
         super.onDataSetDefRegistered(event.getDataSetDef());
     }
 
-    
+
     public void onDataSetDefRemoved(@Observes DataSetDefRemovedEvent event) {
         super.onDataSetDefRemoved(event.getDataSetDef());
     }

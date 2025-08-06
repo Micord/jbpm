@@ -25,10 +25,10 @@ import org.kie.api.task.model.TaskSummary;
 import org.kie.internal.query.QueryFilter;
 import org.kie.internal.task.api.TaskPersistenceContext;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,19 +40,19 @@ public class GetTasksByVariableNameAndValueCommand extends UserGroupCallbackTask
 
     @XmlElement
     private List<Status> statuses;
-    
+
     @XmlElement
     private String variableName;
-    
+
     @XmlElement
     private String variableValue;
-   
+
     @XmlElement(type=QueryFilter.class)
     private QueryFilter filter;
 
     public GetTasksByVariableNameAndValueCommand() {
     }
-    
+
     public GetTasksByVariableNameAndValueCommand(String userId, String variableName, String variableValue, List<Status> status, QueryFilter filter) {
         this.userId = userId;
         this.variableName = variableName;
@@ -68,7 +68,7 @@ public class GetTasksByVariableNameAndValueCommand extends UserGroupCallbackTask
     public String getVariableName() {
         return variableName;
     }
-    
+
     public String getVariableValue() {
         return variableValue;
     }
@@ -89,18 +89,18 @@ public class GetTasksByVariableNameAndValueCommand extends UserGroupCallbackTask
             }
         }
         TaskPersistenceContext persistenceContext = context.getPersistenceContext();
-        
+
         List<TaskSummary> tasks = (List<TaskSummary>) persistenceContext.queryWithParametersInTransaction("TasksByStatusByVariableNameAndValue",
                 persistenceContext.addParametersToMap(
                                         "userId", userId,
                                         "groupIds", groupIds,
                                         "variableName", variableName,
-                                        "variableValue", variableValue, 
+                                        "variableValue", variableValue,
                                         "status", statuses),
                                         ClassUtil.<List<TaskSummary>>castClass(List.class));
-        
+
         return tasks;
-       
+
     }
 
 }

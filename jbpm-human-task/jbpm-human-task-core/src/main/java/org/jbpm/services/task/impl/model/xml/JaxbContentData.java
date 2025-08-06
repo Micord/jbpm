@@ -16,11 +16,11 @@
 
 package org.jbpm.services.task.impl.model.xml;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 import org.kie.internal.task.api.model.AccessType;
 import org.kie.internal.task.api.model.ContentData;
@@ -33,26 +33,26 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 public class JaxbContentData extends AbstractJaxbTaskObject<ContentData> implements ContentData {
 
     @XmlElement
-    private AccessType accessType; 
+    private AccessType accessType;
 
     @XmlElement
     @XmlSchemaType(name="string")
     private String type;
-   
+
     @XmlElement
     @XmlSchemaType(name="base64Binary")
     private byte[] content = null;
-    
+
     private Object contentObject;
-    
+
     public JaxbContentData() {
         super(ContentData.class);
     }
 
     public JaxbContentData(ContentData contentData) {
         super(contentData, ContentData.class);
-    } 
-        
+    }
+
     @Override
     public AccessType getAccessType() {
         return accessType;
@@ -87,10 +87,10 @@ public class JaxbContentData extends AbstractJaxbTaskObject<ContentData> impleme
     public Object getContentObject() {
     	return contentObject;
     }
-    
+
     @Override
     public void setContentObject(Object object) {
     	this.contentObject = object;
-    	
+
     }
 }

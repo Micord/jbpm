@@ -16,8 +16,8 @@
 
 package org.jbpm.services.cdi.impl;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import org.jbpm.kie.services.impl.ProcessServiceImpl;
 import org.jbpm.services.api.DeploymentService;
@@ -38,5 +38,5 @@ public class ProcessServiceCDIImpl extends ProcessServiceImpl {
 		super.setDataService(dataService);
 	}
 
-	
+
 }

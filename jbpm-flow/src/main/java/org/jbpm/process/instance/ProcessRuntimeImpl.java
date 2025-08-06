@@ -49,6 +49,7 @@ import org.jbpm.process.instance.timer.TimerInstance;
 import org.jbpm.process.instance.timer.TimerManager;
 import org.jbpm.ruleflow.core.RuleFlowProcess;
 import org.jbpm.ruleflow.instance.RuleFlowProcessInstance;
+import org.jbpm.util.SignalEventDesc;
 import org.jbpm.workflow.core.node.EventTrigger;
 import org.jbpm.workflow.core.node.StartNode;
 import org.jbpm.workflow.core.node.Trigger;
@@ -445,10 +446,14 @@ public class ProcessRuntimeImpl implements InternalProcessRuntime {
 	        if (eventTransformer != null) {
     			event = eventTransformer.transformEvent(event);
     		}
-	        Map<String, Object> params = null;
+	        Map<String, Object> params = new HashMap<>();
+
+           if (event instanceof SignalEventDesc) {
+             params.put(StartProcessHelper.SIGNAL_UUID, ((SignalEventDesc) event).getSignalUUID());
+             params.putAll(((SignalEventDesc) event).getParams());
+          }
+
 	        if ( inMappings != null && !inMappings.isEmpty() ) {
-	        	params = new HashMap<String, Object>();
-	        	
 	        	if (inMappings.size() == 1) {
 	        		params.put( inMappings.keySet().iterator().next(), event );
 	        	} else {

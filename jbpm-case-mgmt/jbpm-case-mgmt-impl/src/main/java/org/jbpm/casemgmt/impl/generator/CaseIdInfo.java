@@ -18,49 +18,49 @@ package org.jbpm.casemgmt.impl.generator;
 
 import java.io.Serializable;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(columnNames="caseIdPrefix")})
-@SequenceGenerator(name="caseIdInfoIdSeq", sequenceName="CASE_ID_INFO_ID_SEQ")
+@SequenceGenerator(name="caseIdInfoIdSeq", sequenceName="CASE_ID_INFO_ID_SEQ", allocationSize = 1)
 public class CaseIdInfo implements Serializable {
- 
+
     private static final long serialVersionUID = -6342444682573333987L;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator="caseIdInfoIdSeq")    
+    @GeneratedValue(strategy = GenerationType.AUTO, generator="caseIdInfoIdSeq")
     private Long id;
-    
+
     private String caseIdPrefix;
-    
+
     private Long currentValue;
 
     public Long getId() {
         return id;
     }
-    
+
     public void setId(Long id) {
         this.id = id;
     }
-    
+
     public String getCaseIdPrefix() {
         return caseIdPrefix;
     }
-    
+
     public void setCaseIdPrefix(String caseIdPrefix) {
         this.caseIdPrefix = caseIdPrefix;
     }
-    
+
     public Long getCurrentValue() {
         return currentValue;
     }
-    
+
     public void setCurrentValue(Long currentValue) {
         this.currentValue = currentValue;
     }
@@ -106,5 +106,5 @@ public class CaseIdInfo implements Serializable {
     public String toString() {
         return "CaseIdInfo [caseIdPrefix=" + caseIdPrefix + ", currentValue=" + currentValue + "]";
     }
-        
+
 }

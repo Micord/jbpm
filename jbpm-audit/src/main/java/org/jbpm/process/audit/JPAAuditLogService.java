@@ -58,11 +58,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.FlushModeType;
-import javax.persistence.NoResultException;
-import javax.persistence.Query;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.FlushModeType;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.Query;
 
 import org.jbpm.process.audit.query.NodeInstLogQueryBuilderImpl;
 import org.jbpm.process.audit.query.NodeInstanceLogDeleteBuilderImpl;
@@ -86,37 +86,37 @@ import org.slf4j.LoggerFactory;
 public class JPAAuditLogService extends JPAService implements AuditLogService {
 
     private static final Logger logger = LoggerFactory.getLogger(JPAAuditLogService.class);
-   
+
     private static final String AUDIT_LOG_PERSISTENCE_UNIT_NAME = "org.jbpm.persistence.jpa";
-    
+
     public JPAAuditLogService() {
         super(AUDIT_LOG_PERSISTENCE_UNIT_NAME);
     }
-   
+
     public JPAAuditLogService(Environment env) {
         super(env, AUDIT_LOG_PERSISTENCE_UNIT_NAME);
     }
-    
+
     public JPAAuditLogService(Environment env, PersistenceStrategyType type) {
         super(env, type);
         this.persistenceUnitName = AUDIT_LOG_PERSISTENCE_UNIT_NAME;
     }
-    
+
     public JPAAuditLogService(EntityManagerFactory emf) {
         super(emf);
         this.persistenceUnitName = AUDIT_LOG_PERSISTENCE_UNIT_NAME;
     }
-    
+
     public JPAAuditLogService(EntityManagerFactory emf, PersistenceStrategyType type){
         super(emf, type);
         this.persistenceUnitName = AUDIT_LOG_PERSISTENCE_UNIT_NAME;
     }
-    
-    
+
+
     /* (non-Javadoc)
      * @see org.jbpm.process.audit.AuditLogService#findProcessInstances()
      */
-    
+
     @Override
     public List<ProcessInstanceLog> findProcessInstances() {
         EntityManager em = getEntityManager();
@@ -134,7 +134,7 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
                 .createQuery("FROM ProcessInstanceLog p WHERE p.end is null");
         return executeQuery(query, em, ProcessInstanceLog.class);
     }
-    
+
     /* (non-Javadoc)
      * @see org.jbpm.process.audit.AuditLogService#findProcessInstances(java.lang.String)
      */
@@ -176,7 +176,7 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
         	closeEntityManager(em, newTx);
         }
     }
-    
+
     /* (non-Javadoc)
      * @see org.jbpm.process.audit.AuditLogService#findSubProcessInstances(long)
      */
@@ -188,7 +188,7 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
                 .setParameter("processInstanceId", processInstanceId);
         return executeQuery(query, em, ProcessInstanceLog.class);
     }
-    
+
     /* (non-Javadoc)
      * @see org.jbpm.process.audit.AuditLogService#findNodeInstances(long)
      */
@@ -244,9 +244,9 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
     public List<VariableInstanceLog> findVariableInstancesByName(String variableId, boolean onlyActiveProcesses) {
         EntityManager em = getEntityManager();
         Query query;
-        if( ! onlyActiveProcesses ) { 
+        if( ! onlyActiveProcesses ) {
              query = em.createQuery("FROM VariableInstanceLog v WHERE v.variableId = :variableId ORDER BY date");
-        } else { 
+        } else {
             query = em.createQuery(
                     "SELECT v "
                     + "FROM VariableInstanceLog v, ProcessInstanceLog p "
@@ -263,9 +263,9 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
     public List<VariableInstanceLog> findVariableInstancesByNameAndValue(String variableId, String value, boolean onlyActiveProcesses) {
         EntityManager em = getEntityManager();
         Query query;
-        if( ! onlyActiveProcesses ) { 
+        if( ! onlyActiveProcesses ) {
              query = em.createQuery("FROM VariableInstanceLog v WHERE v.variableId = :variableId AND v.value = :value ORDER BY date");
-        } else { 
+        } else {
             query = em.createQuery(
                     "SELECT v "
                     + "FROM VariableInstanceLog v, ProcessInstanceLog p "
@@ -276,10 +276,10 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
                     + "ORDER BY v.date");
         }
         query.setParameter("variableId", variableId).setParameter("value", value);
-        
+
         return executeQuery(query, em, VariableInstanceLog.class);
     }
-    
+
     /* (non-Javadoc)
      * @see org.jbpm.process.audit.AuditLogService#clear()
      */
@@ -288,22 +288,22 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
         EntityManager em = getEntityManager();
         Object newTx = joinTransaction(em);
         try {
-            	        
+
 	        int deletedNodes = em.createQuery("delete FROM NodeInstanceLog WHERE processInstanceId in (select spl.processInstanceId FROM ProcessInstanceLog spl WHERE spl.status in (2, 3))").executeUpdate();
 	        logger.debug("CLEAR:: deleted node instances {}", deletedNodes);
-	        
+
 	        int deletedVariables = em.createQuery("delete FROM VariableInstanceLog WHERE processInstanceId in (select spl.processInstanceId FROM ProcessInstanceLog spl WHERE spl.status in (2, 3))").executeUpdate();
 	        logger.debug("CLEAR:: deleted variable instances {}", deletedVariables);
-	        
+
 	        int deletedProcesses = em.createQuery("delete FROM ProcessInstanceLog WHERE status in (2, 3)").executeUpdate();
             logger.debug("CLEAR:: deleted process instances {}", deletedProcesses);
         } finally {
         	closeEntityManager(em, newTx);
         }
     }
-    
+
     // query methods
-  
+
     @Override
     public NodeInstanceLogQueryBuilder nodeInstanceLogQuery() {
         return new NodeInstLogQueryBuilderImpl(this);
@@ -318,24 +318,24 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
     public ProcessInstanceLogQueryBuilder processInstanceLogQuery() {
         return new ProcInstLogQueryBuilderImpl(this);
     }
-    
+
 	@Override
 	public ProcessInstanceLogDeleteBuilder processInstanceLogDelete() {
 		return new ProcessInstanceLogDeleteBuilderImpl(this);
-	} 
-	
+	}
+
 	@Override
     public NodeInstanceLogDeleteBuilder nodeInstanceLogDelete() {
         return new NodeInstanceLogDeleteBuilderImpl(this);
     }
-	
+
 	@Override
     public VariableInstanceLogDeleteBuilder variableInstanceLogDelete() {
         return new VarInstanceLogDeleteBuilderImpl(this);
     }
-    
+
     // internal query methods/logic
-   
+
     @Override
     public <T,R> List<R> queryLogs(QueryWhere queryData, Class<T> queryClass, Class<R> resultClass ) {
         List<T> results = doQuery(queryData, queryClass);
@@ -343,31 +343,31 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
     }
 
     private final AuditQueryCriteriaUtil queryUtil = new AuditQueryCriteriaUtil(this);
-   
+
     protected QueryCriteriaUtil getQueryCriteriaUtil(Class<?> queryType) {
         return queryUtil;
     }
-    
+
     /**
      *
      * @param queryWhere
      * @param queryType
      * @return The result of the query, a list of type T
      */
-    public <T> List<T> doQuery(QueryWhere queryWhere, Class<T> queryType) { 
+    public <T> List<T> doQuery(QueryWhere queryWhere, Class<T> queryType) {
        return getQueryCriteriaUtil(queryType).doCriteriaQuery(queryWhere, queryType);
     }
-   
-    // Delete queries -------------------------------------------------------------------------------------------------------------
-   
 
-    
-    static { 
+    // Delete queries -------------------------------------------------------------------------------------------------------------
+
+
+
+    static {
         addCriteria(PROCESS_INSTANCE_ID_LIST, "l.processInstanceId", Long.class);
         addCriteria(PROCESS_ID_LIST, "l.processId", String.class);
         addCriteria(WORK_ITEM_ID_LIST, "l.workItemId", Long.class);
         addCriteria(EXTERNAL_ID_LIST, "l.externalId", String.class);
-        
+
         // process instance log
         addCriteria(START_DATE_LIST, "l.start", Date.class);
         addCriteria(DURATION_LIST, "l.duration", Long.class);
@@ -378,13 +378,13 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
         addCriteria(PROCESS_INSTANCE_STATUS_LIST, "l.status", Integer.class);
         addCriteria(OUTCOME_LIST, "l.outcome", String.class);
         addCriteria(CORRELATION_KEY_LIST, "l.correlationKey", String.class);
-        
+
         // node instance log
         addCriteria(NODE_ID_LIST, "l.nodeId", String.class);
         addCriteria(NODE_INSTANCE_ID_LIST, "l.nodeInstanceId", String.class);
         addCriteria(NODE_NAME_LIST, "l.nodeName", String.class);
         addCriteria(TYPE_LIST, "l.nodeType", String.class);
-        
+
         // variable instance log
         addCriteria(DATE_LIST, "l.date", Date.class);
         addCriteria(OLD_VALUE_LIST, "l.oldValue", String.class);
@@ -400,7 +400,7 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
         // execution error info
         addCriteria(ERROR_DATE_LIST, "l.errorDate", Date.class);
     }
-   
+
     protected static void addCriteria(String listId, String fieldName, Class<?> type) {
         QueryHelper.addCriteria(listId, fieldName, type);
     }
@@ -447,22 +447,22 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
         closeEntityManager(em, newTx);
         return result;
     }
-    
+
     private void applyMetaQueryParameters(Map<String, Object> params, Query query) {
         if (params != null && !params.isEmpty()) {
             for (String name : params.keySet()) {
                 Object paramVal = params.get(name);
-                if( paramVal == null ) { 
+                if( paramVal == null ) {
                     continue;
                 }
                 if (FIRST_RESULT.equals(name)) {
-                    if( ((Integer) paramVal) > 0 ) { 
+                    if( ((Integer) paramVal) > 0 ) {
                         query.setFirstResult((Integer) params.get(name));
                     }
                     continue;
                 }
                 if (MAX_RESULTS.equals(name)) {
-                    if( ((Integer) paramVal) > 0 ) { 
+                    if( ((Integer) paramVal) > 0 ) {
                         query.setMaxResults((Integer) params.get(name));
                     }
                     continue;
@@ -471,16 +471,16 @@ public class JPAAuditLogService extends JPAService implements AuditLogService {
                     query.setFlushMode(FlushModeType.valueOf((String) params.get(name)));
                     continue;
                 }// skip control parameters
-                else if (ORDER_TYPE.equals(name) 
+                else if (ORDER_TYPE.equals(name)
                         || ORDER_BY.equals(name)
                         || FILTER.equals(name)) {
                     continue;
                 }
                 query.setParameter(name, params.get(name));
             }
-        } 
+        }
     }
-    
+
     private int executeWithParameters(Map<String, Object> params, Query query) {
         applyMetaQueryParameters(params, query);
         return query.executeUpdate();

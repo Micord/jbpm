@@ -21,8 +21,12 @@ import java.sql.Types;
 import org.hibernate.dialect.DB2Dialect;
 
 public class DB2CustomDialect extends DB2Dialect {
-    
-    public DB2CustomDialect() {
-        registerColumnType(Types.BOOLEAN, "varchar(1)");
+
+    @Override
+    protected String columnType(int sqlTypeCode) {
+        if (sqlTypeCode == Types.BOOLEAN) {
+            return "varchar(1)";
+        }
+        return super.columnType(sqlTypeCode);
     }
 }

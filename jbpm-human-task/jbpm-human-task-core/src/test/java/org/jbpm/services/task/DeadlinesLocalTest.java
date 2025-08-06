@@ -15,8 +15,8 @@
  */
 package org.jbpm.services.task;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.services.task.deadlines.notifications.impl.MockNotificationListener;
 import org.jbpm.services.task.impl.TaskDeadlinesServiceImpl;
@@ -29,7 +29,7 @@ public class DeadlinesLocalTest extends DeadlinesBaseTest {
 
 	private PoolingDataSourceWrapper pds;
 	private EntityManagerFactory emf;
-	
+
 	@Before
 	public void setup() {
 		this.notificationListener = new MockNotificationListener();
@@ -39,7 +39,7 @@ public class DeadlinesLocalTest extends DeadlinesBaseTest {
 												.entityManagerFactory(emf)
 												.getTaskService();
 	}
-	
+
 	@After
 	public void clean() {
 		TaskDeadlinesServiceImpl.reset();

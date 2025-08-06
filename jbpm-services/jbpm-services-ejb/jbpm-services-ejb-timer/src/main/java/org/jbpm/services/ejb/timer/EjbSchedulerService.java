@@ -23,12 +23,12 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-import javax.ejb.Timer;
-import javax.ejb.TimerHandle;
+import jakarta.ejb.Timer;
+import jakarta.ejb.TimerHandle;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.drools.core.time.InternalSchedulerService;
 import org.drools.core.time.Job;
@@ -63,18 +63,18 @@ public class EjbSchedulerService implements GlobalSchedulerService {
 	private AtomicLong idCounter = new AtomicLong();
 	private TimerService globalTimerService;
 	private EJBTimerScheduler scheduler;
-	
+
 	private SchedulerServiceInterceptor interceptor = new DelegateSchedulerServiceInterceptor(this);
-	
+
 
 	@Override
 	public JobHandle scheduleJob(Job job, JobContext ctx, Trigger trigger) {
 		long id = idCounter.getAndIncrement();
 		String jobName = getJobName(ctx, id);
 		EjbGlobalJobHandle jobHandle = new EjbGlobalJobHandle(id, jobName, ((GlobalTimerService) globalTimerService).getTimerServiceId());
-		
+
 		TimerJobInstance jobInstance = null;
-		// check if given timer job is marked as new timer meaning it was never scheduled before, 
+		// check if given timer job is marked as new timer meaning it was never scheduled before,
 		// if so skip the check by timer name as it has no way to exist
 		if (!ctx.isNew()) {
 		    jobInstance = getTimerJobInstance(jobName);
@@ -86,13 +86,13 @@ public class EjbSchedulerService implements GlobalSchedulerService {
     		}
 		}
 		jobInstance = globalTimerService.getTimerJobFactoryManager().createTimerJobInstance(
-														job, 
-														ctx, 
-														trigger, 
-														jobHandle, 
+														job,
+														ctx,
+														trigger,
+														jobHandle,
 														(InternalSchedulerService) globalTimerService);
-		
-		jobHandle.setTimerJobInstance((TimerJobInstance) jobInstance);		
+
+		jobHandle.setTimerJobInstance((TimerJobInstance) jobInstance);
 		interceptor.internalSchedule(jobInstance);
 		return jobHandle;
 	}
@@ -119,7 +119,7 @@ public class EjbSchedulerService implements GlobalSchedulerService {
                         scheduler.removeJob(jobHandle, ejbTimer);
                     }
                 }
-                
+
             });
             logger.debug("register tx to remove job {}", jobHandle);
             return true;
@@ -157,7 +157,7 @@ public class EjbSchedulerService implements GlobalSchedulerService {
     }
 
     private TimerMappingInfo getTimerMappinInfo(long processInstanceId, long timerId) {
-        return getTimerMappingInfo(em -> 
+        return getTimerMappingInfo(em ->
             em.createQuery("SELECT o FROM TimerMappingInfo o WHERE o.timerId = :timerId AND o.processInstanceId = :processInstanceId", TimerMappingInfo.class)
                 .setParameter("processInstanceId", processInstanceId)
                 .setParameter("timerId", timerId)
@@ -182,7 +182,7 @@ public class EjbSchedulerService implements GlobalSchedulerService {
             } else {
                 return null;
             }
-            
+
         } catch (Exception ex) {
             logger.warn("Error getting mapping info ",ex);
             return null;
@@ -252,15 +252,15 @@ public class EjbSchedulerService implements GlobalSchedulerService {
 
 	@Override
 	public void setInterceptor(SchedulerServiceInterceptor interceptor) {
-	    this.interceptor = interceptor; 
+	    this.interceptor = interceptor;
 	}
 
 	@Override
 	public boolean isValid(GlobalJobHandle jobHandle) {
-	    
-        return true;	    
+
+        return true;
 	}
-	
+
     protected String getJobName(JobContext ctx, long id) {
            return JobNameHelper.getJobName(ctx, id);
 	}

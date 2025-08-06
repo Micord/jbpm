@@ -19,8 +19,8 @@ package org.jbpm.runtime.manager.util;
 import java.io.File;
 import java.io.IOException;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.SchemaOutputResolver;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.SchemaOutputResolver;
 import javax.xml.transform.Result;
 import javax.xml.transform.stream.StreamResult;
 
@@ -38,7 +38,7 @@ public class GenerateDeployemntDescriptorSchema {
 		SchemaOutputResolver sor = new FileSchemaOutputResolver();
 		jaxbContext.generateSchema(sor);
 	}
-	
+
 	private static class FileSchemaOutputResolver extends SchemaOutputResolver {
 
 	    public Result createOutput(String namespaceURI, String suggestedFileName) throws IOException {

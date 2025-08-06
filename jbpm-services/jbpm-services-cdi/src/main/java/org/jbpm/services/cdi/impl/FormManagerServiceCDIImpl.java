@@ -15,10 +15,10 @@
  */
 package org.jbpm.services.cdi.impl;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 import org.jbpm.kie.services.impl.FormManagerServiceImpl;
 
 @ApplicationScoped
 public class FormManagerServiceCDIImpl extends FormManagerServiceImpl{
-    
+
 }

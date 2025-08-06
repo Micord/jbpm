@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.NoResultException;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.NoResultException;
 
 import org.jbpm.executor.impl.event.ExecutorEventSupportImpl;
 import org.jbpm.shared.services.impl.commands.FindObjectCommand;

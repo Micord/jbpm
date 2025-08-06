@@ -18,11 +18,11 @@ package org.jbpm.runtime.manager.impl.mapper;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.NoResultException;
-import javax.persistence.NonUniqueResultException;
-import javax.persistence.Query;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.NonUniqueResultException;
+import jakarta.persistence.Query;
 
 import org.jbpm.runtime.manager.impl.jpa.ContextMappingInfo;
 import org.kie.api.runtime.Environment;
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * Database based mapper implementation backed by JPA to store
  * the context to <code>KieSession</code> id mapping. It uses the <code>ContextMappingInfo</code>
  * entity for persistence.
- * 
+ *
  * @see ContextMappingInfo
  *
  */
@@ -48,12 +48,12 @@ public class JPAMapper extends InternalMapper {
     private static final Logger logger = LoggerFactory.getLogger(JPAMapper.class);
 
 	private EntityManagerFactory emf;
-    
+
     public JPAMapper(EntityManagerFactory emf) {
         this.emf = emf;
     }
 
-    
+
     @Override
     public void saveMapping(Context context, Long ksessionId, String ownerId) {
 		EntityManagerInfo info = getEntityManager(context);
@@ -136,10 +136,10 @@ public class JPAMapper extends InternalMapper {
         if (orig instanceof CorrelationKeyContext) {
             return getProcessInstanceByCorrelationKey((CorrelationKey)orig.getContextId(), em);
         }
-        
+
         return orig;
     }
-    
+
     protected ContextMappingInfo findContextByContextId(Context context, String ownerId, EntityManager em) {
         try {
             if (context.getContextId() == null) {
@@ -149,7 +149,7 @@ public class JPAMapper extends InternalMapper {
             		.setParameter("contextId", context.getContextId().toString())
         			.setParameter("ownerId", ownerId);
             ContextMappingInfo contextMapping = (ContextMappingInfo) findQuery.getSingleResult();
-            
+
             return contextMapping;
         } catch (NoResultException e) {
             return null;
@@ -157,11 +157,11 @@ public class JPAMapper extends InternalMapper {
             return null;
         }
     }
-    
-    
+
+
     public Context getProcessInstanceByCorrelationKey(CorrelationKey correlationKey, EntityManager em) {
         Query processInstancesForEvent = em.createNamedQuery( "GetProcessInstanceIdByCorrelation" );
-        
+
         processInstancesForEvent.setParameter( "ckey", correlationKey.toExternalForm());
         try {
             return ProcessInstanceIdContext.get((Long) processInstancesForEvent.getSingleResult());
@@ -200,13 +200,13 @@ public class JPAMapper extends InternalMapper {
         	}
         }
     }
-    
+
     private EntityManagerInfo getEntityManager(Context context) {
     	Environment env = null;
     	if (context instanceof EnvironmentAwareProcessInstanceContext){
     		env = ((EnvironmentAwareProcessInstanceContext) context).getEnvironment();
     	}
-    	
+
         if (env != null) {
             EntityManager em = (EntityManager) env.get(EnvironmentName.CMD_SCOPED_ENTITY_MANAGER);
         	if (em != null) {
@@ -221,11 +221,11 @@ public class JPAMapper extends InternalMapper {
         }
         throw new RuntimeException("Could not find EntityManager, both command-scoped EM and EMF in environment are null");
     }
-    
+
     private class EntityManagerInfo {
     	private EntityManager entityManager;
     	private boolean shared;
-    	
+
 		public EntityManagerInfo(EntityManager entityManager, boolean shared) {
 			this.entityManager = entityManager;
 			this.shared = shared;
@@ -239,15 +239,15 @@ public class JPAMapper extends InternalMapper {
 			return shared;
 		}
     }
-    
-    
+
+
     @SuppressWarnings("unchecked")
 	public List<Long> findKSessionToInit(String ownerId) {
         EntityManager em = emf.createEntityManager();
         Query findQuery = em.createNamedQuery("FindKSessionToInit").setParameter("ownerId", ownerId);
         return findQuery.getResultList();
     }
-    
+
     @SuppressWarnings("unchecked")
     public List<String> findContextIdForEvent(String eventType, String ownerId) {
         EntityManager em = emf.createEntityManager();

@@ -16,11 +16,11 @@
 
 package org.jbpm.executor.cdi;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.persistence.PersistenceUnit;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import jakarta.persistence.PersistenceUnit;
 
 import org.jbpm.shared.services.impl.TransactionalCommandService;
 
@@ -28,7 +28,7 @@ import org.jbpm.shared.services.impl.TransactionalCommandService;
 public class ExecutorDatabaseProducer {
 
     private EntityManagerFactory emf;
-	
+
     @PersistenceUnit(unitName = "org.jbpm.executor")
     @ApplicationScoped
     @Produces

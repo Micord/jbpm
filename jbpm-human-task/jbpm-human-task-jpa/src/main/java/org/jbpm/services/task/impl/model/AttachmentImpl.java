@@ -22,15 +22,15 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Date;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 import org.kie.api.task.model.Content;
 import org.kie.api.task.model.User;
@@ -44,7 +44,7 @@ import org.kie.internal.task.api.model.InternalAttachment;
 
 @SequenceGenerator(name="attachmentIdSeq", sequenceName="ATTACHMENT_ID_SEQ", allocationSize=1)
 public class AttachmentImpl implements InternalAttachment {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="attachmentIdSeq")
     @Column(name = "id")
@@ -67,17 +67,17 @@ public class AttachmentImpl implements InternalAttachment {
 
     @ManyToOne()
     private UserImpl   attachedBy;
-    
-    private Date   attachedAt;    
+
+    private Date   attachedAt;
 
     @Column(name = "attachment_size")
-    private int    size;    
-    
+    private int    size;
+
     private long   attachmentContentId;
-    
+
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong( id );
-        if( name == null ) { 
+        if( name == null ) {
             name = "";
         }
         out.writeUTF( name );
@@ -89,14 +89,14 @@ public class AttachmentImpl implements InternalAttachment {
         // There are no guarantees that attachedBy is not null == potential bug
         attachedBy.writeExternal( out );
         long attachedAtTime = 0;
-        if( attachedAt != null ) { 
+        if( attachedAt != null ) {
             attachedAtTime = attachedAt.getTime();
         }
         out.writeLong( attachedAtTime );
         out.writeInt( size );
         out.writeLong( attachmentContentId );
     }
-    
+
     public void readExternal(ObjectInput in) throws IOException,
                                             ClassNotFoundException {
         id = in.readLong();
@@ -104,7 +104,7 @@ public class AttachmentImpl implements InternalAttachment {
         accessType = AccessType.valueOf( in.readUTF() );
         contentType = in.readUTF();
         attachedBy = new UserImpl();
-        attachedBy.readExternal( in );        
+        attachedBy.readExternal( in );
         attachedAt = new Date( in.readLong() );
         size = in.readInt( );
         attachmentContentId = in.readLong();
@@ -156,8 +156,8 @@ public class AttachmentImpl implements InternalAttachment {
 
     public void setAttachedBy(User attachedBy) {
         this.attachedBy = convertToUserImpl(attachedBy);
-    }    
-    
+    }
+
     public int getSize() {
         return size;
     }
@@ -174,7 +174,7 @@ public class AttachmentImpl implements InternalAttachment {
     public void setSize(int size) {
         this.size = size;
     }
-        
+
     public long getAttachmentContentId() {
         return attachmentContentId;
     }
@@ -207,7 +207,7 @@ public class AttachmentImpl implements InternalAttachment {
             if ( other.accessType != null ) return false;
         } else if ( !accessType.equals( other.accessType ) ) return false;
         if ( attachedAt == null ) {
-            if ( other.attachedAt != null ) return false;            
+            if ( other.attachedAt != null ) return false;
         } else if ( attachedAt.getTime() != other.attachedAt.getTime() ) return false;
         if ( attachedBy == null ) {
             if ( other.attachedBy != null ) return false;
@@ -224,9 +224,9 @@ public class AttachmentImpl implements InternalAttachment {
     }
 
 
- 
- 
-    
-    
+
+
+
+
 
 }

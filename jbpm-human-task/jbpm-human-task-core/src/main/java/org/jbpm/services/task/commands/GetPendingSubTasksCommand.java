@@ -18,11 +18,11 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 @XmlRootElement(name="get-pending-sub-tasks-command")
 @XmlAccessorType(XmlAccessType.NONE)
@@ -33,14 +33,14 @@ public class GetPendingSubTasksCommand extends TaskCommand<Integer> {
     @XmlElement
     @XmlSchemaType(name="long")
 	private Long parentId;
-	
+
 	public GetPendingSubTasksCommand() {
 	}
-	
+
 	public GetPendingSubTasksCommand(Long parentId) {
 		this.parentId = parentId;
 	}
-		
+
     public Long getParentId() {
 		return parentId;
 	}
@@ -52,8 +52,8 @@ public class GetPendingSubTasksCommand extends TaskCommand<Integer> {
 	public Integer execute(Context cntxt ) {
         TaskContext context = (TaskContext) cntxt;
     	return context.getTaskQueryService().getPendingSubTasksByParent(parentId);
-        
-    	
+
+
 
     }
 

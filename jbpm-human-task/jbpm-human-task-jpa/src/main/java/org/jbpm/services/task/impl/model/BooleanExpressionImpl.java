@@ -20,56 +20,56 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.Lob;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Lob;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name="BooleanExpression",
        indexes = {@Index(name = "IDX_BoolExpr_Id",  columnList="Escalation_Constraints_Id")})
 @SequenceGenerator(name="booleanExprIdSeq", sequenceName="BOOLEANEXPR_ID_SEQ", allocationSize=1)
 public class BooleanExpressionImpl implements org.kie.internal.task.api.model.BooleanExpression {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="booleanExprIdSeq")
     private Long   id;
     private String type;
-    
+
     @Lob @Column(length=65535)
     private String expression;
-    
+
     public BooleanExpressionImpl() {
-        
+
     }
-    
+
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong( id );
-        if( type == null ) { 
+        if( type == null ) {
             type = "";
         }
         out.writeUTF( type );
-        if( expression == null ) { 
+        if( expression == null ) {
             expression = "";
         }
-        out.writeUTF( expression );        
+        out.writeUTF( expression );
     }
-    
+
     public void readExternal(ObjectInput in) throws IOException,
                                             ClassNotFoundException {
         id = in.readLong();
         type = in.readUTF();
-        expression = in.readUTF();        
+        expression = in.readUTF();
     }
-    
+
     public BooleanExpressionImpl(String type, String expression) {
         this.type = type;
-        this.expression = expression;        
+        this.expression = expression;
     }
 
     public Long getId() {
@@ -120,5 +120,5 @@ public class BooleanExpressionImpl implements org.kie.internal.task.api.model.Bo
         return true;
     }
 
-    
+
 }

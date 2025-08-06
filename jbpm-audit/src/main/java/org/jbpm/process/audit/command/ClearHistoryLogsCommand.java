@@ -18,9 +18,9 @@ package org.jbpm.process.audit.command;
 import org.jbpm.process.audit.AuditLogService;
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.NONE)
@@ -31,13 +31,13 @@ public class ClearHistoryLogsCommand extends AuditCommand<Void> {
 
     public ClearHistoryLogsCommand() {
 	}
-	
+
     public Void execute(Context cntxt) {
         setLogEnvironment(cntxt);
         this.auditLogService.clear();
         return null;
     }
-    
+
     public String toString() {
         return AuditLogService.class.getSimpleName() + ".clear()";
     }

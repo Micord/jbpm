@@ -19,11 +19,11 @@ import org.jbpm.process.audit.AuditLogService;
 import org.jbpm.process.audit.VariableInstanceLog;
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 import java.util.List;
 
 @XmlRootElement
@@ -36,59 +36,59 @@ public class FindVariableInstancesByNameCommand extends AuditCommand<List<Variab
     @XmlAttribute(required=true)
     @XmlSchemaType(name="string")
     private String variableId;
-    
+
     @XmlAttribute(required=false)
     @XmlSchemaType(name="string")
     private String value = null;
-    
+
     @XmlAttribute(required=true)
     @XmlSchemaType(name="boolean")
     private Boolean activeProcesses;
-    
-    public FindVariableInstancesByNameCommand() { 
+
+    public FindVariableInstancesByNameCommand() {
         // no-arg for JAXB
     }
-    
+
     public FindVariableInstancesByNameCommand(String variableId) {
         this.variableId = variableId;
         this.activeProcesses = true;
 	}
-	
+
     public FindVariableInstancesByNameCommand(String variableId, boolean onlyFromActiveProcesses) {
         this.variableId = variableId;
         this.activeProcesses = onlyFromActiveProcesses;
 	}
-	
+
     public FindVariableInstancesByNameCommand(String variableId, String value) {
-        if( variableId == null || variableId.isEmpty() ) { 
+        if( variableId == null || variableId.isEmpty() ) {
             throw new IllegalArgumentException("The variableId field may not be null or empty." );
         }
         this.variableId = variableId;
-        if( value == null || value.isEmpty() ) { 
+        if( value == null || value.isEmpty() ) {
             throw new IllegalArgumentException("The value field may not be null or empty." );
         }
         this.value = value;
         this.activeProcesses = true;
 	}
-	
+
     public FindVariableInstancesByNameCommand(String variableId, String value, boolean onlyFromActiveProcesses) {
         this(variableId, value);
         this.activeProcesses = onlyFromActiveProcesses;
     }
-    
+
     public List<VariableInstanceLog> execute(Context cntxt) {
         setLogEnvironment(cntxt);
-        if( this.value == null || this.value.isEmpty() ) { 
+        if( this.value == null || this.value.isEmpty() ) {
             return this.auditLogService.findVariableInstancesByName(variableId, activeProcesses);
-        } else { 
+        } else {
             return this.auditLogService.findVariableInstancesByNameAndValue(variableId, value, activeProcesses);
         }
     }
-    
+
     public String toString() {
-        if( variableId == null || variableId.isEmpty() ) { 
+        if( variableId == null || variableId.isEmpty() ) {
             return AuditLogService.class.getSimpleName() + ".findVariableInstancesByName("+ variableId + ", " + activeProcesses + ")";
-        } else { 
+        } else {
             return AuditLogService.class.getSimpleName() + ".findNodeInstancesByNameAndValue("+ variableId + ", " + value + ", " + activeProcesses + ")";
         }
     }

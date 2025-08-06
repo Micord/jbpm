@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.assertj.core.api.Assertions;
 import org.jbpm.executor.impl.ExecutorServiceImpl;

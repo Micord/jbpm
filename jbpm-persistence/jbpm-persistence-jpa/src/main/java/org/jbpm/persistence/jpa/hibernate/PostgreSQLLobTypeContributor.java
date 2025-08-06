@@ -23,10 +23,10 @@ import org.hibernate.engine.jdbc.spi.JdbcServices;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.type.StandardBasicTypeTemplate;
 import org.hibernate.type.StandardBasicTypes;
-import org.hibernate.type.descriptor.java.PrimitiveByteArrayTypeDescriptor;
-import org.hibernate.type.descriptor.java.StringTypeDescriptor;
-import org.hibernate.type.descriptor.sql.BinaryTypeDescriptor;
-import org.hibernate.type.descriptor.sql.LongVarcharTypeDescriptor;
+import org.hibernate.type.descriptor.java.PrimitiveByteArrayJavaType;
+import org.hibernate.type.descriptor.java.StringJavaType;
+import org.hibernate.type.descriptor.jdbc.BinaryJdbcType;
+import org.hibernate.type.descriptor.jdbc.LongVarbinaryJdbcType;
 
 
 public class PostgreSQLLobTypeContributor implements TypeContributor {
@@ -36,7 +36,7 @@ public class PostgreSQLLobTypeContributor implements TypeContributor {
         private static final long serialVersionUID = 1619875355308645967L;
 
         public ByteaContributorType() {
-            super(BinaryTypeDescriptor.INSTANCE, PrimitiveByteArrayTypeDescriptor.INSTANCE, StandardBasicTypes.MATERIALIZED_BLOB.getName());
+            super(BinaryJdbcType.INSTANCE, PrimitiveByteArrayJavaType.INSTANCE, StandardBasicTypes.MATERIALIZED_BLOB.getName());
         }
 
     }
@@ -46,7 +46,7 @@ public class PostgreSQLLobTypeContributor implements TypeContributor {
         private static final long serialVersionUID = 1619875355308645967L;
 
         public TextContributorType() {
-            super(LongVarcharTypeDescriptor.INSTANCE, StringTypeDescriptor.INSTANCE, StandardBasicTypes.MATERIALIZED_CLOB.getName());
+            super(LongVarbinaryJdbcType.INSTANCE, StringJavaType.INSTANCE, StandardBasicTypes.MATERIALIZED_CLOB.getName());
         }
 
     }
@@ -54,7 +54,7 @@ public class PostgreSQLLobTypeContributor implements TypeContributor {
     @Override
     public void contribute(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
         final Dialect dialect = serviceRegistry.getService(JdbcServices.class).getDialect();
-        if (dialect instanceof org.hibernate.dialect.PostgreSQL81Dialect) {
+        if (dialect instanceof org.hibernate.dialect.PostgreSQLDialect) {
             if (Boolean.getBoolean("org.kie.persistence.postgresql.useBytea")) {
                 typeContributions.contributeType(new ByteaContributorType());
             }

@@ -19,10 +19,10 @@ package org.jbpm.services.task.commands;
 import org.kie.api.runtime.Context;
 import org.kie.api.task.model.Group;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name="get-group-command")
 @XmlAccessorType(XmlAccessType.NONE)
@@ -32,10 +32,10 @@ public class GetGroupCommand extends TaskCommand<Group> {
 
     @XmlElement
 	private String groupId;
-	
+
 	public GetGroupCommand() {
 	}
-	
+
 	public GetGroupCommand(String groupId) {
 		this.groupId = groupId;
     }

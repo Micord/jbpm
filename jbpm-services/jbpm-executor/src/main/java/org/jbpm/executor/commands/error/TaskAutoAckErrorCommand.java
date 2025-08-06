@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.drools.persistence.api.TransactionManager;
 import org.drools.persistence.api.TransactionManagerFactory;
@@ -31,9 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Command that will auto acknowledge task errors based on their status - 
+ * Command that will auto acknowledge task errors based on their status -
  * completed, failed, exited, obsolete, error - will be considered as eligible for ack
- * 
+ *
  * Following parameters are supported by this command:
  * <ul>
  *  <li>EmfName - name of entity manager factory to be used for queries (valid persistence unit name)</li>
@@ -46,12 +46,12 @@ public class TaskAutoAckErrorCommand extends AutoAckErrorCommand {
     private static final Logger logger = LoggerFactory.getLogger(TaskAutoAckErrorCommand.class);
 
     private static final String RULE = "Tasks that previously failed but now are in one of the statuses - completed, failed, exited, obsolete, error";
-    
+
 
     @Override
     protected List<ExecutionErrorInfo> findErrorsToAck(EntityManager em) {
         List<ExecutionErrorInfo> errorsToAck = new ArrayList<>();
-        
+
         TransactionManager txm = TransactionManagerFactory.get().newTransactionManager();
         boolean txOwner = txm.begin();
         try {
@@ -69,7 +69,7 @@ public class TaskAutoAckErrorCommand extends AutoAckErrorCommand {
             txm.rollback(txOwner);
         }
         return errorsToAck;
-        
+
     }
 
     @Override

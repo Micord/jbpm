@@ -16,23 +16,23 @@
 
 package org.jbpm.services.ejb.impl.tx;
 
-import javax.ejb.Stateless;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
+import jakarta.ejb.Stateless;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnit;
 
 import org.jbpm.shared.services.impl.TransactionalCommandService;
 
 @Stateless
 public class TransactionalCommandServiceEJBImpl extends TransactionalCommandService {
-	
+
 	@PersistenceUnit(unitName="org.jbpm.domain")
 	@Override
 	public void setEmf(EntityManagerFactory emf) {
-		
+
 		super.setEmf(emf);
 	}
-	
-	
+
+
 	public TransactionalCommandServiceEJBImpl() {
 		super(null);
 		// entity manager will be set by setter method

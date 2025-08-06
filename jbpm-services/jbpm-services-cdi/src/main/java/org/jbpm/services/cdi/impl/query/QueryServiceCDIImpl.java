@@ -16,12 +16,12 @@
 
 package org.jbpm.services.cdi.impl.query;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.dashbuilder.dataprovider.DataSetProviderRegistry;
 import org.dashbuilder.dataset.DataSetManager;
@@ -42,12 +42,12 @@ import org.kie.internal.runtime.cdi.BootOnLoad;
 @BootOnLoad
 @ApplicationScoped
 public class QueryServiceCDIImpl extends QueryServiceImpl {
-    
+
     @Inject
     private Instance<DataSetDefRegistry> dataSetDefRegistryInstance;
 
     @Inject
-    private Instance<DataSetManager> dataSetManagerInstance;    
+    private Instance<DataSetManager> dataSetManagerInstance;
 
     @Inject
     private Instance<DataSetProviderRegistry> providerRegistryInstance;
@@ -96,12 +96,12 @@ public class QueryServiceCDIImpl extends QueryServiceImpl {
         }
         super.init();
     }
-    
+
     @Override
     public void onDeploy(@Observes@Deploy DeploymentEvent event) {
         super.onDeploy(event);
     }
-    
+
     @Override
     public void onUnDeploy(@Observes@Undeploy DeploymentEvent event) {
         super.onUnDeploy(event);

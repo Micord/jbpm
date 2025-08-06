@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.ejb.EJB;
+import jakarta.ejb.EJB;
 
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.jboss.arquillian.container.test.api.Deployment;

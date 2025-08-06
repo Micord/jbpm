@@ -18,21 +18,21 @@ package org.jbpm.services.task.commands;
 import org.kie.api.runtime.Context;
 import org.kie.api.task.model.TaskSummary;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 @XmlRootElement(name="remove-tasks-command")
 @XmlAccessorType(XmlAccessType.NONE)
 public class RemoveTasksCommand extends TaskCommand<Integer> {
-	
+
 	private static final long serialVersionUID = -5174631969130504959L;
 
 	@XmlElement
 	private List tasks;
-	
+
 	public RemoveTasksCommand() {
 	}
 
@@ -50,8 +50,8 @@ public class RemoveTasksCommand extends TaskCommand<Integer> {
 
 	public Integer execute(Context cntxt) {
         TaskContext context = (TaskContext) cntxt;
-        
+
     	return context.getTaskAdminService().removeTasks(tasks);
-       
+
     }
 }

@@ -16,10 +16,10 @@
 
 package org.jbpm.process.instance.command;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 import org.kie.api.command.ExecutableCommand;
 import org.kie.api.runtime.Context;
@@ -33,7 +33,7 @@ import org.kie.internal.command.RegistryContext;
 public class GetProcessInstanceVariableCommand implements ExecutableCommand<Object>, ProcessInstanceIdCommand {
 
     private static final long serialVersionUID = 6L;
-	
+
     @XmlAttribute(required=true)
     @XmlSchemaType(name="long")
     private Long processInstanceId;
@@ -69,10 +69,10 @@ public class GetProcessInstanceVariableCommand implements ExecutableCommand<Obje
         if ( processInstance == null ) {
             throw new IllegalArgumentException( "Could not find process instance for id " + processInstanceId );
         }
-        if ( processInstance instanceof WorkflowProcessInstance ) { 
+        if ( processInstance instanceof WorkflowProcessInstance ) {
         	return ((WorkflowProcessInstance) processInstance).getVariable(variableId);
-        } else { 
-            throw new IllegalStateException("Could not retrieve variable " + variableId 
+        } else {
+            throw new IllegalStateException("Could not retrieve variable " + variableId
                     + " because process instance " + processInstanceId + " was inaccessible!");
         }
     }

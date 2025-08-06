@@ -21,8 +21,8 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.services.task.HumanTaskServiceFactory;
 import org.jbpm.services.task.assignment.impl.strategy.LoadBalanceAssignmentStrategy;
@@ -95,7 +95,7 @@ public class LoadBalanceAssignmentStrategyTest extends AbstractAssignmentTest {
     private static String createTaskString(String peopleAssignments, String taskName) {
         return "(" + BASE_TASK_INFO + peopleAssignments + "name = '" + taskName + "'})";
     }
-	
+
 	@Before
 	public void setUp() throws Exception {
         System.setProperty("org.jbpm.task.assignment.enabled", "true");
@@ -126,7 +126,7 @@ public class LoadBalanceAssignmentStrategyTest extends AbstractAssignmentTest {
             pds.close();
         }
 	}
-	
+
 	@Test
 	public void testMultipleUser() {
         final String taskString = "(" +
@@ -160,7 +160,7 @@ public class LoadBalanceAssignmentStrategyTest extends AbstractAssignmentTest {
 
         logger.info("testMultipleUser completed");
 	}
-	
+
 	@Test
 	public void testMultipleUserWithGroup() {
         final String taskString = "(" +
@@ -330,7 +330,7 @@ public class LoadBalanceAssignmentStrategyTest extends AbstractAssignmentTest {
         createAndAssertTask(taskString, BOBBA_FET, 1, CRUSADERS);
         createAndAssertTask(taskString, LUKE_CAGE, 1, CRUSADERS);
     }
-	
+
     @Test
     public void testExcludedGroupFromUsers() {
         final String taskString = createTaskString(EXCLUDED_GROUP_FROM_USERS_ASSIGNMENTS, "ExcludedGroupFromUsersLoadBalancingTask");

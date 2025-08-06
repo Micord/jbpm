@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.ejb.EJB;
+import jakarta.ejb.EJB;
 
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -67,16 +67,16 @@ public class AsyncExecutionProcessServiceEJBIntegrationTest extends AbstractTest
 		war.addClass("org.jbpm.test.listener.process.NodeLeftCountDownProcessEventListener");
 		// deploy test kjar
 		deployKjar();
-		
+
 		return war;
 	}
-	
+
 	protected static void deployKjar() {
 		KieServices ks = KieServices.Factory.get();
         ReleaseId releaseId = ks.newReleaseId(GROUP_ID, ARTIFACT_ID, VERSION);
         List<String> processes = new ArrayList<String>();
         processes.add("processes/async-execution.bpmn2");
-        
+
         InternalKieModule kJar1 = createKieJar(ks, releaseId, processes);
         File pom = new File("target/kmodule", "pom.xml");
         pom.getParentFile().mkdir();
@@ -85,14 +85,14 @@ public class AsyncExecutionProcessServiceEJBIntegrationTest extends AbstractTest
             fs.write(getPom(releaseId).getBytes());
             fs.close();
         } catch (Exception e) {
-            
+
         }
         KieMavenRepository repository = getKieMavenRepository();
         repository.installArtifact(releaseId, kJar1, pom);
 	}
-	
+
 	private List<DeploymentUnit> units = new ArrayList<DeploymentUnit>();
-	
+
     @After
     public void cleanup() {
 
@@ -109,30 +109,30 @@ public class AsyncExecutionProcessServiceEJBIntegrationTest extends AbstractTest
 
 	@EJB
 	private DeploymentServiceEJBLocal deploymentService;
-	
+
 	@EJB
 	private ProcessServiceEJBLocal processService;
-	
+
 	@EJB
 	private RuntimeDataServiceEJBLocal runtimeDataService;
-	
-    
+
+
     @Test
     public void testStartProcessWithParms() throws Exception {
     	assertNotNull(deploymentService);
     	final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("Task 1", 1);
-        
+
         KModuleDeploymentUnit deploymentUnit = new KModuleDeploymentUnit(GROUP_ID, ARTIFACT_ID, VERSION);
 
         deploymentService.deploy(deploymentUnit);
         units.add(deploymentUnit);
-        
+
         boolean isDeployed = deploymentService.isDeployed(deploymentUnit.getIdentifier());
     	assertTrue(isDeployed);
-    	
+
     	assertNotNull(processService);
-    	
-        
+
+
         // register count down listener
         processService.execute(deploymentUnit.getIdentifier(), new ExecutableCommand<Void>() {
 
@@ -145,19 +145,19 @@ public class AsyncExecutionProcessServiceEJBIntegrationTest extends AbstractTest
                 return null;
             }
         });
-    	
+
     	Map<String, Object> params = new HashMap<String, Object>();
         params.put("command", "org.jbpm.executor.commands.PrintOutCommand");
-    	
+
     	long processInstanceId = processService.startProcess(deploymentUnit.getIdentifier(), "AsyncExecution", params);
     	assertNotNull(processInstanceId);
-    	
+
     	// wait for the command to be executed
     	countDownListener.waitTillCompleted(10000);
-    	
-    	ProcessInstance pi = processService.getProcessInstance(processInstanceId);    	
+
+    	ProcessInstance pi = processService.getProcessInstance(processInstanceId);
     	assertNull(pi);
     }
-    
-    
+
+
 }

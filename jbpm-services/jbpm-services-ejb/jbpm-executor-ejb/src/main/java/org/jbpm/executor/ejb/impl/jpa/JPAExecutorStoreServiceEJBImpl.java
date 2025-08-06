@@ -20,10 +20,10 @@ import org.jbpm.executor.impl.jpa.JPAExecutorStoreService;
 import org.kie.api.executor.ExecutorStoreService;
 import org.kie.api.runtime.CommandExecutor;
 
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnit;
 
 @Stateless
 public class JPAExecutorStoreServiceEJBImpl extends JPAExecutorStoreService implements ExecutorStoreService {

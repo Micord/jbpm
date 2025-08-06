@@ -15,9 +15,9 @@
  */
 package org.jbpm.services.ejb.impl.audit;
 
-import javax.annotation.PostConstruct;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
+import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnit;
 
 import org.jbpm.process.audit.jms.AsyncAuditLogReceiver;
 
@@ -28,14 +28,14 @@ import org.jbpm.process.audit.jms.AsyncAuditLogReceiver;
  */
 public class AuditJMSProcessor extends AsyncAuditLogReceiver {
 
-    
+
     @PersistenceUnit(unitName = "org.jbpm.domain")
     private EntityManagerFactory entityManagerFactory;
-    
+
     public AuditJMSProcessor() {
         super(null);
     }
-    
+
     @PostConstruct
     public void configure() {
         setEntityManagerFactory(entityManagerFactory);

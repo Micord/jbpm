@@ -24,7 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.jbpm.persistence.scripts.oldentities.ProcessInstanceInfo;
 import org.jbpm.persistence.scripts.oldentities.SessionInfo;
@@ -59,21 +59,21 @@ public final class TestPersistenceContext extends TestPersistenceContextBase {
         List<I18NText> names = new ArrayList<I18NText>();
         names.add(name);
         task.setNames(names);
-        InternalTaskData taskData = (InternalTaskData) TaskModelProvider.getFactory().newTaskData();        
+        InternalTaskData taskData = (InternalTaskData) TaskModelProvider.getFactory().newTaskData();
         taskData.setWorkItemId(12);
         taskData.setProcessInstanceId(1);
         taskData.setProcessId("someprocess");
         taskData.setDeploymentId("org.jbpm.test:someprocess:1.0");
         taskData.setProcessSessionId(1);
         task.setTaskData(taskData);
-        InternalPeopleAssignments peopleAssignments = 
+        InternalPeopleAssignments peopleAssignments =
             (InternalPeopleAssignments) TaskModelProvider.getFactory().newPeopleAssignments();
         peopleAssignments.setPotentialOwners(new ArrayList<OrganizationalEntity>());
         peopleAssignments.setBusinessAdministrators(new ArrayList<OrganizationalEntity>());
         peopleAssignments.setExcludedOwners(new ArrayList<OrganizationalEntity>());
         peopleAssignments.setRecipients(new ArrayList<OrganizationalEntity>());
         peopleAssignments.setTaskStakeholders(new ArrayList<OrganizationalEntity>());
-        InternalOrganizationalEntity jdoe = 
+        InternalOrganizationalEntity jdoe =
             (InternalOrganizationalEntity) TaskModelProvider.getFactory().newUser();
         jdoe.setId("jdoe");
         peopleAssignments.getPotentialOwners().add(jdoe);

@@ -16,7 +16,7 @@
 package org.jbpm.runtime.manager.impl;
 
 import javax.naming.InitialContext;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.process.core.timer.GlobalSchedulerService;
 import org.jbpm.process.core.timer.impl.QuartzSchedulerService;
@@ -30,31 +30,31 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default implementation of the RuntimeEnvironment that aims at providing all 
+ * Default implementation of the RuntimeEnvironment that aims at providing all
  * common settings with a minimum need for configuration.
- * 
+ *
  * It automatically configures the following components:
  * <ul>
  *  <li>uses <code>DefaultRegisterableItemsFactory</code> to provide work item handlers and event listeners instances</li>
  *  <li>EntityManagerFactory - if non given uses persistence unit with "org.jbpm.persistence.jpa" name</li>
- *  <li>SchedulerService - if non given tries to discover if Quartz based scheduler shall be used by checking if 
+ *  <li>SchedulerService - if non given tries to discover if Quartz based scheduler shall be used by checking if
  *  "org.quartz.properties" system property is given, if not uses ThreadPool based scheduler with thread pool size set to 3</li>
  *  <li>uses simple MVEL based UserGroupCallback that requires mvel files for users and groups to be present on classpath</li>
  * </ul>
  *
  */
 public class DefaultRuntimeEnvironment extends SimpleRuntimeEnvironment {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(DefaultRuntimeEnvironment.class);
 
     public DefaultRuntimeEnvironment() {
         this(null, discoverSchedulerService());
     }
-    
+
     public DefaultRuntimeEnvironment(EntityManagerFactory emf) {
         this(emf, discoverSchedulerService());
     }
-    
+
     public DefaultRuntimeEnvironment(EntityManagerFactory emf, GlobalSchedulerService globalSchedulerService) {
         super(new DefaultRegisterableItemsFactory());
         this.emf = emf;
@@ -63,7 +63,7 @@ public class DefaultRuntimeEnvironment extends SimpleRuntimeEnvironment {
         this.userGroupCallback = UserDataServiceProvider.getUserGroupCallback();
         this.userInfo = UserDataServiceProvider.getUserInfo();
     }
-    
+
     public DefaultRuntimeEnvironment(EntityManagerFactory emf, boolean usePersistence) {
         this(emf, null);
         this.usePersistence = usePersistence;
@@ -71,11 +71,11 @@ public class DefaultRuntimeEnvironment extends SimpleRuntimeEnvironment {
         this.userGroupCallback = UserDataServiceProvider.getUserGroupCallback();
         this.userInfo = UserDataServiceProvider.getUserInfo();
     }
-    
+
     public void init() {
         if (usePersistence && emf == null && getEnvironmentTemplate().get(EnvironmentName.CMD_SCOPED_ENTITY_MANAGER) == null) {
             emf = EntityManagerFactoryManager.get().getOrCreate("org.jbpm.persistence.jpa");
-        }   
+        }
         addToEnvironment(EnvironmentName.ENTITY_MANAGER_FACTORY, emf);
         if (this.mapper == null) {
             if (this.usePersistence) {
@@ -85,7 +85,7 @@ public class DefaultRuntimeEnvironment extends SimpleRuntimeEnvironment {
             }
         }
     }
-    
+
     protected static GlobalSchedulerService discoverSchedulerService() {
         if (System.getProperty("org.quartz.properties") != null) {
             return new QuartzSchedulerService();
@@ -103,7 +103,7 @@ public class DefaultRuntimeEnvironment extends SimpleRuntimeEnvironment {
         	}
         }
         return new ThreadPoolSchedulerService(3);
-        
+
     }
 
 }

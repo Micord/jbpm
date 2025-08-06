@@ -23,6 +23,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.process.core.Context;
 import org.jbpm.process.core.ContextContainer;
 import org.jbpm.process.core.Work;
@@ -34,14 +35,14 @@ import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of a task node.
- * 
+ *
  */
 public class WorkItemNode extends StateBasedNode implements Mappable, ContextContainer {
 
 	private static final long serialVersionUID = 510l;
 	// NOTE: ContetxInstances are not persisted as current functionality (exception scope) does not require it
 	private ContextContainer contextContainer = new ContextContainerImpl();
-    
+
 	private Work work;
 
 	private List<DataAssociation> inMapping = new LinkedList<DataAssociation>();
@@ -64,7 +65,7 @@ public class WorkItemNode extends StateBasedNode implements Mappable, ContextCon
 	public void setWork(Work work) {
 		this.work = work;
 	}
-	
+
 
     public void addInMapping(String parameterName, String variableName) {
     	inMapping.add(new DataAssociation(variableName, parameterName, null, null));
@@ -80,9 +81,9 @@ public class WorkItemNode extends StateBasedNode implements Mappable, ContextCon
     public String getInMapping(String parameterName) {
     	return getInMappings().get(parameterName);
     }
-    
+
     public Map<String, String> getInMappings() {
-    	Map<String,String> in = new HashMap<String, String>(); 
+    	Map<String,String> in = new HashMap<String, String>();
     	for(DataAssociation a : inMapping) {
     		if(a.getSources().size() ==1 && (a.getAssignments() == null || a.getAssignments().size()==0) && a.getTransformation() == null) {
     			in.put(a.getTarget(), a.getSources().get(0));
@@ -98,11 +99,11 @@ public class WorkItemNode extends StateBasedNode implements Mappable, ContextCon
     public List<DataAssociation> getInAssociations() {
         return Collections.unmodifiableList(inMapping);
     }
-    
+
     public void addOutMapping(String parameterName, String variableName) {
     	outMapping.add(new DataAssociation(parameterName, variableName, null, null));
     }
-    
+
     public void adjustOutMapping(String forEachOutVariable) {
     	Iterator<DataAssociation> it = outMapping.iterator();
     	while (it.hasNext()) {
@@ -123,9 +124,9 @@ public class WorkItemNode extends StateBasedNode implements Mappable, ContextCon
     public String getOutMapping(String parameterName) {
     	return getOutMappings().get(parameterName);
     }
-    
+
     public Map<String, String> getOutMappings() {
-    	Map<String,String> out = new HashMap<String, String>(); 
+    	Map<String,String> out = new HashMap<String, String>();
     	for(DataAssociation a : outMapping) {
     		if(a.getSources().size() ==1 && (a.getAssignments() == null || a.getAssignments().size()==0) && a.getTransformation() == null) {
     			out.put(a.getSources().get(0), a.getTarget());
@@ -133,7 +134,7 @@ public class WorkItemNode extends StateBasedNode implements Mappable, ContextCon
     	}
     	return out;
     }
-    
+
     public void addOutAssociation(DataAssociation dataAssociation) {
         outMapping.add(dataAssociation);
     }
@@ -153,40 +154,40 @@ public class WorkItemNode extends StateBasedNode implements Mappable, ContextCon
     public void validateAddIncomingConnection(final String type, final Connection connection) {
         super.validateAddIncomingConnection(type, connection);
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getTo().getMetaData().get("UniqueId") + ", " + connection.getTo().getName() 
-                    + "] only accepts default incoming connection type!");
+          throw new BpmnNodeIllegalArgumentException("This type of node only accepts default incoming connection type!",
+              connection.getFrom().getName(),
+              connection.getFrom().getNodeUniqueId());
         }
         if (getFrom() != null && !"true".equals(System.getProperty("jbpm.enable.multi.con"))) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getTo().getMetaData().get("UniqueId") + ", " + connection.getTo().getName() 
-                    + "] cannot have more than one incoming connection!");
+          throw new BpmnNodeIllegalArgumentException("This type of node cannot have more than one incoming connection!",
+              connection.getTo().getName(),
+              connection.getTo().getNodeUniqueId());
         }
     }
 
     public void validateAddOutgoingConnection(final String type, final Connection connection) {
         super.validateAddOutgoingConnection(type, connection);
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getFrom().getMetaData().get("UniqueId") + ", " + connection.getFrom().getName() 
-                    + "] only accepts default outgoing connection type!");
+          throw new BpmnNodeIllegalArgumentException("This type of node only accepts default outgoing connection type!",
+              connection.getFrom().getName(),
+              connection.getFrom().getNodeUniqueId());
         }
         if (getTo() != null && !"true".equals(System.getProperty("jbpm.enable.multi.con"))) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getFrom().getMetaData().get("UniqueId") + ", " + connection.getFrom().getName() 
-                    + "] cannot have more than one outgoing connection!");
+          throw new BpmnNodeIllegalArgumentException("This type of node cannot have more than one outgoing connection!",
+              connection.getTo().getName(),
+              connection.getTo().getNodeUniqueId());
         }
     }
-    
+
     public List<Context> getContexts(String contextType) {
         return contextContainer.getContexts(contextType);
     }
-    
+
     public void addContext(Context context) {
         ((AbstractContext) context).setContextContainer(this);
         contextContainer.addContext(context);
     }
-    
+
     public Context getContext(String contextType, long id) {
         return contextContainer.getContext(contextType, id);
     }
@@ -195,7 +196,7 @@ public class WorkItemNode extends StateBasedNode implements Mappable, ContextCon
         ((AbstractContext) context).setContextContainer(this);
         contextContainer.setDefaultContext(context);
     }
-    
+
     public Context getDefaultContext(String contextType) {
         return contextContainer.getDefaultContext(contextType);
     }
@@ -209,5 +210,5 @@ public class WorkItemNode extends StateBasedNode implements Mappable, ContextCon
         return super.getContext(contextId);
     }
 
-    
+
 }

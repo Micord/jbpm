@@ -16,11 +16,11 @@
 
 package org.jbpm.executor.cdi.impl;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import org.kie.api.executor.ExecutorService;
 import org.kie.internal.runtime.cdi.BootOnLoad;
@@ -32,14 +32,14 @@ public class ExecutorServiceLifeCycleController {
 
 	@Inject
 	private ExecutorService executorService;
-	
+
 	@PostConstruct
     public void init() {
 		executorService.init();
     }
-    
+
     @PreDestroy
-    public void destroy() {    	
+    public void destroy() {
     	executorService.destroy();
     }
 }

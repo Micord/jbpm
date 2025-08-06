@@ -22,11 +22,11 @@ import java.io.ObjectOutput;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.persistence.CascadeType;
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
-import javax.persistence.MapKeyColumn;
-import javax.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.OneToMany;
 
 import org.kie.internal.task.api.model.EmailNotificationHeader;
 import org.kie.internal.task.api.model.Language;
@@ -40,7 +40,7 @@ public class EmailNotificationImpl extends NotificationImpl implements org.kie.i
     @OneToMany(cascade = CascadeType.ALL)
     @MapKeyColumn(name="mapkey")
     private Map<LanguageImpl, EmailNotificationHeaderImpl> emailHeaders;
-    
+
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal( out );
@@ -53,7 +53,7 @@ public class EmailNotificationImpl extends NotificationImpl implements org.kie.i
             out.writeInt( 0 );
         }
     }
-    
+
     @Override
     public void readExternal(ObjectInput in) throws IOException,
                                             ClassNotFoundException {
@@ -68,10 +68,10 @@ public class EmailNotificationImpl extends NotificationImpl implements org.kie.i
             }
         }
     }
-    
+
     public NotificationType getNotificationType() {
         return NotificationType.Email;
-    }        
+    }
 
     public Map<? extends Language, ? extends EmailNotificationHeader> getEmailHeaders() {
         return emailHeaders;
@@ -79,7 +79,7 @@ public class EmailNotificationImpl extends NotificationImpl implements org.kie.i
 
     public void setEmailHeaders(Map<? extends Language, ? extends EmailNotificationHeader> emailHeaders) {
         this.emailHeaders = (Map<LanguageImpl, EmailNotificationHeaderImpl>) emailHeaders;
-    }    
+    }
 
     @Override
     public int hashCode() {
@@ -105,8 +105,8 @@ public class EmailNotificationImpl extends NotificationImpl implements org.kie.i
     public String toString() {
         return "EmailNotificationImpl [emailHeaders=" + emailHeaders + "]";
     }
-    
-    
+
+
 
 
 

@@ -22,16 +22,16 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Date;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.Lob;
-import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 import org.kie.api.task.model.User;
 import org.kie.internal.task.api.model.InternalComment;
@@ -42,34 +42,34 @@ import org.kie.internal.task.api.model.InternalComment;
                   @Index(name = "IDX_TaskComments_Id", columnList="TaskData_Comments_Id")})
 @SequenceGenerator(name="commentIdSeq", sequenceName="COMMENT_ID_SEQ", allocationSize=1)
 public class CommentImpl implements InternalComment  {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="commentIdSeq")
     private Long id = 0L;
 
     @Lob @Column(length=65535)
     private String text;
-    
+
     @ManyToOne()
     private UserImpl addedBy;
-    
-    private Date addedAt;    
-    
+
+    private Date addedAt;
+
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong( id );
-        if( text == null ) { 
+        if( text == null ) {
             text = "";
         }
         out.writeUTF( text );
         // There are no guarantees that addedBy is not null = potential bug
-        addedBy.writeExternal( out );    
+        addedBy.writeExternal( out );
         long addedAtTime = 0;
-        if( addedAt != null ) { 
+        if( addedAt != null ) {
             addedAtTime = addedAt.getTime();
         }
         out.writeLong( addedAtTime );
-    }    
-    
+    }
+
     public void readExternal(ObjectInput in) throws IOException,
                                             ClassNotFoundException {
         id = in.readLong();
@@ -78,7 +78,7 @@ public class CommentImpl implements InternalComment  {
         addedBy.readExternal( in );
         addedAt = new Date( in.readLong() );
     }
-    
+
     public Long getId() {
         return id;
     }
@@ -137,7 +137,7 @@ public class CommentImpl implements InternalComment  {
             if ( other.text != null ) return false;
         } else if ( !text.equals( other.text ) ) return false;
         return true;
-    }    
-    
-    
+    }
+
+
 }

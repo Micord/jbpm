@@ -20,10 +20,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import javax.inject.Qualifier;
+import jakarta.inject.Qualifier;
 
 /**
- * Defines a annotated element that is of type WorkingMemeory and is used with 
+ * Defines a annotated element that is of type WorkingMemeory and is used with
  * <code>EventListenerProducer</code>
  */
 @Qualifier

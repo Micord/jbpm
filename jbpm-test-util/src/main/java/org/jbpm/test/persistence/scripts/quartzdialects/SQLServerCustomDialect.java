@@ -18,12 +18,18 @@ package org.jbpm.test.persistence.scripts.quartzdialects;
 
 import java.sql.Types;
 
-import org.hibernate.dialect.SQLServer2008Dialect;
+import org.hibernate.dialect.SQLServerDialect;
 
-public class SQLServerCustomDialect extends SQLServer2008Dialect {
+public class SQLServerCustomDialect extends SQLServerDialect {
 
-    public SQLServerCustomDialect() {
-        registerColumnType(Types.BLOB, "image");
-        registerColumnType(Types.BOOLEAN, "varchar(1)");
+  @Override
+  protected String columnType(int sqlTypeCode) {
+    if (sqlTypeCode == Types.BLOB) {
+      return "image";
     }
+    if (sqlTypeCode == Types.BOOLEAN) {
+      return "varchar(1)";
+    }
+    return super.columnType(sqlTypeCode);
+  }
 }

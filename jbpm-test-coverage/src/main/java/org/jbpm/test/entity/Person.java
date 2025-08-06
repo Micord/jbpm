@@ -16,14 +16,14 @@
 
 package org.jbpm.test.entity;
 
-@javax.persistence.Entity
+@jakarta.persistence.Entity
 public class Person implements java.io.Serializable {
 
 	static final long serialVersionUID = 1L;
 
-	@javax.persistence.GeneratedValue(generator = "PERSON_ID_GENERATOR", strategy = javax.persistence.GenerationType.AUTO)
-	@javax.persistence.Id
-	@javax.persistence.SequenceGenerator(sequenceName = "PERSON_ID_SEQ", name = "PERSON_ID_GENERATOR")
+	@jakarta.persistence.GeneratedValue(generator = "PERSON_ID_GENERATOR", strategy = jakarta.persistence.GenerationType.AUTO)
+	@jakarta.persistence.Id
+	@jakarta.persistence.SequenceGenerator(sequenceName = "PERSON_ID_SEQ", name = "PERSON_ID_GENERATOR")
 	private java.lang.Long id;
 
 	private java.lang.String fullName;

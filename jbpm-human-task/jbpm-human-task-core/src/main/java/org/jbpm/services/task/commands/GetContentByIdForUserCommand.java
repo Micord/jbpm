@@ -19,11 +19,11 @@ package org.jbpm.services.task.commands;
 import org.kie.api.runtime.Context;
 import org.kie.api.task.model.Content;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 @XmlRootElement(name="get-content-by-id-for-user-command")
 @XmlAccessorType(XmlAccessType.NONE)
@@ -34,10 +34,10 @@ public class GetContentByIdForUserCommand extends UserGroupCallbackTaskCommand<C
 	@XmlElement
     @XmlSchemaType(name="long")
 	private Long contentId;
-	
+
 	public GetContentByIdForUserCommand() {
 	}
-	
+
 	public GetContentByIdForUserCommand(Long contentId) {
 		this.contentId = contentId;
     }
@@ -55,7 +55,7 @@ public class GetContentByIdForUserCommand extends UserGroupCallbackTaskCommand<C
         doCallbackUserOperation(userId, context);
         groupIds = doUserGroupCallbackOperation(userId, null, context);
         context.set("local:groups", groupIds);
-        
+
         return context.getTaskInstanceService().getContentByIdForUser(contentId, userId);
     }
 

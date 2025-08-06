@@ -16,7 +16,7 @@
 
 package org.jbpm.services.cdi.impl.security;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import org.jbpm.kie.services.impl.security.DeploymentRolesManager;
 

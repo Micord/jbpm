@@ -33,9 +33,9 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Query;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Query;
 
 import org.jbpm.kie.services.impl.model.ProcessInstanceWithVarsDesc;
 import org.jbpm.kie.services.impl.model.UserTaskInstanceWithPotOwnerDesc;
@@ -72,7 +72,7 @@ public abstract class AbstractAdvanceRuntimeDataServiceImpl {
                                                                                                            " FROM ProcessInstanceLog pil \n " +
                                                                                                            derivedTables +
                                                                                                            " WHERE  pil.processType = :processType " + globalWhere;
-        
+
         return queryProcessUserTasksByVariables(attributes, processVariables, emptyList(), null, processType, varPrefix, queryContext, mainSQLProducer, this::collectProcessData);
     }
 
@@ -109,7 +109,7 @@ public abstract class AbstractAdvanceRuntimeDataServiceImpl {
                                                               derivedTables +
                                                               " WHERE  pil.processType = :processType " + globalWhere;
         }
-        
+
         return queryProcessUserTasksByVariables(attributes, processVariables, taskVariables, owners, processType, varPrefix, queryContext, mainSQLProducer, this::collectProcessData);
 
     }
@@ -150,7 +150,7 @@ public abstract class AbstractAdvanceRuntimeDataServiceImpl {
                                                               derivedTables +
                                                               " WHERE  pil.processType = :processType " + globalWhere;
             dataCollector = this::collectHistoryUserTaskData;
-            
+
 
         } else {
             setDefaultSorting (queryContext, "task.id");
@@ -164,8 +164,8 @@ public abstract class AbstractAdvanceRuntimeDataServiceImpl {
 
         return queryProcessUserTasksByVariables(attributes, processVariables, taskVariables, owners, processType, varPrefix, queryContext, mainSQLProducer, dataCollector);
     }
-    
-    
+
+
     protected static String getSelectFields(String idField, QueryContext queryContext) {
         StringBuilder sb = new StringBuilder("SELECT DISTINCT ").append(idField);
         String sortField = queryContext.getOrderBy().trim();
@@ -331,7 +331,7 @@ public abstract class AbstractAdvanceRuntimeDataServiceImpl {
     }
 
     private List<org.jbpm.services.api.model.ProcessInstanceWithVarsDesc> collectProcessData(List<Number> ids, String varPrefix, List<QueryParam> params) {
-        Optional<QueryParam> exclude = findQueryParamByOperator(params, "EXCLUDE"); // PROCESS_VARIABLES EXCLUDE 
+        Optional<QueryParam> exclude = findQueryParamByOperator(params, "EXCLUDE"); // PROCESS_VARIABLES EXCLUDE
         boolean excludeProcessVariables = exclude.isPresent() && exclude.get().getColumn().equals("ATTR_COLLECTION_VARIABLES");
 
         List<Object[]> procRows = commandService.execute(new QueryNameCommand<List<Object[]>>("GetProcessInstanceByIdList", singletonMap(ID_LIST, ids)));
@@ -466,13 +466,13 @@ public abstract class AbstractAdvanceRuntimeDataServiceImpl {
     private List<org.jbpm.services.api.model.UserTaskInstanceWithPotOwnerDesc> collectRuntimeUserTaskData(List<Number> ids, String varPrefix, List<QueryParam> params) {
         return collectUserTaskData("GetTasksByIdList", this::toUserTaskInstanceWithPotOwnerDesc, ids, varPrefix, params);
     }
-    
+
     private List<org.jbpm.services.api.model.UserTaskInstanceWithPotOwnerDesc> collectHistoryUserTaskData(List<Number> ids, String varPrefix,  List<QueryParam> params) {
         return collectUserTaskData("GetHistoryTasksByIdList", this::toHistoryUserTaskInstanceWithPotOwnerDesc, ids, varPrefix, params);
     }
 
     private List<org.jbpm.services.api.model.UserTaskInstanceWithPotOwnerDesc> collectUserTaskData(String taskRetriever, Function<Object[], UserTaskInstanceWithPotOwnerDesc> mapper, List<Number> ids, String varPrefix, List<QueryParam> params) {
-        Optional<QueryParam> exclude = findQueryParamByOperator(params, "EXCLUDE"); // PROCESS_VARIABLES EXCLUDE 
+        Optional<QueryParam> exclude = findQueryParamByOperator(params, "EXCLUDE"); // PROCESS_VARIABLES EXCLUDE
         boolean excludeProcessVariables = exclude.isPresent() && exclude.get().getColumn().equals("ATTR_COLLECTION_VARIABLES");
 
         // query data
@@ -519,7 +519,7 @@ public abstract class AbstractAdvanceRuntimeDataServiceImpl {
         Collections.sort(data, new TaskComparator(ids));
         return data;
     }
-    
+
     private abstract static class InMemoryIdComparator<T> implements Comparator<T> {
 
         private List<Long> ids;
@@ -613,7 +613,7 @@ public abstract class AbstractAdvanceRuntimeDataServiceImpl {
         List<QueryParam> translated = new ArrayList<>();
         for (QueryParam entry : attributes) {
             String column = translationTable.get(entry.getColumn());
-            
+
             // small correction for this column as it is not called the same
             if(entry.getColumn() != null && entry.getColumn().equals("TASK_OWNER") && findQueryParamMode(attributes).isPresent()) {
                 column = "task.actualOwner";

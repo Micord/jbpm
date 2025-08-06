@@ -24,19 +24,19 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.persistence.CollectionTable;
-import javax.persistence.Column;
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.JoinColumn;
-import javax.persistence.Lob;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Transient;
-import javax.persistence.Version;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Transient;
+import jakarta.persistence.Version;
 import org.drools.core.common.InternalKnowledgeRuntime;
 import org.drools.core.impl.InternalKnowledgeBase;
 import org.drools.core.impl.StatefulKnowledgeSessionImpl;
@@ -57,7 +57,7 @@ import org.kie.api.runtime.Environment;
 import org.kie.api.runtime.process.ProcessInstance;
 
 @Entity
-@SequenceGenerator(name="processInstanceInfoIdSeq", sequenceName="PROCESS_INSTANCE_INFO_ID_SEQ")
+@SequenceGenerator(name="processInstanceInfoIdSeq", sequenceName="PROCESS_INSTANCE_INFO_ID_SEQ", allocationSize = 1)
 public class ProcessInstanceInfo implements PersistentProcessInstance {
 
     @Id
@@ -74,7 +74,7 @@ public class ProcessInstanceInfo implements PersistentProcessInstance {
     private Date                              lastReadDate;
     private Date                              lastModificationDate;
     private int                               state;
-    
+
     @Lob
     @Column(length=2147483647)
     byte[]                                    processInstanceByteArray;
@@ -86,10 +86,10 @@ public class ProcessInstanceInfo implements PersistentProcessInstance {
 
     @Column(name="element")
     private Set<String>                       eventTypes         = new HashSet<String>();
-    
+
     @Transient
     ProcessInstance                           processInstance;
-    
+
     @Transient
     Environment                               env;
 
@@ -117,12 +117,12 @@ public class ProcessInstanceInfo implements PersistentProcessInstance {
      * If we mapped the field using 'name="id"', the queries would thus fail.
      * </p>
      * So instead of that, we just add the getters and use 'name="processInstanceId"'.
-     * @return The processInstanceId field value. 
+     * @return The processInstanceId field value.
      */
-    public Long getProcessInstanceId() { 
+    public Long getProcessInstanceId() {
         return processInstanceId;
     }
-    
+
     public void setProcessInstanceId(Long processInstanceId) {
         this.processInstanceId = processInstanceId;
     }
@@ -130,7 +130,7 @@ public class ProcessInstanceInfo implements PersistentProcessInstance {
     public Long getId() {
         return processInstanceId;
     }
-    
+
     public void setId(Long processInstanceId) {
         this.processInstanceId = processInstanceId;
     }
@@ -168,12 +168,12 @@ public class ProcessInstanceInfo implements PersistentProcessInstance {
                                               Environment env) {
     	return getProcessInstance(kruntime, env, false);
     }
-    
+
     public ProcessInstance getProcessInstance(InternalKnowledgeRuntime kruntime,
                                               Environment env,
                                               boolean readOnly) {
         this.env = env;
-        if ( processInstance == null ) {        	
+        if ( processInstance == null ) {
             try {
                 ByteArrayInputStream bais = new ByteArrayInputStream( processInstanceByteArray );
                 ProtobufMarshallerReaderContext context = new ProtobufMarshallerReaderContext( bais,
@@ -198,7 +198,7 @@ public class ProcessInstanceInfo implements PersistentProcessInstance {
         ((WorkflowProcessInstanceImpl) processInstance).internalSetStartDate(this.startDate);
         return processInstance;
     }
-   
+
     private ProcessInstanceMarshaller getMarshallerFromContext(MarshallerReaderContext context) throws IOException {
         String processInstanceType = context.readUTF();
         return ProcessMarshallerRegistry.INSTANCE.getMarshaller( processInstanceType );
@@ -228,18 +228,18 @@ public class ProcessInstanceInfo implements PersistentProcessInstance {
             context.setState(processInstance.getState() == ProcessInstance.STATE_ACTIVE ?
                     ProtobufProcessMarshallerWriteContext.STATE_ACTIVE :
                     ProtobufProcessMarshallerWriteContext.STATE_COMPLETED);
-            
+
             String processType = ((ProcessInstanceImpl) processInstance).getProcess().getType();
             saveProcessInstanceType( context,
                                      processInstance,
                                      processType );
             ProcessInstanceMarshaller marshaller = ProcessMarshallerRegistry.INSTANCE.getMarshaller( processType );
-            
+
             Object result = marshaller.writeProcessInstance( context,
                                                              processInstance);
             if( marshaller instanceof ProtobufRuleFlowProcessInstanceMarshaller && result != null ) {
                 JBPMMessages.ProcessInstance _instance = (JBPMMessages.ProcessInstance)result;
-                PersisterHelper.writeToStreamWithHeader( context, 
+                PersisterHelper.writeToStreamWithHeader( context,
                                                          _instance );
             }
             context.close();
@@ -308,7 +308,7 @@ public class ProcessInstanceInfo implements PersistentProcessInstance {
         if ( this.env != other.env && (this.env == null || !this.env.equals( other.env )) ) {
             return false;
         }
-        
+
         return true;
     }
 
@@ -332,24 +332,24 @@ public class ProcessInstanceInfo implements PersistentProcessInstance {
     public int getVersion() {
         return version;
     }
-    
+
     public Set<String> getEventTypes() {
         return eventTypes;
     }
 
-    public byte [] getProcessInstanceByteArray() { 
+    public byte [] getProcessInstanceByteArray() {
         return processInstanceByteArray;
     }
-    
+
     public void clearProcessInstance(){
         processInstance = null;
     }
-    
-    public Environment getEnv() { 
+
+    public Environment getEnv() {
         return env;
     }
-    
-    public void setEnv(Environment env) { 
+
+    public void setEnv(Environment env) {
         this.env = env;
     }
 }

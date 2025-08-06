@@ -19,33 +19,32 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.OneToMany;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Transient;
-import javax.persistence.Version;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.persistence.Version;
 
 import org.jbpm.persistence.api.PersistentCorrelationKey;
-import org.kie.internal.jaxb.CorrelationKeyXmlAdapter;
 import org.kie.internal.process.CorrelationProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Entity
-@SequenceGenerator(name="correlationKeyInfoIdSeq", sequenceName="CORRELATION_KEY_ID_SEQ")
+@SequenceGenerator(name="correlationKeyInfoIdSeq", sequenceName="CORRELATION_KEY_ID_SEQ", allocationSize = 1)
 @Table(indexes = @Index(name = "IDX_CorrelationKeyInfo_name", unique = true, columnList = "name"))
 public class CorrelationKeyInfo implements PersistentCorrelationKey, Serializable {
 
 	private static final long serialVersionUID = 4469298702447675428L;
 	private static final Logger logger = LoggerFactory.getLogger(CorrelationKeyInfo.class);
-	
+
 	@Transient
     private final int CORRELATION_KEY_LOG_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.correlationkey.length", "255"));
 
@@ -53,19 +52,19 @@ public class CorrelationKeyInfo implements PersistentCorrelationKey, Serializabl
     @GeneratedValue(strategy = GenerationType.AUTO, generator="correlationKeyInfoIdSeq")
     @Column(name = "keyId")
     private long id;
-    
+
     @Version
     @Column(name = "OPTLOCK")
     private int version;
-    
+
     private long processInstanceId;
-    
+
 
     private String name;
-    
+
     @OneToMany(mappedBy="correlationKey", cascade=CascadeType.ALL)
     private List<CorrelationPropertyInfo> properties;
-    
+
     @Override
     public String getName() {
         return this.name;
@@ -90,7 +89,7 @@ public class CorrelationKeyInfo implements PersistentCorrelationKey, Serializabl
             logger.warn("CorrelationKey content was trimmed as it was too long (more than {} characters)", CORRELATION_KEY_LOG_LENGTH);
         }
     }
-    
+
     public void addProperty(CorrelationPropertyInfo property) {
         if (this.properties == null) {
             this.properties = new ArrayList<CorrelationPropertyInfo>();

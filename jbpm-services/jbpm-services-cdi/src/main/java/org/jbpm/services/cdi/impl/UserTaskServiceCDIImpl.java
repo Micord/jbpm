@@ -16,9 +16,9 @@
 
 package org.jbpm.services.cdi.impl;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import org.jbpm.kie.services.impl.UserTaskServiceImpl;
 import org.jbpm.services.api.DeploymentService;
@@ -27,10 +27,10 @@ import org.kie.internal.task.api.InternalTaskService;
 
 @ApplicationScoped
 public class UserTaskServiceCDIImpl extends UserTaskServiceImpl {
-	
+
 	@Inject
 	private Instance<InternalTaskService> injectedTaskService;
-	
+
 	@Inject
 	@Override
 	public void setDeploymentService(DeploymentService deploymentService) {
@@ -51,7 +51,7 @@ public class UserTaskServiceCDIImpl extends UserTaskServiceImpl {
 
 	@Override
 	protected InternalTaskService getInternalTaskService() {
-		
+
 		return injectedTaskService.get();
 	}
 }

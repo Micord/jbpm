@@ -21,12 +21,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.ServiceLoader;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import javax.jms.TextMessage;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageListener;
+import jakarta.jms.TextMessage;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.process.audit.AbstractAuditLogger;
 import org.jbpm.process.audit.ArchiveLoggerProvider;
@@ -43,15 +43,15 @@ import static org.kie.soup.xstream.XStreamUtils.createTrustingXStream;
  * that it is attached to as <code>MessageListener</code>.
  * This is the second part of asynchronous BAM support backed by JMS
  * (producer is provide by <code>AsyncAuditLogProducer</code> class).
- * Thus it shares the same message format that is TextMessage with 
+ * Thus it shares the same message format that is TextMessage with
  * Xstream serialized *Log classes (ProcessInstanceLog,
  * NodeInstanceLog, VaraiableInstanceLog) as content.
- * 
+ *
  * by default it uses entity manager factory and creates entity manager for each message
- * although it provides getEntityManager method that can be overloaded by extensions to supply 
+ * although it provides getEntityManager method that can be overloaded by extensions to supply
  * entity managers instead of creating it for every message.
- * 
- * For more enterprise based solution this class can be extended by MDB implementations to 
+ *
+ * For more enterprise based solution this class can be extended by MDB implementations to
  * provide additional details that are required by MDB such as:
  * <ul>
  *  <li>annotations - @MessageDriven, @ActivationConfigurationProperty</li>
@@ -59,11 +59,11 @@ import static org.kie.soup.xstream.XStreamUtils.createTrustingXStream;
  * </ul>
  */
 public class AsyncAuditLogReceiver implements MessageListener, AuditLoggerArchiveTreat {
-    
+
     private EntityManagerFactory entityManagerFactory;
     private XStream xstream;
     private List<ArchiveLoggerProvider> archiveLoggerProvider;
-    
+
     public AsyncAuditLogReceiver(EntityManagerFactory entityManagerFactory) {
         this.entityManagerFactory = entityManagerFactory;
         initXStream();
@@ -88,7 +88,7 @@ public class AsyncAuditLogReceiver implements MessageListener, AuditLoggerArchiv
                 String messageContent = textMessage.getText();
                 Integer eventType = textMessage.getIntProperty("EventType");
                 Object event = xstream.fromXML(messageContent);
-                
+
                 switch (eventType) {
                 case AbstractAuditLogger.AFTER_NODE_ENTER_EVENT_TYPE:
                     NodeInstanceLog nodeAfterEnterEvent = (NodeInstanceLog) event;
@@ -96,17 +96,17 @@ public class AsyncAuditLogReceiver implements MessageListener, AuditLoggerArchiv
                     List<NodeInstanceLog> result = em.createQuery(
                             "from NodeInstanceLog as log where log.nodeInstanceId = :nodeId and log.type = 0")
                             .setParameter("nodeId", nodeAfterEnterEvent.getNodeInstanceId()).getResultList();
-                            
+
                             if (result != null && result.size() != 0) {
                             	NodeInstanceLog log = result.get(result.size() - 1);
                                log.setWorkItemId(nodeAfterEnterEvent.getWorkItemId());
-                               
-                               
-                               em.merge(log);   
+
+
+                               em.merge(log);
                            }
                     }
                     break;
-                
+
                 case AbstractAuditLogger.AFTER_COMPLETE_EVENT_TYPE:
                     ProcessInstanceLog processCompletedEvent = (ProcessInstanceLog) event;
                     List<ProcessInstanceLog> result = em.createQuery(
@@ -147,7 +147,7 @@ public class AsyncAuditLogReceiver implements MessageListener, AuditLoggerArchiv
     public void setEntityManagerFactory(EntityManagerFactory entityManagerFactory) {
         this.entityManagerFactory = entityManagerFactory;
     }
-    
+
     public EntityManager getEntityManager() {
         return entityManagerFactory.createEntityManager();
     }

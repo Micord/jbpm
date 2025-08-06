@@ -23,7 +23,7 @@ import java.lang.reflect.Proxy;
 import java.util.concurrent.Callable;
 
 import javax.naming.InitialContext;
-import javax.transaction.UserTransaction;
+import jakarta.transaction.UserTransaction;
 
 import org.drools.core.time.impl.TimerJobInstance;
 import org.jbpm.persistence.timer.GlobalJpaTimerJobInstance;

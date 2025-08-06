@@ -27,8 +27,8 @@ import static org.kie.internal.query.QueryParameterIdentifiers.TASK_VARIABLE_DAT
 
 import java.util.Date;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.process.audit.JPAAuditLogService;
 import org.jbpm.query.jpa.impl.QueryCriteriaUtil;

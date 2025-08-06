@@ -23,11 +23,11 @@ import org.kie.api.task.model.Task;
 import org.kie.internal.task.api.TaskInstanceService;
 import org.kie.internal.task.api.model.InternalTaskData;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,11 +44,11 @@ import java.util.Map;
 public class CompleteTaskCommand extends UserGroupCallbackTaskCommand<Void> {
 
 	private static final long serialVersionUID = 412409697422083299L;
-	
+
 	@XmlJavaTypeAdapter(JaxbMapAdapter.class)
     @XmlElement
     protected Map<String, Object> data;
-    
+
     public CompleteTaskCommand() {
     }
 
@@ -71,12 +71,12 @@ public class CompleteTaskCommand extends UserGroupCallbackTaskCommand<Void> {
         doCallbackUserOperation(userId, context, true);
         groupIds = doUserGroupCallbackOperation(userId, null, context);
         context.set("local:groups", groupIds);
-        
+
         Task task = context.getTaskQueryService().getTaskInstanceById(taskId);
-        if (task == null) {            
+        if (task == null) {
             throw new PermissionDeniedException("Task '" + taskId + "' not found");
         }
-        
+
         context.loadTaskVariables(task);
 
         Map<String, Object> outputdata = task.getTaskData().getTaskOutputVariables();
@@ -87,17 +87,17 @@ public class CompleteTaskCommand extends UserGroupCallbackTaskCommand<Void> {
             }
             // since output data was non null make it the actual data
             data = outputdata;
-            
+
         }
-        
-        
+
+
         context.getTaskRuleService().executeRules(task, userId, data, TaskRuleService.COMPLETE_TASK_SCOPE);
         ((InternalTaskData)task.getTaskData()).setTaskOutputVariables(data);
-        
+
         TaskInstanceService instanceService = context.getTaskInstanceService();
         instanceService.complete(taskId, userId, data);
     	return null;
-        
+
     }
-	
+
 }

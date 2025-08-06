@@ -19,15 +19,15 @@ package org.jbpm.casemgmt.impl.audit;
 import java.io.Serializable;
 import java.util.Date;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.Transient;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.Transient;
 
 import org.jbpm.casemgmt.api.audit.CaseFileData;
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 @Entity
 @SequenceGenerator(name = "caseFileDataLogIdSeq", sequenceName = "CASE_FILE_DATA_LOG_ID_SEQ", allocationSize = 1)
-@Table(indexes = { 
+@Table(indexes = {
         @Index(name = "IDX_CaseFileDataLog_caseId", columnList="caseId"),
         @Index(name = "IDX_CaseFileDataLog_itemName", columnList="itemName")
 })
@@ -43,7 +43,7 @@ public class CaseFileDataLog implements Serializable, CaseFileData {
 
     private static final Logger logger = LoggerFactory.getLogger(CaseFileDataLog.class);
     private static final long serialVersionUID = 7667968668409641210L;
-    
+
     @Transient
     private final int VARIABLE_LOG_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.cases.var.log.length", "255"));
 
@@ -52,24 +52,24 @@ public class CaseFileDataLog implements Serializable, CaseFileData {
     private long id;
 
     private String caseId;
-    
+
     private String caseDefId;
-    
+
     private String itemName;
-    
+
     private String itemValue;
-    
+
     private String itemType;
-    
-    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private Date lastModified;
-    
+
     private String lastModifiedBy;
 
     public CaseFileDataLog() {
-        
+
     }
-    
+
     public CaseFileDataLog(String caseId, String caseDefId, String itemName) {
         this.caseId = caseId;
         this.caseDefId = caseDefId;
@@ -79,34 +79,34 @@ public class CaseFileDataLog implements Serializable, CaseFileData {
     public long getId() {
         return id;
     }
-    
+
     public void setId(long id) {
         this.id = id;
     }
-    
+
     @Override
     public String getCaseId() {
         return caseId;
     }
-    
+
     public void setCaseId(String caseId) {
         this.caseId = caseId;
     }
-    
+
     @Override
     public String getCaseDefId() {
         return caseDefId;
     }
-        
+
     public void setCaseDefId(String caseDefId) {
         this.caseDefId = caseDefId;
     }
-    
+
     @Override
     public String getItemName() {
         return itemName;
     }
-        
+
     public void setItemName(String itemName) {
         this.itemName = itemName;
     }
@@ -115,7 +115,7 @@ public class CaseFileDataLog implements Serializable, CaseFileData {
     public String getItemValue() {
         return itemValue;
     }
-    
+
     public void setItemValue(String itemValue) {
         if (itemValue != null && itemValue.length() > VARIABLE_LOG_LENGTH) {
             itemValue = itemValue.substring(0, VARIABLE_LOG_LENGTH);
@@ -123,30 +123,30 @@ public class CaseFileDataLog implements Serializable, CaseFileData {
         }
         this.itemValue = itemValue;
     }
-    
+
     @Override
     public String getItemType() {
         return itemType;
     }
-    
+
     public void setItemType(String itemType) {
         this.itemType = itemType;
     }
-    
+
     @Override
     public Date getLastModified() {
         return lastModified;
     }
-    
+
     public void setLastModified(Date lastModified) {
         this.lastModified = lastModified;
     }
-    
+
     @Override
     public String getLastModifiedBy() {
         return lastModifiedBy;
     }
-    
+
     public void setLastModifiedBy(String lastModifiedBy) {
         this.lastModifiedBy = lastModifiedBy;
     }

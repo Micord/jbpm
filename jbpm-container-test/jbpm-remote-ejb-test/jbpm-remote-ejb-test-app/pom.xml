@@ -6,7 +6,7 @@
   <parent>
     <artifactId>jbpm-remote-ejb-test</artifactId>
     <groupId>org.jbpm</groupId>
-    <version>7.74.1.Final</version>
+    <version>7.74.1.Final-Micord.1</version>
   </parent>
 
   <artifactId>jbpm-remote-ejb-test-app</artifactId>
@@ -106,11 +106,7 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-entitymanager</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.hibernate</groupId>
+      <groupId>org.hibernate.orm</groupId>
       <artifactId>hibernate-core</artifactId>
       <exclusions>
         <exclusion>
@@ -120,7 +116,7 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.hibernate</groupId>
+      <groupId>org.hibernate.validator</groupId>
       <artifactId>hibernate-validator</artifactId>
     </dependency>
     <dependency>

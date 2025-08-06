@@ -21,8 +21,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.naming.InitialContext;
-import javax.transaction.Status;
-import javax.transaction.UserTransaction;
+import jakarta.transaction.Status;
+import jakarta.transaction.UserTransaction;
 
 import org.assertj.core.api.Assertions;
 import org.jbpm.test.JbpmTestCase;

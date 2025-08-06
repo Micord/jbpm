@@ -19,14 +19,14 @@ package org.jbpm.event.emitters.elasticsearch;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.core.Application;
+import jakarta.ws.rs.ApplicationPath;
+import jakarta.ws.rs.core.Application;
 
 @ApplicationPath("/")
 public class FakeElasticSearchRESTApplication extends Application {
 
     private List<String> responseCollector;
-    
+
     public FakeElasticSearchRESTApplication(List<String> responseCollector) {
         this.responseCollector = responseCollector;
     }

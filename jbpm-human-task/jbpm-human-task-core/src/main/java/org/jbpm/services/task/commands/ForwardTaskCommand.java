@@ -17,35 +17,35 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
- Operation.Forward 
-        : [ new OperationCommand().{ 
+ Operation.Forward
+        : [ new OperationCommand().{
                 status = [ Status.Ready ],
                 allowed = [ Allowed.PotentialOwner, Allowed.BusinessAdministrator  ],
-                userIsExplicitPotentialOwner = true,                
-                addTargetUserToPotentialOwners = true,     
-                removeUserFromPotentialOwners = true,   
-                setNewOwnerToNull = true,         
+                userIsExplicitPotentialOwner = true,
+                addTargetUserToPotentialOwners = true,
+                removeUserFromPotentialOwners = true,
+                setNewOwnerToNull = true,
                 newStatus = Status.Ready
             },
-            new OperationCommand().{ 
+            new OperationCommand().{
                 status = [ Status.Reserved, Status.InProgress ],
                 allowed = [ Allowed.Owner, Allowed.BusinessAdministrator ],
                 userIsExplicitPotentialOwner = true,
-                addTargetUserToPotentialOwners = true,     
-                removeUserFromPotentialOwners = true, 
-                setNewOwnerToNull = true,                             
+                addTargetUserToPotentialOwners = true,
+                removeUserFromPotentialOwners = true,
+                setNewOwnerToNull = true,
                 newStatus = Status.Ready
-            }],          
+            }],
  */
 @XmlRootElement(name="forward-task-command")
 @XmlAccessorType(XmlAccessType.NONE)
 public class ForwardTaskCommand extends UserGroupCallbackTaskCommand<Void> {
-	
+
 	private static final long serialVersionUID = -3291367442760747824L;
 
 	public ForwardTaskCommand() {
@@ -65,6 +65,6 @@ public class ForwardTaskCommand extends UserGroupCallbackTaskCommand<Void> {
         context.set("local:groups", groupIds);
     	context.getTaskInstanceService().forward(taskId, userId, targetEntityId);
     	return null;
-       
+
     }
 }

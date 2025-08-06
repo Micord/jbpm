@@ -31,9 +31,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import javax.persistence.EntityManagerFactory;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;

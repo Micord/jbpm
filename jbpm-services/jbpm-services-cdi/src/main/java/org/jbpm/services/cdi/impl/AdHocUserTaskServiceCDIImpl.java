@@ -16,19 +16,19 @@
 
 package org.jbpm.services.cdi.impl;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import org.jbpm.kie.services.impl.AdHocUserTaskServiceImpl;
 import org.kie.internal.task.api.InternalTaskService;
 
 @ApplicationScoped
 public class AdHocUserTaskServiceCDIImpl extends AdHocUserTaskServiceImpl {
-	
+
 	@Inject
 	private Instance<InternalTaskService> injectedTaskService;
-	
+
 	@Inject
 	@Override
 	public void setNonProcessScopedTaskService(InternalTaskService nonProcessScopedTaskService) {

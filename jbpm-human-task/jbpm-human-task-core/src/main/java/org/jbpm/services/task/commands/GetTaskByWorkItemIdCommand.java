@@ -19,11 +19,11 @@ package org.jbpm.services.task.commands;
 import org.kie.api.runtime.Context;
 import org.kie.api.task.model.Task;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 @XmlRootElement(name="get-task-by-work-item-id-command")
 @XmlAccessorType(XmlAccessType.NONE)
@@ -34,14 +34,14 @@ public class GetTaskByWorkItemIdCommand extends TaskCommand<Task> {
 	@XmlElement
     @XmlSchemaType(name="long")
 	private Long workItemId;
-	
+
 	public GetTaskByWorkItemIdCommand() {
 	}
-	
+
 	public GetTaskByWorkItemIdCommand(Long workItemId) {
 		this.workItemId = workItemId;
     }
-	
+
     public Long getWorkItemId() {
 		return workItemId;
 	}

@@ -19,7 +19,7 @@ package org.jbpm.services.task.audit.impl.model;
 import java.io.Serializable;
 import java.util.Date;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 import org.kie.internal.task.api.TaskVariable;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class TaskVariableImpl implements TaskVariable, Serializable {
 
     private static final long serialVersionUID = 5388016330549830048L;
     private static final Logger logger = LoggerFactory.getLogger(TaskVariableImpl.class);
-    
+
     @Transient
     private final int VARIABLE_LOG_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.task.var.log.length", "4000"));
 
@@ -52,7 +52,7 @@ public class TaskVariableImpl implements TaskVariable, Serializable {
 
     private String name;
 
-    @Column(length=4000)
+    @Column(name="VARIABLE_VALUE", length=4000)
     private String value;
 
     @Enumerated(EnumType.ORDINAL)
@@ -135,7 +135,7 @@ public class TaskVariableImpl implements TaskVariable, Serializable {
         this.type = type;
     }
 
-    
+
     @Override
     public int hashCode() {
         final int prime = 31;

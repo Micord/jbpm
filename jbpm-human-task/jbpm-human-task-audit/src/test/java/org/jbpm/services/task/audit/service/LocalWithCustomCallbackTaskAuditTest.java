@@ -15,8 +15,8 @@
  */
 package org.jbpm.services.task.audit.service;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.services.task.HumanTaskServiceFactory;
 import org.jbpm.services.task.audit.JPATaskLifeCycleEventListener;
@@ -27,7 +27,7 @@ import org.kie.internal.task.api.InternalTaskService;
 
 import java.util.HashMap;
 import java.util.List;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.jbpm.services.task.HumanTaskServicesBaseTest;
 import org.jbpm.services.task.audit.TaskAuditServiceFactory;
 import org.jbpm.services.task.utils.TaskFluent;

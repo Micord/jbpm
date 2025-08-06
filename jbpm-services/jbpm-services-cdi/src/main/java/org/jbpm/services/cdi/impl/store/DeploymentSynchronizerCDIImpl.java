@@ -16,10 +16,10 @@
 
 package org.jbpm.services.cdi.impl.store;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 
 import org.jbpm.kie.services.impl.store.DeploymentStore;
 import org.jbpm.kie.services.impl.store.DeploymentSynchronizer;
@@ -36,15 +36,15 @@ public class DeploymentSynchronizerCDIImpl extends DeploymentSynchronizer {
 
 	@Inject
 	private TransactionalCommandService commandService;
-	
+
 	@PostConstruct
 	public void configure() {
 		DeploymentStore store = new DeploymentStore();
 		store.setCommandService(commandService);
-		
+
 		setDeploymentStore(store);
 	}
-	
+
 	@Inject
 	@Override
 	public void setDeploymentService(DeploymentService deploymentService) {
@@ -54,11 +54,11 @@ public class DeploymentSynchronizerCDIImpl extends DeploymentSynchronizer {
 	public void onDeploy(@Observes@Deploy DeploymentEvent event) {
 		super.onDeploy(event);
     }
-    
-    public void onUnDeploy(@Observes@Undeploy DeploymentEvent event) {    	
+
+    public void onUnDeploy(@Observes@Undeploy DeploymentEvent event) {
     	super.onUnDeploy(event);
     }
-    
+
     @Override
 	public void onActivate(@Observes@Activate DeploymentEvent event) {
 		super.onActivate(event);
@@ -68,5 +68,5 @@ public class DeploymentSynchronizerCDIImpl extends DeploymentSynchronizer {
 	public void onDeactivate(@Observes@Deactivate DeploymentEvent event) {
 		super.onDeactivate(event);
 	}
-	
+
 }

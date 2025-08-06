@@ -30,23 +30,23 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.ConcurrencyManagementType;
-import javax.ejb.Lock;
-import javax.ejb.LockType;
-import javax.ejb.NoSuchObjectLocalException;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
-import javax.ejb.Timeout;
-import javax.ejb.Timer;
-import javax.ejb.TimerConfig;
-import javax.ejb.TimerHandle;
-import javax.ejb.TransactionManagement;
-import javax.ejb.TransactionManagementType;
-import javax.transaction.RollbackException;
-import javax.transaction.UserTransaction;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
+import jakarta.ejb.ConcurrencyManagement;
+import jakarta.ejb.ConcurrencyManagementType;
+import jakarta.ejb.Lock;
+import jakarta.ejb.LockType;
+import jakarta.ejb.NoSuchObjectLocalException;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
+import jakarta.ejb.Timeout;
+import jakarta.ejb.Timer;
+import jakarta.ejb.TimerConfig;
+import jakarta.ejb.TimerHandle;
+import jakarta.ejb.TransactionManagement;
+import jakarta.ejb.TransactionManagementType;
+import jakarta.transaction.RollbackException;
+import jakarta.transaction.UserTransaction;
 
 import org.drools.core.time.JobHandle;
 import org.drools.core.time.impl.TimerJobInstance;
@@ -76,7 +76,7 @@ public class EJBTimerScheduler {
 	private ConcurrentMap<String, TimerJobInstance> localCache = new ConcurrentHashMap<String, TimerJobInstance>();
 
 	@Resource
-	protected javax.ejb.TimerService timerService;
+	protected jakarta.ejb.TimerService timerService;
 
     @Resource
     protected UserTransaction utx;
@@ -159,8 +159,8 @@ public class EJBTimerScheduler {
         if (ejbTimerJob.getTimerJobInstance().getTrigger().hasNextFireTime() != null) {
             // this is an interval trigger. Problem here is that the timer scheduled by DefaultTimerJobInstance is lost
             // because of the transaction, so we need to do this here.
-            try {            
-               
+            try {
+
                 logger.warn("Execution of time failed Interval Trigger failed. Skipping {}", ejbTimerJob.getTimerJobInstance());
                 Transaction<TimerJobInstance> tx = timerJobInstance -> {
                     if (this.removeJob(timerJobInstance.getJobHandle(), null)) {
@@ -229,7 +229,7 @@ public class EJBTimerScheduler {
             utx.commit();
         } catch(RollbackException e) {
             logger.warn("Transaction was rolled back for {} with status {}", item, utx.getStatus());
-            if(utx.getStatus() == javax.transaction.Status.STATUS_ACTIVE) {
+            if(utx.getStatus() == jakarta.transaction.Status.STATUS_ACTIVE) {
                 utx.rollback();
             }
             throw new RuntimeException("jbpm timer has been rolledback", e);

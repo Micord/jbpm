@@ -17,9 +17,9 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * Operation.Resume : [ new OperationCommand().{ previousStatus = [ Status.Ready
@@ -31,7 +31,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name="resume-task-command")
 @XmlAccessorType(XmlAccessType.NONE)
 public class ResumeTaskCommand extends UserGroupCallbackTaskCommand<Void> {
-	
+
 	private static final long serialVersionUID = -5174631969130504959L;
 
 	public ResumeTaskCommand() {
@@ -49,6 +49,6 @@ public class ResumeTaskCommand extends UserGroupCallbackTaskCommand<Void> {
         context.set("local:groups", groupIds);
     	context.getTaskInstanceService().resume(taskId, userId);
     	return null;
-       
+
     }
 }

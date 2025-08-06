@@ -24,10 +24,10 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 import javax.naming.InitialContext;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.LockModeType;
-import javax.persistence.PersistenceException;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceException;
+import jakarta.transaction.UserTransaction;
 
 import org.jbpm.services.task.HumanTaskConfigurator;
 import org.jbpm.services.task.HumanTaskServiceFactory;

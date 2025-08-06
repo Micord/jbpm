@@ -4,11 +4,11 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm-services-ejb</artifactId>
-    <version>7.74.1.Final</version>
+    <version>7.74.1.Final-Micord.1</version>
   </parent>
   <artifactId>jbpm-services-ejb-timer</artifactId>
   <name>jBPM :: EJB Timer</name>
-  
+
   <properties>
     <java.module.name>org.jbpm.services.ejb.timer</java.module.name>
   </properties>

@@ -16,9 +16,9 @@
 
 package org.jbpm.process.workitem.bpmn2;
 
-import javax.jws.WebMethod;
-import javax.jws.WebParam;
-import javax.jws.WebService;
+import jakarta.jws.WebMethod;
+import jakarta.jws.WebParam;
+import jakarta.jws.WebService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,4 +60,3 @@ public class SimpleService {
     }
 
 }
-

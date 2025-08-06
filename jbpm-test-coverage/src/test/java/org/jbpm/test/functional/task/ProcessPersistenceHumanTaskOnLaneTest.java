@@ -19,7 +19,7 @@ package org.jbpm.test.functional.task;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.jbpm.services.task.audit.impl.model.BAMTaskSummaryImpl;
 import org.jbpm.services.task.lifecycle.listeners.BAMTaskEventListener;
@@ -49,10 +49,10 @@ public class ProcessPersistenceHumanTaskOnLaneTest extends JbpmTestCase {
 
     public ProcessPersistenceHumanTaskOnLaneTest() {
         super(true, true);
-        
+
     }
 
-    @Test 
+    @Test
     public void testProcess() throws Exception {
         createRuntimeManager("org/jbpm/test/functional/task/HumanTaskOnLane.bpmn2");
         RuntimeEngine runtimeEngine = getRuntimeEngine();
@@ -62,7 +62,7 @@ public class ProcessPersistenceHumanTaskOnLaneTest extends JbpmTestCase {
         ProcessInstance processInstance = ksession.startProcess("UserTask");
 
         assertProcessInstanceActive(processInstance.getId());
-        
+
 
         // simulating a system restart
         logger.debug("Reloading the environemnt to simulate system restart");
@@ -77,7 +77,7 @@ public class ProcessPersistenceHumanTaskOnLaneTest extends JbpmTestCase {
         String locale = "en-UK";
         List<TaskSummary> list = taskService.getTasksAssignedAsPotentialOwner(taskUser, locale);
         assertEquals(1, list.size());
-        
+
         TaskSummary task = list.get(0);
         taskService.claim(task.getId(), taskUser);
         taskService.start(task.getId(), taskUser);
@@ -85,13 +85,13 @@ public class ProcessPersistenceHumanTaskOnLaneTest extends JbpmTestCase {
 
         // simulating a system restart
         logger.debug("Reloading the environemnt to simulate system restart once again");
-        
+
         List<Status> reservedOnly = new ArrayList<Status>();
         reservedOnly.add(Status.Reserved);
-        
+
         list = taskService.getTasksAssignedAsPotentialOwnerByStatus(taskUser, reservedOnly, locale);
         assertEquals(1, list.size());
-        
+
         task = list.get(0);
         taskService.start(task.getId(), taskUser);
         taskService.complete(task.getId(), taskUser, null);
@@ -99,8 +99,8 @@ public class ProcessPersistenceHumanTaskOnLaneTest extends JbpmTestCase {
 
         assertProcessInstanceCompleted(processInstance.getId());
     }
-    
-    @Test 
+
+    @Test
     public void testProcessWIthDifferentGroups() throws Exception {
         createRuntimeManager("org/jbpm/test/functional/task/HumanTaskOnLaneDifferentGroups.bpmn2");
         RuntimeEngine runtimeEngine = getRuntimeEngine();
@@ -110,7 +110,7 @@ public class ProcessPersistenceHumanTaskOnLaneTest extends JbpmTestCase {
         ProcessInstance processInstance = ksession.startProcess("UserTask");
 
         assertProcessInstanceActive(processInstance.getId());
-        
+
 
         // simulating a system restart
         logger.debug("Reloading the environemnt to simulate system restart");
@@ -125,7 +125,7 @@ public class ProcessPersistenceHumanTaskOnLaneTest extends JbpmTestCase {
         String locale = "en-UK";
         List<TaskSummary> list = taskService.getTasksAssignedAsPotentialOwner(taskUser, locale);
         assertEquals(1, list.size());
-        
+
         TaskSummary task = list.get(0);
         taskService.claim(task.getId(), taskUser);
         taskService.start(task.getId(), taskUser);
@@ -138,20 +138,20 @@ public class ProcessPersistenceHumanTaskOnLaneTest extends JbpmTestCase {
         runtimeEngine = getRuntimeEngine();
         ksession = runtimeEngine.getKieSession();
         taskService = runtimeEngine.getTaskService();
-        
-        
+
+
         List<Status> reservedAndRegistered = new ArrayList<Status>();
         reservedAndRegistered.add(Status.Reserved);
         reservedAndRegistered.add(Status.Ready);
         // manager does not have access to the second task
         list = taskService.getTasksAssignedAsPotentialOwnerByStatus(taskUser, reservedAndRegistered, locale);
         assertEquals(0, list.size());
-        
-        // now try john 
+
+        // now try john
         taskUser = "john";
         list = taskService.getTasksAssignedAsPotentialOwnerByStatus(taskUser, reservedAndRegistered, locale);
         assertEquals(1, list.size());
-        
+
         task = list.get(0);
         // task is in ready state so claim is required
         assertEquals(Status.Ready, task.getStatus());

@@ -15,7 +15,7 @@
  */
 package org.jbpm.services.task.assignment;
 
-import javax.persistence.Persistence;
+import jakarta.persistence.Persistence;
 
 import org.assertj.core.util.Arrays;
 import org.jbpm.services.task.HumanTaskServiceFactory;

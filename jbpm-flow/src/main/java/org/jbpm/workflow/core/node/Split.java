@@ -19,6 +19,7 @@ package org.jbpm.workflow.core.node;
 import java.util.Collections;
 import java.util.Map;
 
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.workflow.core.Constraint;
 import org.jbpm.workflow.core.impl.ConnectionRef;
 import org.jbpm.workflow.core.impl.NodeImpl;
@@ -27,7 +28,7 @@ import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of a split node.
- * 
+ *
  */
 public class Split extends NodeImpl implements Constrainable {
 
@@ -44,7 +45,7 @@ public class Split extends NodeImpl implements Constrainable {
      * when its incoming connection has been triggered.  Which connection
      * is based on the constraints associated with each of the connections:
      * the connection with the highest priority whose constraint is satisfied
-     * is triggered.  
+     * is triggered.
      */
     public static final int TYPE_XOR       = 2;
     /**
@@ -52,7 +53,7 @@ public class Split extends NodeImpl implements Constrainable {
      * triggered when its incoming connection has been triggered.  Which
      * connections is based on the constraints associated with each of the
      * connections: all connections whose constraint is satisfied are
-     * triggered.  
+     * triggered.
      */
     public static final int TYPE_OR        = 3;
     public static final int TYPE_XAND      = 4;
@@ -69,7 +70,7 @@ public class Split extends NodeImpl implements Constrainable {
     public Split(final int type) {
         super(fromType(type));
         this.type = type;
-    }    
+    }
 
     public void setType(final int type) {
         this.setNodeType(fromType(type));
@@ -94,7 +95,7 @@ public class Split extends NodeImpl implements Constrainable {
     public int getType() {
         return this.type;
     }
-    
+
     public boolean isDefault(final Connection connection) {
         if ( connection == null ) {
             throw new IllegalArgumentException( "connection is null" );
@@ -113,8 +114,7 @@ public class Split extends NodeImpl implements Constrainable {
                 return false;
             }
         }
-        throw new UnsupportedOperationException( "Constraints are " + 
-            "only supported with XOR or OR split types, not with: " + getType() );
+        throw new BpmnNodeIllegalArgumentException("Constraints are only supported with XOR or OR split types, not with: ", fromType(getType()).name());
     }
 
     public Constraint getConstraint(final Connection connection) {
@@ -126,8 +126,7 @@ public class Split extends NodeImpl implements Constrainable {
             ConnectionRef ref = new ConnectionRef((String)connection.getMetaData().get("UniqueId"), connection.getTo().getId(), connection.getToType());
             return this.constraints.get(ref);
         }
-        throw new UnsupportedOperationException( "Constraints are " + 
-    		"only supported with XOR or OR split types, not with: " + getType() );
+        throw new BpmnNodeIllegalArgumentException( "Constraints are only supported with XOR or OR split types, not with: ", fromType(getType()).name());
     }
 
     public Constraint internalGetConstraint(final ConnectionRef ref) {
@@ -147,8 +146,7 @@ public class Split extends NodeImpl implements Constrainable {
                 new ConnectionRef((String)connection.getMetaData().get("UniqueId"), connection.getTo().getId(), connection.getToType()),
                 constraint);
         } else {
-            throw new UnsupportedOperationException( "Constraints are " + 
-        		"only supported with XOR or OR split types, not with type:" + getType() );
+            throw new BpmnNodeIllegalArgumentException( "Constraints are only supported with XOR or OR split types, not with: ", fromType(getType()).name());
         }
     }
 
@@ -167,23 +165,23 @@ public class Split extends NodeImpl implements Constrainable {
     public void validateAddIncomingConnection(final String type, final Connection connection) {
         super.validateAddIncomingConnection(type, connection);
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getTo().getMetaData().get("UniqueId") + ", " + connection.getTo().getName() 
-                    + "] only accepts default incoming connection type!");
+            throw new BpmnNodeIllegalArgumentException("This type of node only accepts default incoming connection type!",
+                connection.getFrom().getName(),
+                connection.getFrom().getNodeUniqueId());
         }
         if (!getIncomingConnections(org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE).isEmpty()) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getTo().getMetaData().get("UniqueId") + ", " + connection.getTo().getName() 
-                    + "] cannot have more than one incoming connection!");
+            throw new BpmnNodeIllegalArgumentException("This type of node cannot have more than one incoming connection!",
+                connection.getTo().getName(),
+                connection.getTo().getNodeUniqueId());
         }
     }
 
     public void validateAddOutgoingConnection(final String type, final Connection connection) {
         super.validateAddOutgoingConnection(type, connection);
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getFrom().getMetaData().get("UniqueId") + ", " + connection.getFrom().getName() 
-                    + "] only accepts default outgoing connection type!");
+            throw new BpmnNodeIllegalArgumentException("This type of node only accepts default outgoing connection type!",
+                connection.getFrom().getName(),
+                connection.getFrom().getNodeUniqueId());
         }
     }
 
@@ -191,14 +189,14 @@ public class Split extends NodeImpl implements Constrainable {
         super.removeOutgoingConnection(type, connection);
         removeConstraint(connection);
     }
-    
+
     public void removeConstraint(Connection connection) {
     	ConnectionRef ref = new ConnectionRef((String)connection.getMetaData().get("UniqueId"), connection.getTo().getId(), connection.getToType());
         internalRemoveConstraint(ref);
     }
-    
+
     public void internalRemoveConstraint(ConnectionRef ref) {
     	this.constraints.remove(ref);
     }
-    
+
 }

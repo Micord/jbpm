@@ -25,9 +25,9 @@ import org.kie.internal.task.api.TaskContentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,10 +37,10 @@ public class GetTaskContentCommand extends TaskCommand<Map<String, Object>> {
 
 	private static final long serialVersionUID = 5911387213149078240L;
 	private static final Logger logger = LoggerFactory.getLogger(GetTaskContentCommand.class);
-	
+
 	public GetTaskContentCommand() {
 	}
-	
+
 	public GetTaskContentCommand(Long taskId) {
 		this.taskId = taskId;
     }
@@ -52,9 +52,9 @@ public class GetTaskContentCommand extends TaskCommand<Map<String, Object>> {
         if (taskById == null) {
         	throw new IllegalStateException("Unable to find task with id " + taskId);
         }
-        
+
         TaskContentService contentService = context.getTaskContentService();
-        
+
         Content contentById = contentService.getContentById(taskById.getTaskData().getDocumentContentId());
         ContentMarshallerContext mContext = contentService.getMarshallerContext(taskById);
         Object unmarshalledObject = ContentMarshallerHelper.unmarshall(contentById.getContent(), mContext.getEnvironment(), mContext.getClassloader());
@@ -62,11 +62,11 @@ public class GetTaskContentCommand extends TaskCommand<Map<String, Object>> {
             logger.debug(" The Task Content is not of type Map, it was: {} so packaging it into new map under Content key ", unmarshalledObject.getClass());
             Map<String, Object> content = new HashMap<String, Object>();
             content.put("Content", unmarshalledObject);
-            
+
             return content;
         }
         Map<String, Object> content = (Map<String, Object>) unmarshalledObject;
-        
+
         return content;
     }
 

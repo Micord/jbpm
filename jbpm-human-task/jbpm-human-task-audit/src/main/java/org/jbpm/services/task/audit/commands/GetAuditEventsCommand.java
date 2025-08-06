@@ -24,9 +24,9 @@ import org.kie.internal.task.api.TaskContext;
 import org.kie.internal.task.api.TaskPersistenceContext;
 import org.kie.internal.task.api.model.TaskEvent;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 @XmlRootElement(name="get-audit-events-for-task-command")
@@ -38,21 +38,21 @@ public class GetAuditEventsCommand extends TaskCommand<List<TaskEvent>> {
 	public GetAuditEventsCommand() {
             this.filter = new QueryFilter(0,10);
 	}
-	
+
 	public GetAuditEventsCommand(long taskId, QueryFilter filter) {
 		this.taskId = taskId;
                 this.filter = filter;
 	}
-       
+
 	@Override
 	public List<TaskEvent> execute(Context context) {
 		TaskPersistenceContext persistenceContext = ((TaskContext) context).getPersistenceContext();
-		if( this.taskId != null ) { 
-		    return persistenceContext.queryWithParametersInTransaction("getAllTasksEvents", 
-		            persistenceContext.addParametersToMap("taskId", taskId, "firstResult", filter.getOffset(), 
+		if( this.taskId != null ) {
+		    return persistenceContext.queryWithParametersInTransaction("getAllTasksEvents",
+		            persistenceContext.addParametersToMap("taskId", taskId, "firstResult", filter.getOffset(),
                                     "maxResults", filter.getCount()),
 		            ClassUtil.<List<TaskEvent>>castClass(List.class));
-		} else { 
+		} else {
 		    return persistenceContext.queryStringWithParametersInTransaction("FROM TaskEventImpl",persistenceContext.addParametersToMap("firstResult", filter.getOffset(),
                                                                                                 "maxResults", filter.getCount()),
 		            ClassUtil.<List<TaskEvent>>castClass(List.class));

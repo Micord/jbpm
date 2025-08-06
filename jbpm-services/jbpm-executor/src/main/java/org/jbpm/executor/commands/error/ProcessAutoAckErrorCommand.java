@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.drools.persistence.api.TransactionManager;
 import org.drools.persistence.api.TransactionManagerFactory;
@@ -30,9 +30,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Command that will auto acknowledge process instance errors 
+ * Command that will auto acknowledge process instance errors
  * based on the last initial node instance when the error happened.
- * 
+ *
  * Following parameters are supported by this command:
  * <ul>
  *  <li>EmfName - name of entity manager factory to be used for queries (valid persistence unit name)</li>
@@ -45,7 +45,7 @@ public class ProcessAutoAckErrorCommand extends AutoAckErrorCommand {
     private static final Logger logger = LoggerFactory.getLogger(ProcessAutoAckErrorCommand.class);
 
     private static final String RULE = "Process instances that previously failed but now are in different nodes - meaning node where they were was already completed - or completed/aborted";
-    
+
 
     @Override
     protected List<ExecutionErrorInfo> findErrorsToAck(EntityManager em) {

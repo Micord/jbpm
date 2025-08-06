@@ -30,10 +30,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.naming.InitialContext;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.OptimisticLockException;
-import javax.persistence.Persistence;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.OptimisticLockException;
+import jakarta.persistence.Persistence;
+import jakarta.transaction.UserTransaction;
 
 import org.drools.core.command.SingleSessionCommandService;
 import org.drools.core.command.impl.CommandBasedStatefulKnowledgeSession;
@@ -71,40 +71,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConcurrentGlobalTimerServiceTest extends TimerBaseTest {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(ConcurrentGlobalTimerServiceTest.class);
-    
+
     private long maxWaitTime = 60*1000; // max wait to complete operation is set to 60 seconds to avoid build hangs
-	
+
     private int nbThreadsProcess = 10;
     private int nbThreadsTask = 10;
     private CountDownLatch completedStart = new CountDownLatch(nbThreadsProcess);
     private CountDownLatch completedTask = new CountDownLatch(nbThreadsTask);
     private int wait = 2;
-	
+
 	private UserGroupCallback userGroupCallback;
-	
+
 	private GlobalSchedulerService globalScheduler;
 
 	private RuntimeManager manager;
-	
+
 	private EntityManagerFactory emf;
-    
+
     @Before
     public void setup() {
-        
+
         Properties properties= new Properties();
         properties.setProperty("mary", "HR");
         properties.setProperty("john", "HR");
         userGroupCallback = new JBossUserGroupCallbackImpl(properties);
-        
+
         globalScheduler = new ThreadPoolSchedulerService(1);
-        
+
         emf = Persistence.createEntityManagerFactory("org.jbpm.test.persistence");
     }
-    
+
     @After
-    public void teardown() {       
+    public void teardown() {
         globalScheduler.shutdown();
         if (manager != null) {
             manager.close();
@@ -112,7 +112,7 @@ public class ConcurrentGlobalTimerServiceTest extends TimerBaseTest {
         emf.close();
         TaskDeadlinesServiceImpl.dispose();
     }
-	
+
     @Test
     public void testSessionPerProcessInstance() throws Exception {
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get()
@@ -127,21 +127,21 @@ public class ConcurrentGlobalTimerServiceTest extends TimerBaseTest {
         // prepare task service with users and groups
         RuntimeEngine engine = manager.getRuntimeEngine(EmptyContext.get());
         TaskService taskService = engine.getTaskService();
-        
+
         Group grouphr = TaskModelProvider.getFactory().newGroup();
         ((InternalOrganizationalEntity) grouphr).setId("HR");
-        
+
         User mary = TaskModelProvider.getFactory().newUser();
         ((InternalOrganizationalEntity) mary).setId("mary");
         User john = TaskModelProvider.getFactory().newUser();
         ((InternalOrganizationalEntity) john).setId("john");
-        
+
         ((InternalTaskService)taskService).addGroup(grouphr);
         ((InternalTaskService)taskService).addUser(mary);
         ((InternalTaskService)taskService).addUser(john);
-        
+
         manager.disposeRuntimeEngine(engine);
- 
+
 
         for (int i=0; i<nbThreadsProcess; i++) {
             new Thread(new StartProcessPerProcessInstanceRunnable(manager, i)).start();
@@ -166,19 +166,19 @@ public class ConcurrentGlobalTimerServiceTest extends TimerBaseTest {
             logger.debug("Left over {}", log.getProcessInstanceId());
         }
         assertEquals(0, logs.size());
-        
+
         // completed
         logs = logService.findProcessInstances("IntermediateCatchEvent");
         assertNotNull(logs);
         assertEquals(nbThreadsProcess, logs.size());
         manager.disposeRuntimeEngine(engine);
-        
+
         logger.debug("Done");
     }
-    
-	
+
+
 	private void testStartProcess(RuntimeEngine runtime) throws Exception {
-		
+
 		synchronized((SingleSessionCommandService) ((CommandBasedStatefulKnowledgeSession) runtime.getKieSession()).getRunner()) {
 			UserTransaction ut = (UserTransaction) new InitialContext().lookup( "java:comp/UserTransaction" );
             try {
@@ -195,16 +195,16 @@ public class ConcurrentGlobalTimerServiceTest extends TimerBaseTest {
                 throw ex;
             }
 		}
-		
-		
+
+
 	}
 
-	
+
 	private boolean testCompleteTaskByProcessInstance(RuntimeManager manager, RuntimeEngine runtime, long piId) throws InterruptedException, Exception {
         boolean result = false;
         List<Status> statusses = new ArrayList<Status>();
         statusses.add(Status.Reserved);
-        
+
         List<TaskSummary> tasks = null;
         tasks = runtime.getTaskService().getTasksByStatusByProcessInstanceId(piId, statusses, "en-UK");
         if (tasks.isEmpty()) {
@@ -233,15 +233,15 @@ public class ConcurrentGlobalTimerServiceTest extends TimerBaseTest {
             }
 
         }
-        
+
         return result;
     }
-	
+
 	   private boolean testRetryCompleteTaskByProcessInstance(RuntimeManager manager, RuntimeEngine runtime, long piId) throws InterruptedException, Exception {
 	        boolean result = false;
 	        List<Status> statusses = new ArrayList<Status>();
 	        statusses.add(Status.InProgress);
-	        
+
 	        List<TaskSummary> tasks = null;
 	        tasks = runtime.getTaskService().getTasksByStatusByProcessInstanceId(piId, statusses, "en-UK");
 	        if (tasks.isEmpty()) {
@@ -251,12 +251,12 @@ public class ConcurrentGlobalTimerServiceTest extends TimerBaseTest {
 	            long taskId = tasks.get(0).getId();
 	            logger.debug("Retry : Completing task {} piId {}", taskId, piId);
 	            try {
-	                
+
                     runtime.getTaskService().complete(taskId, "john", null);
                     logger.debug("Retry : Completed task {} piId {}", taskId, piId);
                     result = true;
-       
-	                
+
+
 	            } catch (PermissionDeniedException e) {
 	                // TODO can we avoid these by doing it all in one transaction?
 	                logger.debug("Task thread was too late for starting task {} piId {}", taskId, piId);
@@ -265,10 +265,10 @@ public class ConcurrentGlobalTimerServiceTest extends TimerBaseTest {
 	            }
 
 	        }
-	        
+
 	        return result;
 	    }
-	
+
     public class StartProcessPerProcessInstanceRunnable implements Runnable {
         private RuntimeManager manager;
         private int counter;
@@ -279,15 +279,15 @@ public class ConcurrentGlobalTimerServiceTest extends TimerBaseTest {
         public void run() {
             try {
                 RuntimeEngine runtime = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
-                testStartProcess(runtime);                    
-                manager.disposeRuntimeEngine(runtime);                    
+                testStartProcess(runtime);
+                manager.disposeRuntimeEngine(runtime);
                 completedStart.countDown();
             } catch (Throwable t) {
                 t.printStackTrace();
             }
         }
     }
-	
+
    public class CompleteTaskPerProcessInstanceRunnable implements Runnable {
         private RuntimeManager manager;
         private int counter;
@@ -325,21 +325,21 @@ public class ConcurrentGlobalTimerServiceTest extends TimerBaseTest {
             }
         }
     }
-   
+
    public static boolean checkOptimiticLockException(Throwable e) {
        Throwable rootCause = e.getCause();
        while (rootCause != null) {
-           if ((rootCause instanceof OptimisticLockException || rootCause instanceof StaleObjectStateException) ){               
+           if ((rootCause instanceof OptimisticLockException || rootCause instanceof StaleObjectStateException) ){
                return true;
            }
-           
+
            rootCause = rootCause.getCause();
        }
-       
+
        if (e instanceof InvocationTargetException) {
            return checkOptimiticLockException(((InvocationTargetException) e).getTargetException());
        }
-       
+
        return false;
    }
 }

@@ -29,8 +29,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.executor.ExecutorServiceFactory;
 import org.jbpm.process.instance.impl.demo.SystemOutWorkItemHandler;
@@ -78,18 +78,18 @@ public class ErrorHandlingTest extends AbstractExecutorBaseTest {
 
     @Parameters(name = "AsyncMode : {0}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {     
-                 {"true"}, 
+        return Arrays.asList(new Object[][] {
+                 {"true"},
                  {"false"}
            });
     }
-    
+
     private String asyncMode;
-    
+
     public ErrorHandlingTest(String asyncMode) {
         this.asyncMode = asyncMode;
     }
-    
+
     @Before
     public void setup() {
         ExecutorTestUtil.cleanupSingletonSessionId();
@@ -114,7 +114,7 @@ public class ErrorHandlingTest extends AbstractExecutorBaseTest {
         pds.close();
     }
 
-   
+
     @Test(timeout=10000)
     public void testAsyncModeWithScriptTask() throws Exception {
         final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("Catch exception", 1);
@@ -151,7 +151,7 @@ public class ErrorHandlingTest extends AbstractExecutorBaseTest {
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("exceptionType", "uncheckedException");
         parameters.put("executeAct3", true);
-        ProcessInstance processInstance = ksession.startProcess("SCRA_process", parameters);        
+        ProcessInstance processInstance = ksession.startProcess("SCRA_process", parameters);
         long processInstanceId = processInstance.getId();
 
         countDownListener.waitTillCompleted();
@@ -160,11 +160,11 @@ public class ErrorHandlingTest extends AbstractExecutorBaseTest {
 
         processInstance = runtime.getKieSession().getProcessInstance(processInstanceId);
         assertNull(processInstance);
-        
+
 
         List<? extends NodeInstanceLog> logs = runtime.getAuditService().findNodeInstances(processInstanceId);
         assertNotNull(logs);
-        
+
         Set<String> uniqueNodeNames = logs.stream().map(l -> l.getNodeName()).collect(Collectors.toSet());
         assertFalse("Node 'Path Alternative' shouldn't be invoked", uniqueNodeNames.contains("Path Alternative"));
     }
@@ -175,15 +175,15 @@ public class ErrorHandlingTest extends AbstractExecutorBaseTest {
         do {
             List<RequestInfo> runningOrQueued = executorService.getRequestsByStatus(Arrays.asList(STATUS.RUNNING, STATUS.QUEUED), new QueryContext());
             attempts--;
-            
+
             if (runningOrQueued.isEmpty()) {
                 return true;
             }
-            
+
             Thread.sleep(500);
-            
+
         } while (attempts > 0);
-        
+
         return false;
     }
 

@@ -17,16 +17,16 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
- * Operation.Claim 
-        : [ new OperationCommand().{ 
+ * Operation.Claim
+        : [ new OperationCommand().{
                 status = [ Status.Ready ],
-                allowed = [ Allowed.PotentialOwner, Allowed.BusinessAdministrator ],    
-                setNewOwnerToUser = true,           
+                allowed = [ Allowed.PotentialOwner, Allowed.BusinessAdministrator ],
+                setNewOwnerToUser = true,
                 newStatus = Status.Reserved
             } ],
  */
@@ -38,7 +38,7 @@ public class ClaimTaskCommand extends UserGroupCallbackTaskCommand<Void> {
 
 	public ClaimTaskCommand() {
 	}
-	
+
 	public ClaimTaskCommand(long taskId, String userId) {
         this.taskId = taskId;
         this.userId = userId;
@@ -51,8 +51,8 @@ public class ClaimTaskCommand extends UserGroupCallbackTaskCommand<Void> {
         context.set("local:groups", groupIds);
     	context.getTaskInstanceService().claim(taskId, userId);
     	return null;
-        
+
     }
 
-   
+
 }

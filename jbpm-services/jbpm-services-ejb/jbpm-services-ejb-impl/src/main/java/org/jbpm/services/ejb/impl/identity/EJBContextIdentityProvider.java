@@ -19,7 +19,7 @@ package org.jbpm.services.ejb.impl.identity;
 import java.util.Collections;
 import java.util.List;
 
-import javax.ejb.EJBContext;
+import jakarta.ejb.EJBContext;
 
 import org.kie.internal.identity.IdentityProvider;
 
@@ -27,11 +27,11 @@ import org.kie.internal.identity.IdentityProvider;
 public class EJBContextIdentityProvider implements IdentityProvider {
 
 	private EJBContext context;
-	
+
 	public EJBContextIdentityProvider(EJBContext context) {
 		this.context = context;
 	}
-	
+
 	@Override
 	public String getName() {
 		return context.getCallerPrincipal().getName();

@@ -26,8 +26,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.bpmn2.handler.ServiceTaskHandler;
 import org.jbpm.executor.ExecutorServiceFactory;
@@ -79,14 +79,14 @@ import static org.junit.Assert.assertNull;
 public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
 
     private static final Logger logger = LoggerFactory.getLogger(AsyncContinuationSupportTest.class);
-    
+
     private PoolingDataSourceWrapper pds;
     private UserGroupCallback userGroupCallback;
     private RuntimeManager manager;
     private ExecutorService executorService;
     private EntityManagerFactory emf = null;
 
-    
+
     @Before
     public void setup() {
         ExecutorTestUtil.cleanupSingletonSessionId();
@@ -293,7 +293,7 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         countDownListener.waitTillCompleted();
 
         List<TaskSummary> tasks = runtime.getTaskService().getTasksAssignedAsPotentialOwner("john", "en-UK");
-        assertNotNull(tasks);        
+        assertNotNull(tasks);
         assertEquals(3, tasks.size());
 
         for (TaskSummary task : tasks) {
@@ -449,7 +449,7 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         ProcessInstance processInstance = ksession.startProcess("SubProcess", params);
         assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
         long processInstanceId = processInstance.getId();
-        
+
         countDownListener.waitTillCompleted();
 
         processInstance = runtime.getKieSession().getProcessInstance(processInstance.getId());
@@ -545,7 +545,7 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         ProcessInstance processInstance = ksession.startProcess("ParentProcess");
         assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
         long processInstanceId = processInstance.getId();
-    
+
         countDownListener.waitTillCompleted();
 
         processInstance = runtime.getKieSession().getProcessInstance(processInstance.getId());
@@ -640,14 +640,14 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         RuntimeEngine runtime = manager.getRuntimeEngine(EmptyContext.get());
         KieSession ksession = runtime.getKieSession();
         assertNotNull(ksession);
-        
+
         Map<String, Object> params = new HashMap<>();
         params.put("delayAsync", "2s");
 
         ProcessInstance processInstance = ksession.startProcess("AsyncScriptTask", params);
         assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
         long processInstanceId = processInstance.getId();
-        
+
         countDownListener.waitTillCompleted(1000);
 
         manager.close();
@@ -669,9 +669,9 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
 
         runtime = manager.getRuntimeEngine(EmptyContext.get());
         countDownListener2.reset(1);
-        
+
         ((RequeueAware)executorService).requeueById(queued.get(0).getId());
-        
+
         countDownListener2.waitTillCompleted();
 
         processInstance = runtime.getKieSession().getProcessInstance(processInstanceId);
@@ -932,8 +932,8 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         // Send async signal to the process instance
         System.out.println("<<<< Sending signal >>>>>");
         runtime.getKieSession().signalEvent("MySignal", null);
-        
-        countDownListener.waitTillCompleted();        
+
+        countDownListener.waitTillCompleted();
 
         processInstance = runtime.getKieSession().getProcessInstance(processInstanceId);
         assertNull(processInstance);
@@ -953,7 +953,7 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         assertEquals(1, commands.size());
         assertEquals(AsyncSignalEventCommand.class.getName(), commands.iterator().next());
     }
-    
+
     @Test(timeout=10000)
     public void testAsyncParallelGateway() throws Exception {
         final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("REST", 1);
@@ -999,7 +999,7 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
 //        assertNotNull(logs);
 //        assertEquals(8, logs.size());
     }
-    
+
     @Test(timeout=10000)
     public void testAsyncModeWithParallelGateway() throws Exception {
         final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("EndProcess", 1);
@@ -1041,7 +1041,7 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         processInstance = runtime.getKieSession().getProcessInstance(processInstanceId);
         assertNull(processInstance);
     }
-    
+
     @Test(timeout=10000)
     public void testAsyncModeWithTimer() throws Exception {
         final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("BoundaryEnd", 1);
@@ -1072,7 +1072,7 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         RuntimeEngine runtime = manager.getRuntimeEngine(EmptyContext.get());
         KieSession ksession = runtime.getKieSession();
         assertNotNull(ksession);
-        
+
         Map<String, Object> params = new HashMap<>();
         params.put("timer1", "2s");
         params.put("timer2", "10s");
@@ -1087,12 +1087,12 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         assertNull(processInstance);
 
     }
-    
+
     @Test(timeout=10000)
     public void testAsyncModeWithSignal() throws Exception {
         CountDownAsyncJobListener initialJob = new CountDownAsyncJobListener(1);
         ((ExecutorServiceImpl) executorService).addAsyncJobListener(initialJob);
-               
+
         final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("SignalEnd", 1);
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get().newDefaultBuilder()
                 .userGroupCallback(userGroupCallback)
@@ -1121,7 +1121,7 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         RuntimeEngine runtime = manager.getRuntimeEngine(EmptyContext.get());
         KieSession ksession = runtime.getKieSession();
         assertNotNull(ksession);
-        
+
         Map<String, Object> params = new HashMap<>();
         params.put("timer1", "20s");
         params.put("timer2", "10s");
@@ -1129,17 +1129,17 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         ProcessInstance processInstance = ksession.startProcess("ProbAsync", params);
         assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
         long processInstanceId = processInstance.getId();
-        
+
         initialJob.waitTillCompleted();
-        
+
         List<TaskSummary> tasks = runtime.getTaskService().getTasksAssignedAsPotentialOwner("john", "en-UK");
         assertEquals(1, tasks.size());
-        
+
         long taskId = tasks.get(0).getId();
-        
+
         runtime.getTaskService().start(taskId, "john");
         runtime.getTaskService().complete(taskId, "john", null);
-        
+
         runtime.getKieSession().signalEvent("signal1", null, processInstanceId);
 
         countDownListener.waitTillCompleted();
@@ -1148,12 +1148,12 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         assertNull(processInstance);
 
     }
-    
+
     @Test(timeout=10000)
     public void testAsyncModeWithSignalEventSubProcess() throws Exception {
         CountDownAsyncJobListener initialJob = new CountDownAsyncJobListener(1);
         ((ExecutorServiceImpl) executorService).addAsyncJobListener(initialJob);
-               
+
         final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("SubprocessEnd", 1);
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get().newDefaultBuilder()
                 .userGroupCallback(userGroupCallback)
@@ -1182,7 +1182,7 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         RuntimeEngine runtime = manager.getRuntimeEngine(EmptyContext.get());
         KieSession ksession = runtime.getKieSession();
         assertNotNull(ksession);
-        
+
         Map<String, Object> params = new HashMap<>();
         params.put("timer1", "20s");
         params.put("timer2", "10s");
@@ -1192,10 +1192,10 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         long processInstanceId = processInstance.getId();
 
         initialJob.waitTillCompleted();
-        
+
         List<TaskSummary> tasks = runtime.getTaskService().getTasksAssignedAsPotentialOwner("john", "en-UK");
         assertEquals(1, tasks.size());
-        
+
         runtime.getKieSession().signalEvent("startSignal", null, processInstanceId);
 
         countDownListener.waitTillCompleted();
@@ -1280,15 +1280,15 @@ public class AsyncContinuationSupportTest extends AbstractExecutorBaseTest {
         do {
             List<RequestInfo> runningOrQueued = executorService.getRequestsByStatus(Arrays.asList(STATUS.RUNNING, STATUS.QUEUED), new QueryContext());
             attempts--;
-            
+
             if (runningOrQueued.isEmpty()) {
                 return true;
             }
-            
+
             Thread.sleep(500);
-            
+
         } while (attempts > 0);
-        
+
         return false;
     }
 

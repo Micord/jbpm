@@ -21,9 +21,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.enterprise.inject.spi.BeanManager;
-import javax.inject.Inject;
-import javax.persistence.EntityManagerFactory;
+import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -92,32 +92,32 @@ public class RuntimeDataServiceTest extends AbstractKieServicesBaseTest {
                 .addPackage("org.kie.internal.runtime.manager")
                 .addPackage("org.kie.internal.runtime.manager.context")
                 .addPackage("org.kie.internal.runtime.manager.cdi.qualifier")
-                
+
                 .addPackage("org.jbpm.runtime.manager.impl")
-                .addPackage("org.jbpm.runtime.manager.impl.cdi")                               
+                .addPackage("org.jbpm.runtime.manager.impl.cdi")
                 .addPackage("org.jbpm.runtime.manager.impl.factory")
                 .addPackage("org.jbpm.runtime.manager.impl.jpa")
                 .addPackage("org.jbpm.runtime.manager.impl.manager")
                 .addPackage("org.jbpm.runtime.manager.impl.task")
                 .addPackage("org.jbpm.runtime.manager.impl.tx")
-                
+
                 .addPackage("org.jbpm.shared.services.api")
                 .addPackage("org.jbpm.shared.services.impl")
                 .addPackage("org.jbpm.shared.services.impl.tx")
-                
+
                 .addPackage("org.jbpm.kie.services.api")
-                .addPackage("org.jbpm.kie.services.impl")                
+                .addPackage("org.jbpm.kie.services.impl")
                 .addPackage("org.jbpm.kie.services.api.bpmn2")
                 .addPackage("org.jbpm.kie.services.impl.bpmn2")
                 .addPackage("org.jbpm.kie.services.impl.event.listeners")
                 .addPackage("org.jbpm.kie.services.impl.audit")
                 .addPackage("org.jbpm.kie.services.impl.form")
                 .addPackage("org.jbpm.kie.services.impl.form.provider")
-                .addPackage("org.jbpm.kie.services.impl.query")  
-                .addPackage("org.jbpm.kie.services.impl.query.mapper")  
-                .addPackage("org.jbpm.kie.services.impl.query.persistence")  
-                .addPackage("org.jbpm.kie.services.impl.query.preprocessor")  
-                
+                .addPackage("org.jbpm.kie.services.impl.query")
+                .addPackage("org.jbpm.kie.services.impl.query.mapper")
+                .addPackage("org.jbpm.kie.services.impl.query.persistence")
+                .addPackage("org.jbpm.kie.services.impl.query.preprocessor")
+
                 .addPackage("org.jbpm.services.cdi")
                 .addPackage("org.jbpm.services.cdi.impl")
                 .addPackage("org.jbpm.services.cdi.impl.form")
@@ -125,7 +125,7 @@ public class RuntimeDataServiceTest extends AbstractKieServicesBaseTest {
                 .addPackage("org.jbpm.services.cdi.producer")
                 .addPackage("org.jbpm.services.cdi.impl.security")
                 .addPackage("org.jbpm.services.cdi.impl.query")
-                
+
                 .addPackage("org.jbpm.kie.services.test")
                 .addPackage("org.jbpm.services.cdi.test") // Identity Provider Test Impl here
                 .addClass("org.jbpm.services.cdi.test.util.CDITestHelperNoTaskService")
@@ -149,9 +149,9 @@ public class RuntimeDataServiceTest extends AbstractKieServicesBaseTest {
 
 	@Override
 	protected void configureServices() {
-		// do nothing here and let CDI configure services 
+		// do nothing here and let CDI configure services
 	}
-	
+
     @After
     public void tearDownTest() {
     }
@@ -237,7 +237,7 @@ public class RuntimeDataServiceTest extends AbstractKieServicesBaseTest {
         manager.close();
 
     }
-    
+
 
     @Test
     public void testGetTasksAssignedAsPotentialOwnerGroupFromCallback() {
@@ -258,7 +258,7 @@ public class RuntimeDataServiceTest extends AbstractKieServicesBaseTest {
         KieSession ksession = runtime.getKieSession();
 
         ProcessInstance processInstance = ksession.startProcess("UserTask");
-                
+
         List<Status> statuses = new ArrayList<Status>();
         statuses.add(Status.Ready);
         statuses.add(Status.Reserved);
@@ -269,6 +269,6 @@ public class RuntimeDataServiceTest extends AbstractKieServicesBaseTest {
         TaskSummary task = tasks.get(0);
         assertCorrelationAndProcess(task, processInstance.getId());
         ksession.abortProcessInstance(processInstance.getId());
-        
+
     }
 }

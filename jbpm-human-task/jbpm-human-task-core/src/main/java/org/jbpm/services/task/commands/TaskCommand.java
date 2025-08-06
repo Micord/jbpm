@@ -17,10 +17,10 @@ package org.jbpm.services.task.commands;
 
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlSchemaType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlSchemaType;
 
 import org.kie.api.command.ExecutableCommand;
 
@@ -31,18 +31,18 @@ import org.kie.api.command.ExecutableCommand;
 public abstract class TaskCommand<T> implements ExecutableCommand<T> {
 
 	private static final long serialVersionUID = -8814813191723981179L;
-	
+
 	@XmlElement(name="task-id")
     @XmlSchemaType(name="long")
     protected Long taskId;
-    
+
     @XmlElement(name="user-id")
     @XmlSchemaType(name="string")
     protected String userId;
-    
+
     @XmlElement(name="group-id")
     protected List<String> groupIds;
-    
+
     @XmlElement(name="target-entity-id")
     @XmlSchemaType(name="string")
     protected String targetEntityId;

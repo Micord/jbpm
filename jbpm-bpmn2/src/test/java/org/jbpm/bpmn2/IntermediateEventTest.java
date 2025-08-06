@@ -29,8 +29,8 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.drools.core.command.SingleSessionCommandService;
@@ -253,7 +253,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         assertProcessInstanceFinished(processInstance, ksession);
 
     }
-    
+
     @Test
     public void testSignalBoundaryEventOnTaskWithVariableSignalName() throws Exception {
         KieBase kbase = createKnowledgeBase("BPMN2-BoundarySignalWithVariableNameEventOnTaskbpmn.bpmn");
@@ -1333,7 +1333,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         assertProcessInstanceFinished(processInstance, ksession);
 
     }
-    
+
     @Test
     public void testIntermediateCatchEventMessageWithRef() throws Exception {
         KieBase kbase = createKnowledgeBaseWithoutDumper("BPMN2-IntermediateCatchEventMessageWithRef.bpmn2");
@@ -2680,7 +2680,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
 
         assertProcessInstanceFinished(processInstance, ksession);
     }
-    
+
     @Test(timeout=10000)
     public void testEventBasedSplitWithCronTimerAndSignal() throws Exception {
         System.setProperty("jbpm.enable.multi.con", "true");
@@ -2691,17 +2691,17 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
             NodeLeftCountDownProcessEventListener countDownListener4 = new NodeLeftCountDownProcessEventListener("Request an online review", 1);
             KieBase kbase = createKnowledgeBase("timer/BPMN2-CronTimerWithEventBasedGateway.bpmn2");
             ksession = createKnowledgeSession(kbase);
-            
+
             TestWorkItemHandler handler = new TestWorkItemHandler();
-            ksession.getWorkItemManager().registerWorkItemHandler("Human Task", handler);       
+            ksession.getWorkItemManager().registerWorkItemHandler("Human Task", handler);
             ksession.addEventListener(countDownListener);
             ksession.addEventListener(countDownListener2);
             ksession.addEventListener(countDownListener3);
             ksession.addEventListener(countDownListener4);
-            
+
             ProcessInstance processInstance = ksession.startProcess("timerWithEventBasedGateway");
             assertProcessInstanceActive(processInstance.getId(), ksession);
-            
+
             countDownListener.waitTillCompleted();
             logger.debug("First timer triggered");
             countDownListener2.waitTillCompleted();
@@ -2710,70 +2710,70 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
             logger.debug("Third timer triggered");
             countDownListener4.waitTillCompleted();
             logger.debug("Fourth timer triggered");
-            
+
             List<WorkItem> wi = handler.getWorkItems();
             assertThat(wi).isNotNull();
             assertThat(wi.size()).isEqualTo(3);
-    
+
             ksession.abortProcessInstance(processInstance.getId());
         } finally {
             // clear property only as the only relevant value is when it's set to true
             System.clearProperty("jbpm.enable.multi.con");
         }
     }
-    
+
     @Test
     public void testEventSubprocessWithEmbeddedSignals() throws Exception {
         KieBase kbase = createKnowledgeBase("BPMN2-EventSubprocessErrorSignalEmbedded.bpmn2");
         ksession = createKnowledgeSession(kbase);
-               
+
         ProcessInstance processInstance = ksession.startProcess("project2.myerrorprocess");
-        
+
         assertProcessInstanceActive(processInstance.getId(), ksession);
         assertProcessInstanceActive(processInstance);
         ksession = restoreSession(ksession, true);
-        
-        ksession.signalEvent("signal1", null, processInstance.getId());        
+
+        ksession.signalEvent("signal1", null, processInstance.getId());
         assertProcessInstanceActive(processInstance.getId(), ksession);
-        
+
         for (NodeInstance nodeInstance: ((WorkflowProcessInstance) processInstance).getNodeInstances()) {
             System.out.println("Active node instance " + nodeInstance);
         }
-        
+
         ksession.signalEvent("signal2", null, processInstance.getId());
         assertProcessInstanceActive(processInstance.getId(), ksession);
-        
+
         ksession.signalEvent("signal3", null, processInstance.getId());
 
         assertProcessInstanceFinished(processInstance, ksession);
     }
-    
+
     @Test
     public void testEventSubprocessWithExpression() throws Exception {
         KieBase kbase = createKnowledgeBase("BPMN2-EventSubprocessSignalExpression.bpmn2");
         ksession = createKnowledgeSession(kbase);
-               
+
         Map<String, Object> params = new HashMap<>();
         params.put("x", "signalling");
         ProcessInstance processInstance = ksession.startProcess("BPMN2-EventSubprocessSignalExpression", params);
-        
+
         assertProcessInstanceActive(processInstance.getId(), ksession);
         assertProcessInstanceActive(processInstance);
         ksession = restoreSession(ksession, true);
-        
-        ksession.signalEvent("signalling", null, processInstance.getId());        
-  
+
+        ksession.signalEvent("signalling", null, processInstance.getId());
+
         assertProcessInstanceFinished(processInstance, ksession);
     }
-    
+
     @Test
     public void testConditionalProcessFactInsertedBefore() throws Exception {
-        KieBase kbase = createKnowledgeBase("BPMN2-IntermediateCatchEventConditionPI.bpmn2", "BPMN2-IntermediateCatchEventSignal.bpmn2");        
+        KieBase kbase = createKnowledgeBase("BPMN2-IntermediateCatchEventConditionPI.bpmn2", "BPMN2-IntermediateCatchEventSignal.bpmn2");
         ksession = createKnowledgeSession(kbase);
 
         Person person0 = new Person("john");
         ksession.insert(person0);
-        
+
         Map<String, Object> params0 = new HashMap<String, Object>();
         params0.put("name", "john");
         ProcessInstance pi0 = ksession.startProcess("IntermediateCatchEvent", params0);
@@ -2788,13 +2788,13 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         ksession.insert(pi);
         pi = ksession.getProcessInstance(pi.getId());
         assertThat(pi).isNotNull();
-        
+
         Person person2 = new Person("Poul");
         ksession.insert(person2);
-        
+
         pi = ksession.getProcessInstance(pi.getId());
         assertThat(pi).isNull();
-        
+
     }
 
     @Test
@@ -2813,7 +2813,7 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
 
         assertProcessInstanceFinished(processInstance, ksession);
     }
-    
+
     @Test
     public void testSignalEndWithData() throws Exception {
         KieBase kbase = createKnowledgeBaseWithoutDumper("BPMN2-IntermediateThrowEventSignalWithData.bpmn2");
@@ -2824,20 +2824,20 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
         ProcessInstance processInstance = ksession.startProcess("testThrowingSignalEvent", params);
 
         assertProcessInstanceActive(processInstance);
-        
+
         ksession.signalEvent("mysignal", null, processInstance.getId());
-        
+
         assertProcessInstanceCompleted(processInstance);
 
     }
-    
+
     @Test
     public void testDynamicCatchEventSignal() throws Exception {
         KieBase kbase = createKnowledgeBase("subprocess/dynamic-signal-parent.bpmn2", "subprocess/dynamic-signal-child.bpmn2");
         ksession = createKnowledgeSession(kbase);
         TestWorkItemHandler handler = new TestWorkItemHandler();
         ksession.getWorkItemManager().registerWorkItemHandler("Human Task", handler);
-        
+
         final List<Long> instances = new ArrayList<>();
 
         ksession.addEventListener(new DefaultProcessEventListener() {
@@ -2846,147 +2846,147 @@ public class IntermediateEventTest extends JbpmBpmn2TestCase {
             public void beforeProcessStarted(ProcessStartedEvent event) {
                 instances.add(event.getProcessInstance().getId());
             }
-            
+
         });
-        
+
         ProcessInstance processInstance = ksession.startProcess("src.father");
         assertProcessInstanceActive(processInstance);
         ksession = restoreSession(ksession, true);
-        
+
         assertThat(instances).hasSize(4);
-        
+
         // remove the parent process instance
         instances.remove(processInstance.getId());
-        
+
         for (Long id : instances) {
             ProcessInstance child = ksession.getProcessInstance(id);
             assertProcessInstanceActive(child);
         }
-        
+
         // now complete user task to signal all child instances to stop
         WorkItem workItem = handler.getWorkItem();
         assertThat(workItem).isNotNull();
-        
+
         ksession.getWorkItemManager().completeWorkItem(workItem.getId(), null);
-        
+
         assertProcessInstanceFinished(processInstance, ksession);
-        
-        for (Long id : instances) {            
+
+        for (Long id : instances) {
             assertNull("Child process instance has not been finished.", ksession.getProcessInstance(id));
         }
     }
-    
+
     @Test
-    public void testDynamicCatchEventSignalWithVariableUpdated() throws Exception {        
+    public void testDynamicCatchEventSignalWithVariableUpdated() throws Exception {
         KieBase kbase = createKnowledgeBase("subprocess/dynamic-signal-parent.bpmn2", "subprocess/dynamic-signal-child.bpmn2");
         ksession = createKnowledgeSession(kbase);
         TestWorkItemHandler handler = new TestWorkItemHandler();
         ksession.getWorkItemManager().registerWorkItemHandler("Human Task", handler);
-        
+
         final List<Long> instances = new ArrayList<>();
-        
+
         ksession.addEventListener(new DefaultProcessEventListener() {
 
             @Override
             public void beforeProcessStarted(ProcessStartedEvent event) {
                 instances.add(event.getProcessInstance().getId());
             }
-            
+
         });
-        
+
         ProcessInstance processInstance = ksession.startProcess("src.father");
         assertProcessInstanceActive(processInstance);
         ksession = restoreSession(ksession, true);
-        
+
         assertThat(instances).hasSize(4);
-        
+
         // remove the parent process instance
         instances.remove(processInstance.getId());
-        
+
         for (Long id : instances) {
             ProcessInstance child = ksession.getProcessInstance(id);
             assertProcessInstanceActive(child);
         }
-        
+
         // change one child process instance variable (fatherId) to something else then original fatherId
         Long changeProcessInstanceId = instances.remove(0);
         Map<String, Object> updatedVariables = new HashMap<>();
         updatedVariables.put("fatherId", 999L);
         ksession.execute(new SetProcessInstanceVariablesCommand(changeProcessInstanceId, updatedVariables));
-        
+
         // now complete user task to signal all child instances to stop
         WorkItem workItem = handler.getWorkItem();
         assertThat(workItem).isNotNull();
-        
+
         ksession.getWorkItemManager().completeWorkItem(workItem.getId(), null);
-        
+
         assertProcessInstanceFinished(processInstance, ksession);
-        
-        for (Long id : instances) {            
+
+        for (Long id : instances) {
             assertNull("Child process instance has not been finished.", ksession.getProcessInstance(id));
         }
-        
+
         ProcessInstance updatedChild = ksession.getProcessInstance(changeProcessInstanceId);
         assertProcessInstanceActive(updatedChild);
-        
+
         ksession.signalEvent("stopChild:999", null, changeProcessInstanceId);
         assertProcessInstanceFinished(updatedChild, ksession);
     }
-    
+
     @RequirePersistence
     @Test
-    public void testDynamicCatchEventSignalWithVariableUpdatedBroadcastSignal() throws Exception {        
+    public void testDynamicCatchEventSignalWithVariableUpdatedBroadcastSignal() throws Exception {
         KieBase kbase = createKnowledgeBase("subprocess/dynamic-signal-parent.bpmn2", "subprocess/dynamic-signal-child.bpmn2");
         ksession = createKnowledgeSession(kbase);
         TestWorkItemHandler handler = new TestWorkItemHandler();
         ksession.getWorkItemManager().registerWorkItemHandler("Human Task", handler);
-        
+
         final List<Long> instances = new ArrayList<>();
-        
+
         ksession.addEventListener(new DefaultProcessEventListener() {
 
             @Override
             public void beforeProcessStarted(ProcessStartedEvent event) {
                 instances.add(event.getProcessInstance().getId());
             }
-            
+
         });
-        
+
         ProcessInstance processInstance = ksession.startProcess("src.father");
         assertProcessInstanceActive(processInstance);
         ksession = restoreSession(ksession, true);
-        
+
         assertThat(instances).hasSize(4);
-        
+
         // remove the parent process instance
         instances.remove(processInstance.getId());
-        
+
         for (Long id : instances) {
             ProcessInstance child = ksession.getProcessInstance(id);
             assertProcessInstanceActive(child);
         }
-        
+
         // change one child process instance variable (fatherId) to something else then original fatherId
         Long changeProcessInstanceId = instances.remove(0);
         Map<String, Object> updatedVariables = new HashMap<>();
         updatedVariables.put("fatherId", 999L);
         ksession.execute(new SetProcessInstanceVariablesCommand(changeProcessInstanceId, updatedVariables));
-        
+
         // now complete user task to signal all child instances to stop
         WorkItem workItem = handler.getWorkItem();
         assertThat(workItem).isNotNull();
-        
+
         ksession.getWorkItemManager().completeWorkItem(workItem.getId(), null);
-        
+
         assertProcessInstanceFinished(processInstance, ksession);
-        
-        for (Long id : instances) {            
+
+        for (Long id : instances) {
             assertNull("Child process instance has not been finished.", ksession.getProcessInstance(id));
         }
-        
+
         ProcessInstance updatedChild = ksession.getProcessInstance(changeProcessInstanceId);
         assertProcessInstanceActive(updatedChild);
-        
+
         ksession.signalEvent("stopChild:999", null);
         assertProcessInstanceFinished(updatedChild, ksession);
     }

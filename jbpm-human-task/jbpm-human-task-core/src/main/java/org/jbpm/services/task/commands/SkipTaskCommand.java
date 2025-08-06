@@ -17,9 +17,9 @@ package org.jbpm.services.task.commands;
 
 import org.kie.api.runtime.Context;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * Operation.Skip : [ new OperationCommand().{ status = [ Status.Created ],
@@ -34,7 +34,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name="skip-task-command")
 @XmlAccessorType(XmlAccessType.NONE)
 public class SkipTaskCommand extends UserGroupCallbackTaskCommand<Void> {
-	
+
 	private static final long serialVersionUID = 8145425383669415596L;
 
 	public SkipTaskCommand() {
@@ -52,6 +52,6 @@ public class SkipTaskCommand extends UserGroupCallbackTaskCommand<Void> {
         context.set("local:groups", groupIds);
     	context.getTaskInstanceService().skip(taskId, userId);
     	return null;
-        
+
     }
 }

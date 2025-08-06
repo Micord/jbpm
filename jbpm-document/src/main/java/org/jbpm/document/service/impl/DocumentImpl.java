@@ -26,9 +26,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.jbpm.document.Document;
 import org.jbpm.document.service.DocumentStorageService;
@@ -43,7 +43,7 @@ public class DocumentImpl implements Document, LazyLoaded<DocumentStorageService
     private static final long serialVersionUID = -7422666286189013484L;
 
     private static final Logger logger = LoggerFactory.getLogger(DocumentImpl.class);
-    
+
     private String identifier = "";
     private String name;
     private String link = "";
@@ -51,7 +51,7 @@ public class DocumentImpl implements Document, LazyLoaded<DocumentStorageService
     private Date lastModified;
     private byte[] content;
     private Map<String, String> attributes;
-    
+
     private transient DocumentStorageService service;
 
     public DocumentImpl() {
@@ -175,7 +175,7 @@ public class DocumentImpl implements Document, LazyLoaded<DocumentStorageService
     @Override
     public byte[] getContent() {
         load();
-        
+
         return content;
     }
 
@@ -199,7 +199,7 @@ public class DocumentImpl implements Document, LazyLoaded<DocumentStorageService
     /*
      * lazy load support
      */
-    
+
     @Override
     public void setLoadService(DocumentStorageService service) {
         this.service = service;

@@ -7,9 +7,9 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm</artifactId>
-    <version>7.74.1.Final</version>
+    <version>7.74.1.Final-Micord.1</version>
   </parent>
-  
+
   <artifactId>jbpm-flow-builder</artifactId>
   <packaging>bundle</packaging><!-- bundle = jar + OSGi metadata -->
 
@@ -38,7 +38,7 @@
       </plugin>
     </plugins>
   </build>
-  
+
   <dependencies>
     <dependency>
       <groupId>org.jbpm</groupId>
@@ -96,7 +96,7 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
-   
+
     <!-- test -->
     <dependency>
       <groupId>org.drools</groupId>

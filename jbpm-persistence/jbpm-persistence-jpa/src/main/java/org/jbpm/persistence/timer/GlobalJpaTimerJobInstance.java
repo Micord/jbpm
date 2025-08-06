@@ -41,21 +41,21 @@ import org.slf4j.LoggerFactory;
 /**
  * Extension to the regular <code>JpaTimerJobInstance</code> that makes use of
  * GlobalTimerService to allow auto reactivate session.
- * 
+ *
  * Important to note is that when timer service created session this job instance
  * will dispose that session to leave it in the same state it was before job was executed
  * to avoid concurrent usage of the same session by different threads
  *
  */
 public class GlobalJpaTimerJobInstance extends JpaTimerJobInstance {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(GlobalJpaTimerJobInstance.class);
 
     private static final long serialVersionUID = -5383556604449217342L;
     private String timerServiceId;
     private String externalTimerId;
     private Serializable timerInfo;
-    
+
     public GlobalJpaTimerJobInstance(Job job, JobContext ctx, Trigger trigger,
             JobHandle handle, InternalSchedulerService scheduler) {
         super(job, ctx, trigger, handle, scheduler);
@@ -68,7 +68,7 @@ public class GlobalJpaTimerJobInstance extends JpaTimerJobInstance {
         ExecutableRunner runner = null;
         TransactionManager jtaTm = null;
         boolean success = false;
-        try { 
+        try {
             JDKCallableJobCommand command = new JDKCallableJobCommand( this );
 
             if (scheduler == null || ((GlobalTimerService) scheduler).getRuntimeManager().isClosed()) {
@@ -87,7 +87,7 @@ public class GlobalJpaTimerJobInstance extends JpaTimerJobInstance {
             timerService.removeTimerJobInstance(((DefaultJobHandle)getJobHandle()).getTimerJobInstance());
             success = true;
             return null;
-        } catch( Exception e ) { 
+        } catch( Exception e ) {
         	e.printStackTrace();
         	success = false;
             throw e;
@@ -132,7 +132,7 @@ public class GlobalJpaTimerJobInstance extends JpaTimerJobInstance {
     	Object txm = environment.get(EnvironmentName.TRANSACTION_MANAGER);
     	if (txm != null && txm instanceof TransactionManager) {
     		transactionManager = (TransactionManager) txm;
-    	} else {    	
+    	} else {
     		transactionManager = TransactionManagerFactory.get().newTransactionManager();
     	}
     	int status = transactionManager.getStatus();
@@ -142,10 +142,10 @@ public class GlobalJpaTimerJobInstance extends JpaTimerJobInstance {
                 && status != TransactionManager.STATUS_COMMITTED) {
     		return false;
     	}
-    	
+
     	return true;
     }
-    
+
     protected boolean hasEnvironmentEntry(Environment environment, String name, Object value) {
     	Object envEntry = environment.get(name);
     	if (value == null) {
@@ -153,28 +153,28 @@ public class GlobalJpaTimerJobInstance extends JpaTimerJobInstance {
     	}
     	return value.equals(envEntry);
     }
-    
+
     protected TransactionManager startTxIfNeeded(Environment environment) {
 
-    	try {	    	
+    	try {
 	    	if (hasEnvironmentEntry(environment, "IS_TIMER_CMT", true)) {
         		return null;
         	}
     		if (environment.get(EnvironmentName.TRANSACTION_MANAGER) instanceof ContainerManagedTransactionManager) {
     			TransactionManager tm = TransactionManagerFactory.get().newTransactionManager();
-    			
-    			if (tm.begin()) {    			
+
+    			if (tm.begin()) {
     				return tm;
     			}
     		}
-	    	
+
     	} catch (Exception e) {
     		logger.debug("Unable to optionally start transaction due to {}", e.getMessage(), e);
     	}
-    	
+
     	return null;
     }
-    
+
     protected void closeTansactionIfNeeded(TransactionManager jtaTm, boolean commit) {
     	if (jtaTm != null) {
     		if (commit) {

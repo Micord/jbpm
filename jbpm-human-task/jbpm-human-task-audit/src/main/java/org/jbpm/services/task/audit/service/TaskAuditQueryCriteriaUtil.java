@@ -46,11 +46,11 @@ import static org.kie.internal.query.QueryParameterIdentifiers.WORK_ITEM_ID_LIST
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.persistence.EntityManager;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.metamodel.Attribute;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.metamodel.Attribute;
 
 import org.jbpm.query.jpa.data.QueryCriteria;
 import org.jbpm.query.jpa.data.QueryWhere;

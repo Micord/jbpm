@@ -18,14 +18,14 @@ package org.jbpm.services.task.audit.impl.model;
 import java.io.Serializable;
 import java.util.Date;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
 
 import org.kie.internal.task.api.AuditTask;
 
@@ -51,16 +51,16 @@ public class AuditTaskImpl implements Serializable,
     private Long taskId;
 
     private String status;
-    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private Date activationTime;
     private String name;
     private String description;
     private int priority;
     private String createdBy;
     private String actualOwner;
-    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private Date createdOn;
-    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private Date dueDate;
     private long processInstanceId;
     private String processId;
@@ -68,7 +68,7 @@ public class AuditTaskImpl implements Serializable,
     private long parentId;
     private String deploymentId;
     private Long workItemId;
-    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private Date lastModificationDate;
 
     public AuditTaskImpl() {

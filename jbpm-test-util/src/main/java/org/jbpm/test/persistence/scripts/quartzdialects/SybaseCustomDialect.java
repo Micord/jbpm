@@ -18,12 +18,19 @@ package org.jbpm.test.persistence.scripts.quartzdialects;
 
 import java.sql.Types;
 
-import org.hibernate.dialect.SybaseASE157Dialect;
+import org.hibernate.dialect.SybaseASEDialect;
 
-public class SybaseCustomDialect extends SybaseASE157Dialect {
+public class SybaseCustomDialect extends SybaseASEDialect {
 
-    public SybaseCustomDialect() {
-        registerColumnType(Types.BIGINT, "NUMERIC(13,0)");
-        registerColumnType(Types.BOOLEAN, "bit");
+
+    @Override
+    protected String columnType(int sqlTypeCode) {
+        if (sqlTypeCode == Types.BIGINT) {
+            return "NUMERIC(13,0)";
+        }
+        if (sqlTypeCode == Types.BOOLEAN) {
+            return "bit";
+        }
+        return super.columnType(sqlTypeCode);
     }
 }

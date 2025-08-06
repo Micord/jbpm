@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.executor.ExecutorServiceFactory;
 import org.jbpm.executor.RequeueAware;
@@ -73,12 +73,12 @@ import static org.junit.Assert.fail;
 public class MigrationAsyncWorkItemHandlerTest extends AbstractExecutorBaseTest {
 
     private PoolingDataSourceWrapper pds;
-    private UserGroupCallback userGroupCallback;  
+    private UserGroupCallback userGroupCallback;
     private RuntimeManager manager;
     private RuntimeManager manager2;
     private ExecutorService executorService;
     private EntityManagerFactory emf = null;
-    
+
     private EntityManagerFactory emfErrors = null;
     @Before
     public void setup() {
@@ -89,10 +89,10 @@ public class MigrationAsyncWorkItemHandlerTest extends AbstractExecutorBaseTest 
         properties.setProperty("john", "HR");
         userGroupCallback = new JBossUserGroupCallbackImpl(properties);
         executorService = buildExecutorService();
-        
+
         emfErrors = EntityManagerFactoryManager.get().getOrCreate("org.jbpm.persistence.complete");
     }
-    
+
     @After
     public void teardown() {
         executorService.destroy();
@@ -112,11 +112,11 @@ public class MigrationAsyncWorkItemHandlerTest extends AbstractExecutorBaseTest 
         }
         pds.close();
     }
-    
+
     protected CountDownAsyncJobListener configureListener(int threads) {
         CountDownAsyncJobListener countDownListener = new CountDownAsyncJobListener(threads);
         ((ExecutorServiceImpl) executorService).addAsyncJobListener(countDownListener);
-        
+
         return countDownListener;
     }
 
@@ -145,7 +145,7 @@ public class MigrationAsyncWorkItemHandlerTest extends AbstractExecutorBaseTest 
                     }
                 })
                 .get();
-        
+
         RuntimeEnvironment environment2 = RuntimeEnvironmentBuilder.Factory.get().newDefaultBuilder()
                 .userGroupCallback(userGroupCallback)
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-ScriptTask.bpmn2"), ResourceType.BPMN2)
@@ -168,66 +168,66 @@ public class MigrationAsyncWorkItemHandlerTest extends AbstractExecutorBaseTest 
                     }
                 })
                 .get();
-        
-        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment, "version1"); 
+
+        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment, "version1");
         assertNotNull(manager);
-        
-        manager2 = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment2, "version2"); 
+
+        manager2 = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment2, "version2");
         assertNotNull(manager2);
-        
+
         CountDownAsyncJobListener countDownExecutorListener = configureListener(1);
-        
+
         RuntimeEngine runtime = manager.getRuntimeEngine(EmptyContext.get());
         KieSession ksession = runtime.getKieSession();
-        assertNotNull(ksession);                 
-        
+        assertNotNull(ksession);
+
         ProcessInstance processInstance = ksession.startProcess("ScriptTask");
         assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
-        
+
         manager.disposeRuntimeEngine(runtime);
-        
+
         countDownExecutorListener.waitTillCompleted();
-        
+
         MigrationSpec migrationSpec = new MigrationSpec(manager.getIdentifier(), processInstance.getId(), manager2.getIdentifier(), "ScriptTask");
-        
+
         MigrationManager migrationManager = new MigrationManager(migrationSpec);
         MigrationReport report = migrationManager.migrate();
-        
+
         assertNotNull(report);
         assertTrue(report.isSuccessful());
-        
+
         List<RequestInfo> executedRequests = executorService.getInErrorRequests(new QueryContext());
         assertEquals(1, executedRequests.size());
-        
+
         assertEquals(manager2.getIdentifier(), executedRequests.get(0).getDeploymentId());
-        
+
         Map<String, Object> fixedData = new HashMap<>();
         fixedData.put("amount", 200);
-        
+
         executorService.updateRequestData(executedRequests.get(0).getId(), fixedData);
         countDownExecutorListener.reset(1);
-        
-        ((RequeueAware) executorService).requeueById(executedRequests.get(0).getId());        
-        
-        countDownExecutorListener.waitTillCompleted();        
-        
+
+        ((RequeueAware) executorService).requeueById(executedRequests.get(0).getId());
+
+        countDownExecutorListener.waitTillCompleted();
+
         runtime = manager2.getRuntimeEngine(EmptyContext.get());
-        
+
         AuditService auditService = runtime.getAuditService();
-        
+
         ProcessInstanceLog log = auditService.findProcessInstance(processInstance.getId());
         assertEquals(manager2.getIdentifier(), log.getExternalId());
         assertEquals(ProcessInstance.STATE_COMPLETED, log.getStatus().intValue());
-        
+
         auditService.dispose();
-        
+
         ksession = runtime.getKieSession();
         processInstance = runtime.getKieSession().getProcessInstance(processInstance.getId());
         assertNull(processInstance);
-                
+
         manager2.disposeRuntimeEngine(runtime);
     }
-    
+
     @Test(timeout=10000)
     public void testMigrateProcessWithAsyncHandlerNotAllowed() throws Exception {
         final NodeLeftCountDownProcessEventListener countDownListener = new NodeLeftCountDownProcessEventListener("Hello", 1);
@@ -253,7 +253,7 @@ public class MigrationAsyncWorkItemHandlerTest extends AbstractExecutorBaseTest 
                     }
                 })
                 .get();
-        
+
         RuntimeEnvironment environment2 = RuntimeEnvironmentBuilder.Factory.get().newDefaultBuilder()
                 .userGroupCallback(userGroupCallback)
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-ScriptTaskWithParams.bpmn2"), ResourceType.BPMN2)
@@ -276,69 +276,69 @@ public class MigrationAsyncWorkItemHandlerTest extends AbstractExecutorBaseTest 
                     }
                 })
                 .get();
-        
-        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment, "version1"); 
+
+        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment, "version1");
         assertNotNull(manager);
-        
-        manager2 = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment2, "version2"); 
+
+        manager2 = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment2, "version2");
         assertNotNull(manager2);
-        
+
         CountDownAsyncJobListener countDownExecutorListener = configureListener(1);
-        
+
         RuntimeEngine runtime = manager.getRuntimeEngine(EmptyContext.get());
         KieSession ksession = runtime.getKieSession();
-        assertNotNull(ksession);                 
-        
+        assertNotNull(ksession);
+
         Map<String, Object> params = new HashMap<>();
         params.put("delayAsync", "5s");
         ProcessInstance processInstance = ksession.startProcess("ScriptTask", params);
         assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
-        
+
         manager.disposeRuntimeEngine(runtime);
-                
-                
-        MigrationReport report = null;              
+
+
+        MigrationReport report = null;
         try {
             MigrationSpec migrationSpec = new MigrationSpec(manager.getIdentifier(), processInstance.getId(), manager2.getIdentifier(), "ScriptTask");
-            
+
             MigrationManager migrationManager = new MigrationManager(migrationSpec);
             migrationManager.migrate();
             fail("Migration should not be allowed for active jobs");
         } catch (MigrationException e) {
-           report = e.getReport(); 
+           report = e.getReport();
            assertEquals("There are active async jobs for process instance " + processInstance.getId() + " migration not allowed with active jobs", e.getMessage());
-        } 
-        
+        }
+
         assertNotNull(report);
-        assertFalse(report.isSuccessful());        
-                
-        countDownExecutorListener.waitTillCompleted();        
-        
+        assertFalse(report.isSuccessful());
+
+        countDownExecutorListener.waitTillCompleted();
+
         runtime = manager.getRuntimeEngine(EmptyContext.get());
-        
+
         AuditService auditService = runtime.getAuditService();
-        
+
         ProcessInstanceLog log = auditService.findProcessInstance(processInstance.getId());
         assertEquals(manager.getIdentifier(), log.getExternalId());
         assertEquals(ProcessInstance.STATE_COMPLETED, log.getStatus().intValue());
-        
+
         auditService.dispose();
-        
+
         ksession = runtime.getKieSession();
         processInstance = runtime.getKieSession().getProcessInstance(processInstance.getId());
         assertNull(processInstance);
-                
+
         manager.disposeRuntimeEngine(runtime);
     }
-    
-    
-    private ExecutorService buildExecutorService() {        
+
+
+    private ExecutorService buildExecutorService() {
         emf = Persistence.createEntityManagerFactory("org.jbpm.executor");
 
         executorService = ExecutorServiceFactory.newExecutorService(emf);
         executorService.setRetries(0);
         executorService.init();
-        
+
         return executorService;
     }
 }

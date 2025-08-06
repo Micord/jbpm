@@ -17,8 +17,8 @@ package org.jbpm.services.task.assignment;
 
 import java.util.Collections;
 
-import javax.persistence.EntityManager;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Persistence;
 
 import org.assertj.core.api.Assertions;
 import org.jbpm.services.task.HumanTaskServiceFactory;

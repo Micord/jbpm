@@ -22,13 +22,13 @@ import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 
-import javax.persistence.Embeddable;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.Index;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 
 import org.jbpm.services.task.utils.CollectionUtils;
 import org.kie.api.task.model.OrganizationalEntity;
@@ -36,15 +36,15 @@ import org.kie.internal.task.api.model.AllowedToDelegate;
 
 @Embeddable
 public class DelegationImpl  implements org.kie.internal.task.api.model.Delegation {
-    @Enumerated(EnumType.STRING)      
+    @Enumerated(EnumType.STRING)
     private AllowedToDelegate                    allowedToDelegate;
-    
+
     @ManyToMany(targetEntity=OrganizationalEntityImpl.class)
     @JoinTable(name = "Delegation_delegates", joinColumns = @JoinColumn(name = "task_id"), inverseJoinColumns = @JoinColumn(name = "entity_id"),
        indexes = {@Index(name = "IDX_Delegation_EntityId",  columnList="entity_id"),
                   @Index(name = "IDX_Delegation_TaskId", columnList="task_id")})
     private List<OrganizationalEntity> delegates = Collections.emptyList();
-    
+
     public void writeExternal(ObjectOutput out) throws IOException {
         if ( allowedToDelegate != null ) {
             out.writeBoolean( true );
@@ -52,21 +52,21 @@ public class DelegationImpl  implements org.kie.internal.task.api.model.Delegati
         } else {
             out.writeBoolean( false );
         }
-        CollectionUtils.writeOrganizationalEntityList( delegates, out );       
-    } 
-    
+        CollectionUtils.writeOrganizationalEntityList( delegates, out );
+    }
+
     public void readExternal(ObjectInput in) throws IOException,
                                             ClassNotFoundException {
         if ( in.readBoolean() ) {
             allowedToDelegate = AllowedToDelegate.valueOf( in.readUTF() );
         }
         delegates = CollectionUtils.readOrganizationalEntityList( in );
-    }       
+    }
 
     public AllowedToDelegate getAllowed() {
         return allowedToDelegate;
-    }    
-    
+    }
+
     public void setAllowed(AllowedToDelegate allowedToDelegate) {
         this.allowedToDelegate = allowedToDelegate;
     }
@@ -74,13 +74,13 @@ public class DelegationImpl  implements org.kie.internal.task.api.model.Delegati
     public List<OrganizationalEntity> getDelegates() {
         return delegates;
     }
-    
+
 
     public void setDelegates(List<OrganizationalEntity> delegates) {
         this.delegates = delegates;
-    }    
-    
-    
+    }
+
+
 
     @Override
     public int hashCode() {
@@ -100,7 +100,7 @@ public class DelegationImpl  implements org.kie.internal.task.api.model.Delegati
         if ( allowedToDelegate == null ) {
             if ( other.allowedToDelegate != null ) return false;
         } else if ( !allowedToDelegate.equals( other.allowedToDelegate ) ) return false;
-        
+
         return CollectionUtils.equals( delegates, other.delegates );
     }
 }

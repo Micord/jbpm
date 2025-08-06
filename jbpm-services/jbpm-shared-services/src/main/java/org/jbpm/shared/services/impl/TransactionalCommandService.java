@@ -16,8 +16,8 @@
 
 package org.jbpm.shared.services.impl;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.drools.persistence.api.TransactionManager;
 import org.drools.persistence.api.TransactionManagerFactory;
@@ -36,7 +36,7 @@ public class TransactionalCommandService implements CommandExecutor {
     protected EntityManagerFactory emf;
     private Context context;
     private TransactionManager txm;
-    
+
     public TransactionalCommandService(EntityManagerFactory emf, TransactionManager txm) {
         this.emf = emf;
         this.txm = txm;
@@ -49,7 +49,7 @@ public class TransactionalCommandService implements CommandExecutor {
     public Context getContext() {
         return context;
     }
-    
+
     public TransactionManager getTransactionManager() {
         return this.txm;
     }
@@ -62,11 +62,11 @@ public class TransactionalCommandService implements CommandExecutor {
     	boolean transactionOwner = false;
     	boolean emOwner = false;
 		T result = null;
-		
+
         try {
             transactionOwner = txm.begin();
             EntityManager em = getEntityManager(command);
-            
+
             if (em == null) {
                 em = emf.createEntityManager();
                 emOwner = true;
@@ -85,9 +85,9 @@ public class TransactionalCommandService implements CommandExecutor {
             rollbackTransaction( t1,  transactionOwner );
             throw new RuntimeException( "Wrapped exception see cause", t1 );
         }
-        
+
     }
-    
+
 	private void rollbackTransaction(Exception t1, boolean transactionOwner) {
 		try {
 			logger.warn("Could not commit session", t1);
@@ -100,13 +100,13 @@ public class TransactionalCommandService implements CommandExecutor {
 
 	protected EntityManager getEntityManager(Command<?> command) {
 	    EntityManager em = (EntityManager) txm.getResource(EnvironmentName.CMD_SCOPED_ENTITY_MANAGER);
-	    
+
 	    if (em != null && em.isOpen() && em.getEntityManagerFactory().equals(emf)) {
-	        
+
 	        return em;
 	    }
-	    
-	    return null; 
+
+	    return null;
 	}
-	
+
 }

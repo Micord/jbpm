@@ -20,10 +20,10 @@ import org.kie.api.runtime.Context;
 import org.kie.api.task.model.Status;
 import org.kie.api.task.model.TaskSummary;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Date;
 import java.util.List;
 
@@ -32,30 +32,30 @@ import java.util.List;
 public class GetTaskOwnedByExpDateCommand extends UserGroupCallbackTaskCommand<List<TaskSummary>> {
 
 	private static final long serialVersionUID = 5077599352603072633L;
-	
+
     @XmlElement
 	private List<Status> statuses;
-    
+
     @XmlElement
     private Date expirationDate;
-    
+
     @XmlElement
     private boolean optional;
-	
+
 	public GetTaskOwnedByExpDateCommand() {
 	}
-	
+
 	public GetTaskOwnedByExpDateCommand(String userId, List<Status> status, Date expirationDate, boolean optional) {
 		this.userId = userId;
 		this.statuses = status;
 		this.expirationDate = expirationDate;
 		this.optional = optional;
     }
-	
+
 	public List<Status> getStatuses() {
 		return statuses;
 	}
-	
+
 	public void setStatuses(List<Status> status) {
 		this.statuses = status;
 	}
@@ -79,7 +79,7 @@ public class GetTaskOwnedByExpDateCommand extends UserGroupCallbackTaskCommand<L
 	public List<TaskSummary> execute(Context cntxt) {
         TaskContext context = (TaskContext) cntxt;
         doCallbackUserOperation(userId, context);
-        
+
         if (optional) {
         	return context.getTaskQueryService().getTasksOwnedByExpirationDateOptional(userId, statuses, expirationDate);
         } else {

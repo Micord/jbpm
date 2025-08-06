@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.drools.compiler.compiler.xml.XmlDumper;
 import org.drools.core.xml.ExtensibleXmlParser;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.bpmn2.core.Error;
 import org.jbpm.bpmn2.core.Escalation;
 import org.jbpm.bpmn2.core.ItemDefinition;
@@ -98,7 +99,7 @@ public class BoundaryEventHandler extends AbstractNodeHandler {
         List<DataAssociation> dataAssociations = ((BoundaryEventNode) parser.getCurrent()).getOutAssociations();
         if(!dataAssociations.isEmpty()) {
             // this is for backward compatibility
-            // the first one is related to the variable 
+            // the first one is related to the variable
             ((BoundaryEventNode) parser.getCurrent()).setVariableName(dataAssociations.get(0).getTarget());
         }
 
@@ -133,7 +134,7 @@ public class BoundaryEventHandler extends AbstractNodeHandler {
                 String outputName = ((Element) xmlNode).getAttribute("name");
                 dataOutputs.put(id, outputName);
             } else if ("dataOutputAssociation".equals(nodeName)) {
-                ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(xmlNode, dataOutputs));  
+                ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(xmlNode, dataOutputs));
             } else if ("escalationEventDefinition".equals(nodeName)) {
                 String escalationRef = ((Element) xmlNode).getAttribute("escalationRef");
 
@@ -179,7 +180,7 @@ public class BoundaryEventHandler extends AbstractNodeHandler {
                 String outputName = ((Element) xmlNode).getAttribute("name");
                 dataOutputs.put(id, outputName);
             } else if ("dataOutputAssociation".equals(nodeName)) {
-                ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(xmlNode, dataOutputs));  
+                ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(xmlNode, dataOutputs));
             } else if ("errorEventDefinition".equals(nodeName)) {
                 String errorRef = ((Element) xmlNode).getAttribute("errorRef");
                 if (errorRef != null && errorRef.trim().length() > 0) {
@@ -287,7 +288,7 @@ public class BoundaryEventHandler extends AbstractNodeHandler {
                 String outputName = ((Element) xmlNode).getAttribute("name");
                 dataOutputs.put(id, outputName);
             } else if ("dataOutputAssociation".equals(nodeName)) {
-                ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(xmlNode, dataOutputs));   
+                ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(xmlNode, dataOutputs));
             }
             xmlNode = xmlNode.getNextSibling();
         }
@@ -314,7 +315,7 @@ public class BoundaryEventHandler extends AbstractNodeHandler {
                     String outputName = ((Element) subNode).getAttribute("name");
                     dataOutputs.put(id, outputName);
                 } else if ("dataOutputAssociation".equals(subNode.getNodeName())) {
-                    ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(subNode, dataOutputs));   
+                    ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(subNode, dataOutputs));
                 }
             }
         }
@@ -352,7 +353,7 @@ public class BoundaryEventHandler extends AbstractNodeHandler {
                 String outputName = ((Element) xmlNode).getAttribute("name");
                 dataOutputs.put(id, outputName);
             } if ("dataOutputAssociation".equals(nodeName)) {
-                ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(xmlNode, dataOutputs));  
+                ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(xmlNode, dataOutputs));
             } else if ("signalEventDefinition".equals(nodeName)) {
                 String type = ((Element) xmlNode).getAttribute("signalRef");
                 if (type != null && type.trim().length() > 0) {
@@ -389,7 +390,7 @@ public class BoundaryEventHandler extends AbstractNodeHandler {
                 String outputName = ((Element) xmlNode).getAttribute("name");
                 dataOutputs.put(id, outputName);
             } else if ("dataOutputAssociation".equals(nodeName)) {
-                ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(xmlNode, dataOutputs));  
+                ((BoundaryEventNode) parser.getCurrent()).addOutAssociation(DataAssociationFactory.readDataOutputAssociation(xmlNode, dataOutputs));
             } else if ("conditionalEventDefinition".equals(nodeName)) {
                 org.w3c.dom.Node subNode = xmlNode.getFirstChild();
                 while (subNode != null) {
@@ -434,11 +435,11 @@ public class BoundaryEventHandler extends AbstractNodeHandler {
                 Map<String, Message> messages = (Map<String, Message>) ((ProcessBuildData) parser
                         .getData()).getMetaData("Messages");
                 if (messages == null) {
-                    throw new IllegalArgumentException("No messages found");
+                    throw new BpmnNodeIllegalArgumentException("No messages found", nodeName, node.getNodeUniqueId());
                 }
                 Message message = messages.get(messageRef);
                 if (message == null) {
-                    throw new IllegalArgumentException("Could not find message " + messageRef);
+                    throw new BpmnNodeIllegalArgumentException("Could not find message " + messageRef, nodeName, node.getNodeUniqueId());
                 }
                 message.addIncomingNode(node);
 
@@ -454,7 +455,7 @@ public class BoundaryEventHandler extends AbstractNodeHandler {
             }
             xmlNode = xmlNode.getNextSibling();
         }
-    } 
+    }
 
     public void writeNode(Node node, StringBuilder xmlDump, int metaDataType) {
         EventNode eventNode = (EventNode) node;

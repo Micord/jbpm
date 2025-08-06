@@ -25,6 +25,7 @@ import org.drools.core.xml.ExtensibleXmlParser;
 import org.jbpm.bpmn2.core.Error;
 import org.jbpm.bpmn2.core.Escalation;
 import org.jbpm.bpmn2.core.Message;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.compiler.xml.ProcessBuildData;
 import org.jbpm.process.core.correlation.CorrelationManager;
 import org.jbpm.process.core.event.EventFilter;
@@ -118,11 +119,11 @@ public class StartEventHandler extends AbstractNodeHandler {
                 Map<String, Message> messages = (Map<String, Message>)
                         ((ProcessBuildData) parser.getData()).getMetaData("Messages");
                 if (messages == null) {
-                    throw new IllegalArgumentException("No messages found");
+                    throw new BpmnNodeIllegalArgumentException("No messages found", nodeName, node.getNodeUniqueId());
                 }
                 Message message = messages.get(messageRef);
                 if (message == null) {
-                    throw new IllegalArgumentException("Could not find message " + messageRef);
+                    throw new BpmnNodeIllegalArgumentException("No messages found", nodeName, node.getNodeUniqueId());
                 }
                 message.addIncomingNode(node);
                 startNode.setMetaData("MessageType", message.getType());

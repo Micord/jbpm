@@ -16,9 +16,9 @@
 
 package org.jbpm.services.cdi.producer;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Alternative;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Alternative;
+import jakarta.enterprise.inject.Produces;
 
 import org.jbpm.services.cdi.Selectable;
 import org.jbpm.services.task.identity.DBUserGroupCallbackImpl;
@@ -33,7 +33,7 @@ public class DBUserGroupInfoProducer implements UserGroupInfoProducer {
 
 	private UserGroupCallback callback = new DBUserGroupCallbackImpl(true);
 	private UserInfo userInfo = new DBUserInfoImpl(true);
-	
+
 	@Override
 	@Produces
 	public UserGroupCallback produceCallback() {

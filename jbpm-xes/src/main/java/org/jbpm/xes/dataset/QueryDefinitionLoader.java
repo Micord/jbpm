@@ -21,7 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import org.jbpm.xes.model.QueryDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +35,7 @@ public class QueryDefinitionLoader {
     private static final QueryDefinitionLoader INSTANCE = new QueryDefinitionLoader();
 
     private QueryDefinitionLoader() {
-        MAPPER.registerModule(new JaxbAnnotationModule());
+        MAPPER.registerModule(new JakartaXmlBindAnnotationModule());
     }
 
     public static QueryDefinitionLoader get() {

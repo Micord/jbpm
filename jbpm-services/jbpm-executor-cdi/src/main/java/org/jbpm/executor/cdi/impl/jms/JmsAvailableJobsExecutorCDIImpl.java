@@ -16,7 +16,7 @@
 
 package org.jbpm.executor.cdi.impl.jms;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import org.jbpm.executor.impl.ClassCacheManager;
 import org.jbpm.executor.impl.event.ExecutorEventSupport;
@@ -31,8 +31,8 @@ public class JmsAvailableJobsExecutorCDIImpl extends JmsAvailableJobsExecutor {
     @Override
     public void setQueryService(ExecutorQueryService queryService) {
         super.setQueryService(queryService);
-    }    
-    
+    }
+
     @Inject
     @Override
     public void setClassCacheManager(ClassCacheManager classCacheManager) {

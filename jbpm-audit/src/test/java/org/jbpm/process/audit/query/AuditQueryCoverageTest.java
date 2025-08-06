@@ -25,7 +25,7 @@ import static org.jbpm.query.QueryBuilderCoverageTestUtil.afterClass;
 import static org.jbpm.query.QueryBuilderCoverageTestUtil.beforeClass;
 import static org.jbpm.query.QueryBuilderCoverageTestUtil.queryBuilderCoverageTest;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.persistence.correlation.JPACorrelationKeyFactory;
 import org.jbpm.process.audit.JPAAuditLogService;
@@ -80,23 +80,23 @@ public class AuditQueryCoverageTest extends JPAAuditLogService {
     public void tearDown() {
         cleanDB(emf);
     }
-  
+
     private static ModuleSpecificInputFiller inputFiller = new ModuleSpecificInputFiller() {
-       
+
         private final JPACorrelationKeyFactory correlationKeyFactory = new JPACorrelationKeyFactory();
-       
+
         private int orderByType = 0;
-        
+
         @Override
         public Object fillInput( Class type ) {
-            if( type.equals(CorrelationKey.class) ) { 
+            if( type.equals(CorrelationKey.class) ) {
                 return correlationKeyFactory.newCorrelationKey("business-key");
-            } else if( type.equals(OrderBy.class) ) { 
-                return ( orderByType++ % 2 == 0 ? 
+            } else if( type.equals(OrderBy.class) ) {
+                return ( orderByType++ % 2 == 0 ?
                     OrderBy.processId
                     : OrderBy.processInstanceId );
-            }  else if( type.isArray() ) {  
-                CorrelationKey [] corrKeyArr = { 
+            }  else if( type.isArray() ) {
+                CorrelationKey [] corrKeyArr = {
                         correlationKeyFactory.newCorrelationKey("key:one"),
                         correlationKeyFactory.newCorrelationKey("key:two")
                 };
@@ -105,29 +105,29 @@ public class AuditQueryCoverageTest extends JPAAuditLogService {
             return null;
         }
     };
-    
+
     @Test
     public void processInstanceLogQueryCoverageTest() {
-       ProcessInstanceLogQueryBuilder queryBuilder = this.processInstanceLogQuery(); 
+       ProcessInstanceLogQueryBuilder queryBuilder = this.processInstanceLogQuery();
        Class builderClass = ProcessInstanceLogQueryBuilder.class;
-       
+
        queryBuilderCoverageTest(queryBuilder, builderClass, inputFiller);
     }
-   
+
     @Test
     public void variableInstanceLogQueryBuilderCoverageTest() {
        VariableInstanceLogQueryBuilder queryBuilder = this.variableInstanceLogQuery();
        Class builderClass = VariableInstanceLogQueryBuilder.class;
-       
+
        queryBuilderCoverageTest(queryBuilder, builderClass, inputFiller);
     }
-    
+
     @Test
     public void nodeInstanceLogQueryBuilderCoverageTest() {
        NodeInstanceLogQueryBuilder queryBuilder = this.nodeInstanceLogQuery();
        Class builderClass = NodeInstanceLogQueryBuilder.class;
-       
+
        queryBuilderCoverageTest(queryBuilder, builderClass, inputFiller);
     }
-    
+
 }

@@ -29,10 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.transaction.Status;
-import javax.transaction.Transaction;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import jakarta.transaction.Status;
+import jakarta.transaction.Transaction;
 import org.drools.compiler.builder.impl.KnowledgeBuilderConfigurationImpl;
 import org.drools.core.SessionConfiguration;
 import org.drools.core.audit.WorkingMemoryInMemoryLogger;
@@ -216,7 +216,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         if (testReqPersistence != null && testReqPersistence.value() != sessionPersistence) {
             log.info("Skipped - test is run only {} persistence", (testReqPersistence.value() ? "with" : "without"));
             String comment = testReqPersistence.comment();
-            if( comment.length() > 0 ) { 
+            if( comment.length() > 0 ) {
                 log.info(comment);
             }
             Assume.assumeTrue(false);
@@ -224,7 +224,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         if (testReqLocking != null && testReqLocking.value() != pessimisticLocking) {
             log.info("Skipped - test is run only {} pessimistic locking", (testReqLocking.value() ? "with" : "without"));
             String comment = testReqPersistence.comment();
-            if( comment.length() > 0 ) { 
+            if( comment.length() > 0 ) {
                 log.info(comment);
             }
             Assume.assumeTrue(false);
@@ -304,18 +304,18 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         }
         return createKnowledgeBaseFromResources(resources);
     }
-    
+
     // Important to test this since persistence relies on this
-    protected List<Resource> buildAndDumpBPMN2Process(String process) throws SAXException, IOException { 
+    protected List<Resource> buildAndDumpBPMN2Process(String process) throws SAXException, IOException {
         KnowledgeBuilderConfiguration conf = KnowledgeBuilderFactory.newKnowledgeBuilderConfiguration();
         ((KnowledgeBuilderConfigurationImpl) conf).initSemanticModules();
         ((KnowledgeBuilderConfigurationImpl) conf).addSemanticModule(new BPMNSemanticModule());
         ((KnowledgeBuilderConfigurationImpl) conf).addSemanticModule(new BPMNDISemanticModule());
         ((KnowledgeBuilderConfigurationImpl) conf).addSemanticModule(new BPMNExtensionsSemanticModule());
-        
+
         Resource classpathResource = ResourceFactory.newClassPathResource(process);
         // Dump and reread
-        XmlProcessReader processReader 
+        XmlProcessReader processReader
             = new XmlProcessReader(((KnowledgeBuilderConfigurationImpl) conf).getSemanticModules(), getClass().getClassLoader());
         List<Process> processes = processReader.read(this.getClass().getResourceAsStream("/" + process));
         List<Resource> resources = new ArrayList<Resource>();
@@ -329,7 +329,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         }
         return resources;
     }
-    
+
     protected KieBase createKnowledgeBaseFromResources(Resource... process)
             throws Exception {
 
@@ -356,12 +356,12 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         KieContainer kContainer = ks.newKieContainer(kr.getDefaultReleaseId());
         return kContainer.getKieBase();
     }
-    
+
     protected KieBase createKnowledgeBaseFromDisc(String process) throws Exception {
         KieServices ks = KieServices.Factory.get();
         KieRepository kr = ks.getRepository();
         KieFileSystem kfs = ks.newKieFileSystem();
-            
+
         Resource res = ResourceFactory.newClassPathResource(process);
         kfs.write(res);
 
@@ -377,7 +377,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
 
         KieContainer kContainer = ks.newKieContainer(kr.getDefaultReleaseId());
         KieBase kbase =  kContainer.getKieBase();
-        
+
         File packageFile = null;
         for (KiePackage pkg : kbase.getKiePackages() ) {
             packageFile = new File(System.getProperty("java.io.tmpdir") + File.separator + pkg.getName()+".pkg");
@@ -388,11 +388,11 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
             } finally {
                 out.close();
             }
-            
+
             // store first package only
             break;
         }
-        
+
         kfs.delete(res.getSourcePath());
         kfs.write(ResourceFactory.newFileResource(packageFile));
 
@@ -404,12 +404,12 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
             throw new RuntimeException("Build Errors:\n"
                     + kb.getResults().toString());
         }
-        
+
         kContainer = ks.newKieContainer(kr.getDefaultReleaseId());
         kbase =  kContainer.getKieBase();
-        
+
         return kbase;
-        
+
     }
 
     protected StatefulKnowledgeSession createKnowledgeSession(KieBase kbase)
@@ -428,7 +428,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         if (conf == null) {
             conf = KnowledgeBaseFactory.newKnowledgeSessionConfiguration();
         }
-        
+
         // Do NOT use the Pseudo clock yet..
         // conf.setOption( ClockTypeOption.get( ClockType.PSEUDO_CLOCK.getId() )
         // );
@@ -437,7 +437,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
             if (env == null) {
                 env = createEnvironment(emf);
             }
-            if( pessimisticLocking ) { 
+            if( pessimisticLocking ) {
                 env.set(USE_PESSIMISTIC_LOCKING, true);
             }
             conf.setOption(ForceEagerActivationOption.YES);
@@ -468,7 +468,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         KieBase kbase = createKnowledgeBase(process);
         return createKnowledgeSession(kbase);
     }
-    
+
     protected KieSession restoreSession(KieSession ksession, boolean noCache) {
         if (sessionPersistence) {
             long id = ksession.getIdentifier();
@@ -479,7 +479,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
             } else {
                 env = ksession.getEnvironment();
             }
-            if( pessimisticLocking ) { 
+            if( pessimisticLocking ) {
                 env.set(USE_PESSIMISTIC_LOCKING, true);
             }
             KieSessionConfiguration config = ksession.getSessionConfiguration();
@@ -507,11 +507,11 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         env.set(TRANSACTION_MANAGER,
                 com.arjuna.ats.jta.TransactionManager.transactionManager());
         if (sessionPersistence) {
-            ObjectMarshallingStrategy[] strategies = (ObjectMarshallingStrategy[]) env.get(OBJECT_MARSHALLING_STRATEGIES);        
-            
+            ObjectMarshallingStrategy[] strategies = (ObjectMarshallingStrategy[]) env.get(OBJECT_MARSHALLING_STRATEGIES);
+
             List<ObjectMarshallingStrategy> listStrategies =new ArrayList<ObjectMarshallingStrategy>(Arrays.asList(strategies));
             listStrategies.add(0, new ProcessInstanceResolverStrategy());
-            strategies = new ObjectMarshallingStrategy[listStrategies.size()];  
+            strategies = new ObjectMarshallingStrategy[listStrategies.size()];
             env.set(OBJECT_MARSHALLING_STRATEGIES, listStrategies.toArray(strategies));
         }
         return env;
@@ -610,7 +610,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
             if (logs != null) {
                 for (NodeInstanceLog l : logs) {
                     String nodeName = l.getNodeName();
-                    if ((l.getType() == NodeInstanceLog.TYPE_ENTER 
+                    if ((l.getType() == NodeInstanceLog.TYPE_ENTER
                             || l.getType() == NodeInstanceLog.TYPE_EXIT)
                             && node.equals(nodeName)) {
                         counter++;
@@ -629,7 +629,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         }
         return counter;
     }
-    
+
     public int getNumberOfProcessInstances(String processId) {
         int counter = 0;
         if (sessionPersistence) {
@@ -639,17 +639,17 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
             }
         } else {
             LogEvent [] events = logger.getLogEvents().toArray(new LogEvent[0]);
-            for (LogEvent event : events ) { 
+            for (LogEvent event : events ) {
                 if (event.getType() == LogEvent.BEFORE_RULEFLOW_CREATED) {
                     if(((RuleFlowLogEvent) event).getProcessId().equals(processId)) {
-                        counter++;                    
+                        counter++;
                     }
                 }
             }
         }
         return counter;
     }
-    
+
     protected boolean assertProcessInstanceState(int state, ProcessInstance processInstance) {
         if (sessionPersistence) {
             ProcessInstanceLog log = logService.findProcessInstance(processInstance.getId());
@@ -658,8 +658,8 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
             }
         } else {
             return processInstance.getState() == state;
-        } 
-        
+        }
+
         return false;
     }
 
@@ -695,8 +695,8 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         }
         return names;
     }
-    
-    protected List<String> getCompletedNodes(long processInstanceId) { 
+
+    protected List<String> getCompletedNodes(long processInstanceId) {
         List<String> names = new ArrayList<String>();
         if (sessionPersistence) {
             AuditLogService auditLogService = new JPAAuditLogService(emf);
@@ -709,7 +709,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         } else {
             for (LogEvent event : logger.getLogEvents()) {
                 if (event instanceof RuleFlowNodeLogEvent) {
-                    if( event.getType() == 27 ) { 
+                    if( event.getType() == 27 ) {
                         names.add(((RuleFlowNodeLogEvent) event).getNodeId());
                     }
                 }
@@ -733,16 +733,16 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
             }
         }
     }
-    
+
     protected void abortProcessInstances(KieSession ksession) {
         if (sessionPersistence) {
             try {
                 logService.findActiveProcessInstances().forEach(pi -> ksession.abortProcessInstance(pi.getId()));
-                
+
             } catch(Exception e) {
-                
+
             }
-        } 
+        }
     }
 
     public void assertProcessVarExists(ProcessInstance process,
@@ -768,7 +768,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         }
 
     }
-    
+
     public String getProcessVarValue(ProcessInstance processInstance, String varName) {
         String actualValue = null;
         if (sessionPersistence) {
@@ -784,7 +784,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         }
         return actualValue;
     }
-    
+
     public void assertProcessVarValue(ProcessInstance processInstance, String varName, Object varValue) {
         String actualValue = getProcessVarValue(processInstance, varName);
         assertEquals("Variable " + varName + " value mismatch!",  varValue, actualValue );
@@ -899,7 +899,7 @@ public abstract class JbpmBpmn2TestCase extends AbstractBaseTest {
         return MVELSafeHelper.getEvaluator().executeExpression(MVEL.compileExpression(str, context),
                 vars);
     }
-    
+
     protected void assertProcessInstanceCompleted(long processInstanceId, KieSession ksession) {
         ProcessInstance processInstance = ksession.getProcessInstance(processInstanceId);
         assertNull("Process instance has not completed.", processInstance);

@@ -18,13 +18,13 @@ package org.jbpm.test.entity;
 import java.io.Serializable;
 import java.util.Date;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToOne;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 @Entity
 public class Patient implements Serializable{
     @Id @GeneratedValue(strategy=GenerationType.AUTO)
@@ -38,12 +38,12 @@ public class Patient implements Serializable{
     public Patient() {
     }
 
-    
+
     public Patient(String name) {
         this.name = name;
     }
 
-    
+
     public Long getId() {
         return id;
     }
@@ -59,7 +59,7 @@ public class Patient implements Serializable{
     public void setNextAppointment(Date nextAppointment) {
         this.nextAppointment = nextAppointment;
     }
-    
+
     public String getName() {
         return name;
     }
@@ -114,7 +114,7 @@ public class Patient implements Serializable{
         hash = 47 * hash + (this.nextAppointment != null ? this.nextAppointment.hashCode() : 0);
         return hash;
     }
-    
-    
-    
+
+
+
 }

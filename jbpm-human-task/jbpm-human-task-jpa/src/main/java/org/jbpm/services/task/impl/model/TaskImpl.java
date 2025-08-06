@@ -23,23 +23,23 @@ import java.util.Collections;
 import java.util.List;
 
 import java.util.Objects;
-import javax.persistence.Basic;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Embedded;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Transient;
-import javax.persistence.Version;
+import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.persistence.Version;
 
 import org.jbpm.services.task.utils.CollectionUtils;
 import org.kie.api.task.model.I18NText;
@@ -68,19 +68,19 @@ public class TaskImpl implements InternalTask {
      * WSHT uses a name for the unique identifier, for now we use a generated ID which is also the key, which can be
      * mapped to the name or a unique name field added later.
      */
-	
+
     private static final Logger logger = LoggerFactory.getLogger(TaskImpl.class);
-    
+
     @Transient
     private static final int TASK_DESCRIPTION_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.ht.task.description.length", "255"));
-    
-    
-	
+
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="taskIdSeq")
     @Column(name = "id")
     private Long                 id = 0L;
-    
+
     @Version
     @Column(name = "OPTLOCK")
     private int                  version;
@@ -92,11 +92,11 @@ public class TaskImpl implements InternalTask {
     private int                  priority;
 
     private String name;
-    
+
     private String subject;
-    
+
     private String description;
-    
+
     @OneToMany(cascade = CascadeType.ALL, targetEntity=I18NTextImpl.class)
     @JoinColumn(name = "Task_Names_Id", nullable = true)
     private List<I18NText> names        = Collections.emptyList();
@@ -125,14 +125,14 @@ public class TaskImpl implements InternalTask {
     @Enumerated(EnumType.STRING)
     // Default Behaviour
     private SubTasksStrategy subTaskStrategy = SubTasksStrategy.NoAction;
-    
+
     private String               taskType;
-    
+
     private String               formName;
-    
+
     @Basic
     private Short archived = 0;
-    
+
 
     public TaskImpl() {
     }
@@ -146,32 +146,32 @@ public class TaskImpl implements InternalTask {
         } else {
         	out.writeUTF("");
         }
-        
+
         if (formName != null) {
         	out.writeUTF(formName);
         } else {
         	out.writeUTF("");
         }
-        
+
         if (name != null) {
         	out.writeUTF(name);
         } else {
         	out.writeUTF("");
         }
-               
+
         if (subject != null) {
         	out.writeUTF(subject);
         } else {
         	out.writeUTF("");
         }
-               
+
         if (description != null) {
         	out.writeUTF(description);
         } else {
         	out.writeUTF("");
         }
-        
-        
+
+
         CollectionUtils.writeI18NTextList( names, out );
         CollectionUtils.writeI18NTextList( subjects, out );
         CollectionUtils.writeI18NTextList( descriptions, out );
@@ -182,7 +182,7 @@ public class TaskImpl implements InternalTask {
         } else {
             out.writeBoolean(false);
         }
-        
+
         if ( peopleAssignments != null ) {
             out.writeBoolean( true );
             peopleAssignments.writeExternal( out );
@@ -226,11 +226,11 @@ public class TaskImpl implements InternalTask {
         names = CollectionUtils.readI18NTextList( in );
         subjects = CollectionUtils.readI18NTextList( in );
         descriptions = CollectionUtils.readI18NTextList( in );
-        
+
         if (in.readBoolean()) {
             subTaskStrategy = SubTasksStrategy.valueOf(in.readUTF());
         }
-        
+
         if ( in.readBoolean() ) {
             peopleAssignments = new PeopleAssignmentsImpl();
             peopleAssignments.readExternal( in );
@@ -252,7 +252,7 @@ public class TaskImpl implements InternalTask {
         }
 
     }
-    
+
     public Long getId() {
         return id;
     }
@@ -275,7 +275,7 @@ public class TaskImpl implements InternalTask {
             this.archived = (archived == true) ? new Short("1") : new Short("0");
         }
     }
-    
+
     public Integer getVersion() {
         return this.version;
     }
@@ -359,7 +359,7 @@ public class TaskImpl implements InternalTask {
     public void setFormName(String formName) {
         this.formName = formName;
     }
-    
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -453,5 +453,5 @@ public class TaskImpl implements InternalTask {
     public String toString() {
         return "TaskImpl [id=" + id + ", name=" + name + "]";
     }
-  
+
 }

@@ -16,6 +16,7 @@
 
 package org.jbpm.process.core.validation.impl;
 
+import org.kie.api.definition.process.Node;
 import org.kie.api.definition.process.Process;
 import org.jbpm.process.core.validation.ProcessValidationError;
 
@@ -23,14 +24,32 @@ public class ProcessValidationErrorImpl implements ProcessValidationError {
 
     private Process process;
     private String message;
-    
+    private Node node;
+    private String rawMessage;
+
     public ProcessValidationErrorImpl(Process process, String message) {
         this.process = process;
         this.message = message;
     }
-    
+
+    public ProcessValidationErrorImpl(Process process, String rawMessage, Node node) {
+        this.process = process;
+        this.rawMessage = rawMessage;
+        this.node = node;
+    }
+
     public String getMessage() {
         return message;
+    }
+
+    @Override
+    public Node getNode() {
+        return node;
+    }
+
+    @Override
+    public String getRawMessage() {
+        return rawMessage;
     }
 
     public Process getProcess() {

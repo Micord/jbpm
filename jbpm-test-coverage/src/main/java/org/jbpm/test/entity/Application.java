@@ -16,20 +16,20 @@
 
 package org.jbpm.test.entity;
 
-@javax.persistence.Entity
+@jakarta.persistence.Entity
 public class Application implements java.io.Serializable {
 
 	static final long serialVersionUID = 1L;
 
-	@javax.persistence.GeneratedValue(strategy = javax.persistence.GenerationType.AUTO, generator = "APPLICATION_ID_GENERATOR")
-	@javax.persistence.Id
-	@javax.persistence.SequenceGenerator(sequenceName = "APPLICATION_ID_SEQ", name = "APPLICATION_ID_GENERATOR")
+	@jakarta.persistence.GeneratedValue(strategy = jakarta.persistence.GenerationType.AUTO, generator = "APPLICATION_ID_GENERATOR")
+	@jakarta.persistence.Id
+	@jakarta.persistence.SequenceGenerator(sequenceName = "APPLICATION_ID_SEQ", name = "APPLICATION_ID_GENERATOR")
 	private java.lang.Long id;
 
 	private java.lang.String type;
 
-	@javax.persistence.ManyToOne(cascade = {
-			javax.persistence.CascadeType.ALL }, fetch = javax.persistence.FetchType.EAGER)
+	@jakarta.persistence.ManyToOne(cascade = {
+			jakarta.persistence.CascadeType.ALL }, fetch = jakarta.persistence.FetchType.EAGER)
 	private Person person;
 
 	public Application() {

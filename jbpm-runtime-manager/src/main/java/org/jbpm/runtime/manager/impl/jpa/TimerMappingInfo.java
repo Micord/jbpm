@@ -19,26 +19,26 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.Lob;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Lob;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 
 @Entity
 @Table(name = "TimerMappingInfo", indexes = {
         @Index(name = "IDX_TMI_KSessionUUID", unique = true, columnList = "kieSessionId,uuid")
 })
-@SequenceGenerator(name="timerMappingInfoIdSeq", sequenceName="TIMER_MAPPING_INFO_ID_SEQ")
+@SequenceGenerator(name="timerMappingInfoIdSeq", sequenceName="TIMER_MAPPING_INFO_ID_SEQ", allocationSize = 1)
 public class TimerMappingInfo implements Serializable {
 
     private static final long serialVersionUID = 533985957655465840L;
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="timerMappingInfoIdSeq")
     private Long id;

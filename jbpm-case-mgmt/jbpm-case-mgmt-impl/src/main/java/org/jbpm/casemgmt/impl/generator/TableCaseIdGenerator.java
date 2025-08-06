@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 import org.jbpm.casemgmt.api.generator.CasePrefixCannotBeGeneratedException;
 import org.jbpm.casemgmt.api.generator.CaseIdGenerator;
@@ -37,25 +37,25 @@ import org.slf4j.LoggerFactory;
 import static org.jbpm.casemgmt.impl.generator.CaseIdExpressionFunctions.CASE_ID_FUNCTIONS;
 
 /**
- * Data base tabled backed case id generator. The underlying table keeps single entry per case prefix and updates it 
+ * Data base tabled backed case id generator. The underlying table keeps single entry per case prefix and updates it
  * (by incrementing current value) on each call to generate method.
- * 
+ *
  * Generation is done with pessimistic locking to secure correctness and since it's the only operation in transaction it should not
  * cause any performance issues.
  */
 public class TableCaseIdGenerator implements CaseIdGenerator {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(TableCaseIdGenerator.class);
     private boolean removeOnUnregister = Boolean.parseBoolean(System.getProperty("org.jbpm.casemgmt.table.generator.clean", "false"));
-    
+
     private static final String IDENTIFIER = "DB";
-    
+
     private TransactionalCommandService commandService;
 
     public TableCaseIdGenerator(TransactionalCommandService commandService) {
         this.commandService = commandService;
     }
-    
+
     @Override
     public String getIdentifier() {
         return IDENTIFIER;
@@ -106,7 +106,7 @@ public class TableCaseIdGenerator implements CaseIdGenerator {
         String paddedNumber = String.format("%010d", nextVal);
         return prefix + "-" + paddedNumber;
     }
-    
+
     protected CaseIdInfo findCaseIdInfoByPrefix(String prefix) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("prefix", prefix);
@@ -116,16 +116,16 @@ public class TableCaseIdGenerator implements CaseIdGenerator {
         if (caseIdInfos.isEmpty()) {
             return null;
         }
-        
+
         return caseIdInfos.get(0);
     }
-    
+
     private class IncrementAndGetCaseIdCommand implements ExecutableCommand<CaseIdInfo> {
 
         private static final long serialVersionUID = 8670412133363766162L;
-        
+
         private String prefix;
-        
+
         public IncrementAndGetCaseIdCommand(String prefix) {
             this.prefix = prefix;
         }
@@ -140,17 +140,17 @@ public class TableCaseIdGenerator implements CaseIdGenerator {
             try {
                 org.jbpm.shared.services.impl.JpaPersistenceContext ctx = (org.jbpm.shared.services.impl.JpaPersistenceContext) context;
                 caseIdInfo = ctx.queryAndLockWithParametersInTransaction("findCaseIdInfoByPrefix",params, true, CaseIdInfo.class);
-                
+
                 if (caseIdInfo != null) {
                     caseIdInfo.setCurrentValue(caseIdInfo.getCurrentValue() + 1);
                     ctx.merge(caseIdInfo);
                 }
             } catch (NoResultException e) {
-                
+
             }
             return caseIdInfo;
         }
-        
+
     }
 
 }

@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm-services-ejb</artifactId>
-    <version>7.74.1.Final</version>
+    <version>7.74.1.Final-Micord.1</version>
   </parent>
   <artifactId>jbpm-executor-ejb</artifactId>
   <name>jBPM :: Executor Service EJB add-ons</name>
@@ -143,13 +143,7 @@
 
 
     <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-entitymanager</artifactId>
-      <scope>test</scope>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.hibernate</groupId>
+      <groupId>org.hibernate.orm</groupId>
       <artifactId>hibernate-core</artifactId>
       <scope>test</scope>
       <optional>true</optional>

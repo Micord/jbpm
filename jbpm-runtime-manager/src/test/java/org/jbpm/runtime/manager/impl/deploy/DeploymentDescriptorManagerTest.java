@@ -29,7 +29,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlElement;
 
 import org.assertj.core.api.Assertions;
 import org.drools.compiler.kie.builder.impl.InternalKieModule;

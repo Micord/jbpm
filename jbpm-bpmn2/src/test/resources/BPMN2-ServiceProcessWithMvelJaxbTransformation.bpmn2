@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?> 
+<?xml version="1.0" encoding="UTF-8"?>
 <definitions id="Definition"
              targetNamespace="http://www.example.org/MinimalExample"
              typeLanguage="http://www.java.com/javaTypes"
@@ -23,14 +23,14 @@
 
   <process processType="Private" isExecutable="true" id="ServiceProcess" name="Service Process" >
     <extensionElements>
-      <tns:import name="javax.xml.bind.JAXBContext"/>
+      <tns:import name="jakarta.xml.bind.JAXBContext"/>
       <tns:import name="java.io.StringReader"/>
       <tns:import name="java.io.StringWriter"/>
       <tns:import name="org.jbpm.bpmn2.objects.Person"/>
       <tns:import name="org.jbpm.bpmn2.objects.Address"/>
     </extensionElements>
     <!-- process variables -->
-    <property id="s" itemSubjectRef="_sItem"/>    
+    <property id="s" itemSubjectRef="_sItem"/>
 
     <!-- nodes -->
     <startEvent id="_1" name="StartProcess" />
@@ -46,7 +46,7 @@
         </outputSet>
       </ioSpecification>
       <dataInputAssociation>
-        <sourceRef>s</sourceRef>      
+        <sourceRef>s</sourceRef>
         <targetRef>_2_param</targetRef>
         <transformation language="http://www.mvel.org/2.0"><![CDATA[
           StringWriter result = new java.io.StringWriter();

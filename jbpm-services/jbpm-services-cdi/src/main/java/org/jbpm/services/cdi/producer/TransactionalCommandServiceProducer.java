@@ -16,10 +16,10 @@
 
 package org.jbpm.services.cdi.producer;
 
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnit;
 
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;
 import org.jbpm.services.cdi.Audit;
@@ -37,7 +37,7 @@ public class TransactionalCommandServiceProducer {
     public TransactionalCommandService produceCommandService() {
         return new TransactionalCommandService( emf );
     }
-    
+
     @Produces
 	@Audit
     public TransactionalCommandService produceAuditCommandService() {
@@ -46,7 +46,7 @@ public class TransactionalCommandServiceProducer {
     	if (!"org.jbpm.domain".equals(descriptor.getAuditPersistenceUnit())) {
     		return new TransactionalCommandService( EntityManagerFactoryManager.get().getOrCreate(descriptor.getAuditPersistenceUnit()) );
     	}
-    	
+
         return new TransactionalCommandService( emf );
     }
 }

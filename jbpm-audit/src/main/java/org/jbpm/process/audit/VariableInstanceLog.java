@@ -19,17 +19,17 @@ package org.jbpm.process.audit;
 import java.io.Serializable;
 import java.util.Date;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.persistence.Transient;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import jakarta.persistence.Transient;
 
 import org.jbpm.process.audit.event.AuditEvent;
 import org.slf4j.Logger;
@@ -41,42 +41,43 @@ import org.slf4j.LoggerFactory;
                                                @Index(name = "IDX_VInstLog_pId", columnList = "processId")})
 @SequenceGenerator(name="variableInstanceLogIdSeq", sequenceName="VAR_INST_LOG_ID_SEQ", allocationSize=1)
 public class VariableInstanceLog implements Serializable, AuditEvent, org.kie.api.runtime.manager.audit.VariableInstanceLog {
-    
+
 	private static final Logger logger = LoggerFactory.getLogger(VariableInstanceLog.class);
-	
+
 	private static final long serialVersionUID = 510l;
 	@Transient
 	private final int VARIABLE_LOG_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.var.log.length", "255"));
 
 	// entity fields
-	
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="variableInstanceLogIdSeq")
 	private long id;
-    
+
     private long processInstanceId;
-    
+
     private String processId;
-    
+
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "log_date")
     private Date date;
-    
+
     private String variableInstanceId;
-    
+
     private String variableId;
-    
+
+		@Column(name = "LOG_VALUE")
     private String value;
-    
+
     private String oldValue;
-    
+
     private String externalId;
 
 	// constructors
-    
+
     public VariableInstanceLog() {
     }
-    
+
 	public VariableInstanceLog(long processInstanceId, String processId,
 			               	   String variableInstanceId, String variableId, String value, String oldValue) {
         this.processInstanceId = processInstanceId;
@@ -87,11 +88,11 @@ public class VariableInstanceLog implements Serializable, AuditEvent, org.kie.ap
 		setOldValue(oldValue);
         this.date = new Date();
     }
-	
+
     public long getId() {
     	return id;
     }
-    
+
     public void setId(long id) {
 		this.id = id;
 	}
@@ -99,7 +100,7 @@ public class VariableInstanceLog implements Serializable, AuditEvent, org.kie.ap
     public Long getProcessInstanceId() {
         return processInstanceId;
     }
-    
+
 	public void setProcessInstanceId(long processInstanceId) {
 		this.processInstanceId = processInstanceId;
 	}
@@ -107,7 +108,7 @@ public class VariableInstanceLog implements Serializable, AuditEvent, org.kie.ap
     public String getProcessId() {
         return processId;
     }
-    
+
 	public void setProcessId(String processId) {
 		this.processId = processId;
 	}
@@ -139,7 +140,7 @@ public class VariableInstanceLog implements Serializable, AuditEvent, org.kie.ap
 		}
 		this.value = value;
 	}
-	
+
     public String getOldValue() {
         return oldValue;
     }
@@ -155,11 +156,11 @@ public class VariableInstanceLog implements Serializable, AuditEvent, org.kie.ap
 	public Date getDate() {
         return date;
     }
-    
+
 	public void setDate(Date date) {
 		this.date = date;
 	}
-	
+
     public String getExternalId() {
         return externalId;
     }
@@ -169,10 +170,10 @@ public class VariableInstanceLog implements Serializable, AuditEvent, org.kie.ap
     }
 
     public String toString() {
-        return "Change variable '" + 
+        return "Change variable '" +
         	processId + "#" + variableId + "' to '" + value + "' [" + processInstanceId + "#" + variableInstanceId + "]";
     }
-    
+
     @Override
 	public int hashCode() {
 		final int prime = 31;
@@ -239,6 +240,6 @@ public class VariableInstanceLog implements Serializable, AuditEvent, org.kie.ap
             return false;
 		return true;
 	}
-	
+
 
 }

@@ -16,12 +16,12 @@
 
 package org.jbpm.executor.cdi.impl.jpa;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnit;
 
 import org.jbpm.executor.ExecutorServiceFactory;
 import org.jbpm.executor.impl.ExecutorServiceImpl;
@@ -42,59 +42,59 @@ public class JPAExecutorServiceProducer {
 	@Inject
 	@PersistenceUnit(unitName = "org.jbpm.domain")
 	private EntityManagerFactory emf;
-		
+
 	private ExecutorEventSupportImpl eventSupport = new ExecutorEventSupportImpl();
-	
+
 	private ExecutorService service;
-	
+
 	@PostConstruct
 	public void setup() {
 	    service = ExecutorServiceFactory.newExecutorService(emf, eventSupport);
 	}
 
 	@Produces
-	public ExecutorService produceExecutorService() {			
-		
+	public ExecutorService produceExecutorService() {
+
 		return service;
 	}
-	
+
 	@Produces
-    public Executor produceExecutor() {           
-        
+    public Executor produceExecutor() {
+
         return ((ExecutorServiceImpl)service).getExecutor();
     }
-	
+
 	@Produces
     public ExecutorEventSupportImpl produceExecutorEventSupport() {
-        
+
         return eventSupport;
     }
 
 	@Produces
 	public ExecutorStoreService produceStoreService() {
 		ExecutorStoreService storeService = new JPAExecutorStoreService(true);
-		TransactionalCommandService commandService = new TransactionalCommandService(emf);			
+		TransactionalCommandService commandService = new TransactionalCommandService(emf);
 		((JPAExecutorStoreService) storeService).setCommandService(commandService);
-		((JPAExecutorStoreService) storeService).setEmf(emf);		
-		
+		((JPAExecutorStoreService) storeService).setEmf(emf);
+
 		return storeService;
 	}
 
 	@Produces
 	public ExecutorAdminService produceAdminService() {
 		ExecutorAdminService adminService = new ExecutorRequestAdminServiceImpl();
-		TransactionalCommandService commandService = new TransactionalCommandService(emf);				
+		TransactionalCommandService commandService = new TransactionalCommandService(emf);
 		((ExecutorRequestAdminServiceImpl) adminService).setCommandService(commandService);
-		
+
 		return adminService;
 	}
 
 	@Produces
 	public ExecutorQueryService produceQueryService() {
 		ExecutorQueryService queryService = new ExecutorQueryServiceImpl(true);
-		TransactionalCommandService commandService = new TransactionalCommandService(emf);		
+		TransactionalCommandService commandService = new TransactionalCommandService(emf);
 		((ExecutorQueryServiceImpl) queryService).setCommandService(commandService);
-		
+
 		return queryService;
 	}
 

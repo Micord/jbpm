@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import javax.naming.InitialContext;
-import javax.persistence.Persistence;
+import jakarta.persistence.Persistence;
 import javax.sql.DataSource;
 
 import org.drools.core.time.TimerService;

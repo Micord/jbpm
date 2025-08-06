@@ -29,10 +29,10 @@ import java.util.HashMap;
 import java.util.List;
 
 import javax.naming.InitialContext;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Query;
-import javax.transaction.UserTransaction;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Query;
+import jakarta.transaction.UserTransaction;
 
 import org.jbpm.test.util.AbstractBaseTest;
 import org.junit.After;
@@ -48,19 +48,19 @@ import org.kie.api.runtime.EnvironmentName;
 
 @RunWith(Parameterized.class)
 public class CorrelationPersistenceTest extends AbstractBaseTest {
-    
+
     private HashMap<String, Object> context;
-    
-    public CorrelationPersistenceTest(boolean locking) { 
-        this.useLocking = locking; 
+
+    public CorrelationPersistenceTest(boolean locking) {
+        this.useLocking = locking;
      }
-     
+
      @Parameters
      public static Collection<Object[]> persistence() {
          Object[][] data = new Object[][] { { false }, { true } };
          return Arrays.asList(data);
      };
-         
+
     @Before
     public void before() throws Exception {
         context = setupWithPoolingDataSource(JBPM_PERSISTENCE_UNIT_NAME);
@@ -84,7 +84,7 @@ public class CorrelationPersistenceTest extends AbstractBaseTest {
             Assert.fail("Exception thrown while trying to prepare correlation data.");
         }
     }
-    
+
     @After
     public void after() throws Exception {
         EntityManagerFactory emf = (EntityManagerFactory) context.get(EnvironmentName.ENTITY_MANAGER_FACTORY);
@@ -108,36 +108,36 @@ public class CorrelationPersistenceTest extends AbstractBaseTest {
         EntityManager em = emf.createEntityManager();
 
         Query query = em.createNamedQuery("GetProcessInstanceIdByCorrelation");
-        query.setParameter("ckey", "test123");        
-        
+        query.setParameter("ckey", "test123");
+
         List<Long> processInstances = query.getResultList();
         em.close();
         assertNotNull(processInstances);
         assertEquals(1, processInstances.size());
     }
-    
+
     @Test
     public void testCreateCorrelationMultiValueDoesNotMatch() throws Exception {
         EntityManagerFactory emf = (EntityManagerFactory) context.get(EnvironmentName.ENTITY_MANAGER_FACTORY);
         EntityManager em = emf.createEntityManager();
-        
+
         Query query = em.createNamedQuery("GetProcessInstanceIdByCorrelation");
-        query.setParameter("ckey", "test1234"); 
-        
+        query.setParameter("ckey", "test1234");
+
         List<Long> processInstances = query.getResultList();
         em.close();
         assertNotNull(processInstances);
         assertEquals(0, processInstances.size());
     }
-    
+
     @Test
     public void testCreateCorrelationMultiValueDoesMatch() throws Exception {
         EntityManagerFactory emf = (EntityManagerFactory) context.get(EnvironmentName.ENTITY_MANAGER_FACTORY);
         EntityManager em = emf.createEntityManager();
-        
+
         Query query = em.createNamedQuery("GetProcessInstanceIdByCorrelation");
         query.setParameter("ckey", "test123:123test");
-        
+
         List<Long> processInstances = query.getResultList();
         em.close();
         assertNotNull(processInstances);

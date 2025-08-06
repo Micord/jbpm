@@ -15,8 +15,8 @@
  */
 package org.jbpm.services.task;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.kie.test.util.db.PoolingDataSourceWrapper;
 import org.junit.After;

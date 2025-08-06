@@ -21,10 +21,10 @@ import org.kie.api.task.model.Status;
 import org.kie.api.task.model.TaskSummary;
 import org.kie.internal.query.QueryFilter;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,17 +36,17 @@ public class GetTaskAssignedAsPotentialOwnerCommand extends UserGroupCallbackTas
 
     @XmlElement
     private List<Status> statuses;
-   
+
     @XmlElement(type=QueryFilter.class)
     private QueryFilter filter;
 
     public GetTaskAssignedAsPotentialOwnerCommand() {
     }
-    
+
     public GetTaskAssignedAsPotentialOwnerCommand(String userId) {
         this.userId = userId;
     }
-    
+
     public GetTaskAssignedAsPotentialOwnerCommand(String userId, List<Status> status) {
         this.userId = userId;
         this.statuses = status;
@@ -57,7 +57,7 @@ public class GetTaskAssignedAsPotentialOwnerCommand extends UserGroupCallbackTas
         this.statuses = status;
         this.groupIds = groupIds;
     }
-    
+
     public GetTaskAssignedAsPotentialOwnerCommand(String userId, List<String> groupIds, List<Status> status, QueryFilter filter) {
         this.userId = userId;
         this.statuses = status;
@@ -83,7 +83,7 @@ public class GetTaskAssignedAsPotentialOwnerCommand extends UserGroupCallbackTas
             groupIds = doUserGroupCallbackOperation(userId, null, context);
         }
         return context.getTaskQueryService().getTasksAssignedAsPotentialOwner(userId, groupIds, statuses, filter);
-       
+
     }
 
 }

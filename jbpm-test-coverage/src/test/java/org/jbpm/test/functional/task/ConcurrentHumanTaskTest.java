@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.process.audit.AuditLogService;
 import org.jbpm.process.audit.JPAAuditLogService;
@@ -65,17 +65,17 @@ public class ConcurrentHumanTaskTest extends JbpmTestCase {
 		super(true, true);
 	}
 
-	private static final int THREADS = 2;	
-	
+	private static final int THREADS = 2;
+
 	@Before
 	public void populateOrgEntity() {
 	    TaskService taskService = HumanTaskServiceFactory.newTaskServiceConfigurator().entityManagerFactory(getEmf()).getTaskService();
-	    
+
 	    ((InternalTaskService)taskService).addUser(TaskModelProvider.getFactory().newUser("krisv"));
 	    ((InternalTaskService)taskService).addUser(TaskModelProvider.getFactory().newUser("sales-rep"));
 	    ((InternalTaskService)taskService).addUser(TaskModelProvider.getFactory().newUser("john"));
 	    ((InternalTaskService)taskService).addUser(TaskModelProvider.getFactory().newUser("Administrator"));
-	    
+
 	    ((InternalTaskService)taskService).addGroup(TaskModelProvider.getFactory().newGroup("sales"));
 	    ((InternalTaskService)taskService).addGroup(TaskModelProvider.getFactory().newGroup("PM"));
 	    ((InternalTaskService)taskService).addGroup(TaskModelProvider.getFactory().newGroup("Administrators"));
@@ -87,20 +87,20 @@ public class ConcurrentHumanTaskTest extends JbpmTestCase {
 	    for (int i = 0; i < THREADS; i++) {
 			ProcessRunner pr = new ProcessRunner(i, getEmf(), latch);
 			Thread t = new Thread(pr, i + "-process-runner");
-			t.start();	
-						
+			t.start();
+
 		}
-		
+
 		latch.await();
 		AuditLogService logService = new JPAAuditLogService(getEmf());
-		
+
 		List<? extends ProcessInstanceLog> logs = logService.findProcessInstances("com.sample.humantask.concurrent");
 		assertEquals(2, logs.size());
-		
+
 		for (ProcessInstanceLog log : logs) {
 			assertEquals(ProcessInstance.STATE_COMPLETED, log.getStatus().intValue());
 		}
-		
+
 		logService.dispose();
 	}
 }
@@ -236,9 +236,9 @@ class HumanTaskResolver implements Runnable {
         Assert.assertNotNull(result);
         taskService4.complete(task4.getId(), "sales-rep", null);
 
-        System.out.println("Process instance completed");        
+        System.out.println("Process instance completed");
         runtime.close();
-        
+
         latch.countDown();
     }
 

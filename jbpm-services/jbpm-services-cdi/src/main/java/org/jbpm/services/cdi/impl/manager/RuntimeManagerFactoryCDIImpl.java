@@ -16,9 +16,9 @@
 
 package org.jbpm.services.cdi.impl.manager;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import org.jbpm.runtime.manager.impl.RuntimeManagerFactoryImpl;
 import org.jbpm.runtime.manager.impl.SimpleRuntimeEnvironment;
@@ -31,10 +31,10 @@ public class RuntimeManagerFactoryCDIImpl extends RuntimeManagerFactoryImpl {
 
     @Inject
     private Instance<TaskServiceFactory> taskServiceFactoryInjected;
-    
+
     @Override
     protected TaskServiceFactory getTaskServiceFactory(RuntimeEnvironment environment) {
-    	
+
     	// if there is an implementation of TaskServiceFactory in the environment then use it
         TaskServiceFactory taskServiceFactory = (TaskServiceFactory) ((SimpleRuntimeEnvironment)environment).getEnvironmentTemplate()
         											.get("org.kie.internal.runtime.manager.TaskServiceFactory");
@@ -48,7 +48,7 @@ public class RuntimeManagerFactoryCDIImpl extends RuntimeManagerFactoryImpl {
         } catch (Exception e) {
             taskServiceFactory = new LocalTaskServiceFactory(environment);
         }
-        
+
         return taskServiceFactory;
     }
 }

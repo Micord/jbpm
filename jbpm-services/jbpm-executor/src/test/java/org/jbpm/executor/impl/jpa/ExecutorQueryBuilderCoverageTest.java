@@ -19,8 +19,8 @@ package org.jbpm.executor.impl.jpa;
 import static org.jbpm.query.QueryBuilderCoverageTestUtil.hackTheDatabaseMetadataLoggerBecauseTheresALogbackXmlInTheClasspath;
 import static org.jbpm.query.QueryBuilderCoverageTestUtil.queryBuilderCoverageTest;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.query.QueryBuilderCoverageTestUtil.ModuleSpecificInputFiller;
 import org.jbpm.test.util.ExecutorTestUtil;

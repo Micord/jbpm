@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.jbpm.process.audit.JPAAuditLogService;
 import org.jbpm.runtime.manager.impl.jpa.EntityManagerFactoryManager;

@@ -16,7 +16,7 @@
 
 package org.jbpm.services.ejb.api.query;
 
-import javax.ejb.Local;
+import jakarta.ejb.Local;
 
 import org.jbpm.services.api.query.QueryService;
 

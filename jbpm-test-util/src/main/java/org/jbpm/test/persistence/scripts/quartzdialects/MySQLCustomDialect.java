@@ -18,12 +18,19 @@ package org.jbpm.test.persistence.scripts.quartzdialects;
 
 import java.sql.Types;
 
-import org.hibernate.dialect.MySQL57Dialect;
+import org.hibernate.dialect.MySQLDialect;
 
-public class MySQLCustomDialect extends MySQL57Dialect{
-    
-    public MySQLCustomDialect() {
-        registerColumnType(Types.BLOB, "blob");
-        registerColumnType(Types.BOOLEAN, "varchar(1)");
+public class MySQLCustomDialect extends MySQLDialect {
+
+
+    @Override
+    protected String columnType(int sqlTypeCode) {
+        if (sqlTypeCode == Types.BLOB) {
+            return "blob";
+        }
+        if (sqlTypeCode == Types.BOOLEAN) {
+            return "varchar(1)";
+        }
+        return super.columnType(sqlTypeCode);
     }
 }

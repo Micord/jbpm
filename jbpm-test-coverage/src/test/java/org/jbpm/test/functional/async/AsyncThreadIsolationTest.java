@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.assertj.core.api.Assertions;
 import org.jbpm.executor.ExecutorServiceFactory;

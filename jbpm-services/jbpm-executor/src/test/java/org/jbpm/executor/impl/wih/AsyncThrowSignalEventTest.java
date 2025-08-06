@@ -22,8 +22,8 @@ import static org.junit.Assert.assertNull;
 
 import java.util.Properties;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.jbpm.executor.ExecutorServiceFactory;
 import org.jbpm.executor.impl.ExecutorServiceImpl;
@@ -52,7 +52,7 @@ import org.kie.internal.runtime.manager.context.EmptyContext;
 public class AsyncThrowSignalEventTest extends AbstractExecutorBaseTest {
 
     private PoolingDataSourceWrapper pds;
-    private UserGroupCallback userGroupCallback;  
+    private UserGroupCallback userGroupCallback;
     private RuntimeManager manager;
     private ExecutorService executorService;
     private EntityManagerFactory emf = null;
@@ -66,7 +66,7 @@ public class AsyncThrowSignalEventTest extends AbstractExecutorBaseTest {
         userGroupCallback = new JBossUserGroupCallbackImpl(properties);
         executorService = buildExecutorService();
     }
-    
+
     @After
     public void teardown() {
         executorService.destroy();
@@ -79,11 +79,11 @@ public class AsyncThrowSignalEventTest extends AbstractExecutorBaseTest {
         }
         pds.close();
     }
-    
+
     protected CountDownAsyncJobListener configureListener(int threads) {
         CountDownAsyncJobListener countDownListener = new CountDownAsyncJobListener(threads);
         ((ExecutorServiceImpl) executorService).addAsyncJobListener(countDownListener);
-        
+
         return countDownListener;
     }
 
@@ -95,28 +95,28 @@ public class AsyncThrowSignalEventTest extends AbstractExecutorBaseTest {
                 .userGroupCallback(userGroupCallback)
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-WaitForEvent.bpmn2"), ResourceType.BPMN2)
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-ThrowEventEnd.bpmn2"), ResourceType.BPMN2)
-                .addEnvironmentEntry("ExecutorService", executorService)                
+                .addEnvironmentEntry("ExecutorService", executorService)
                 .get();
-        
-        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment); 
+
+        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment);
         assertNotNull(manager);
-        
+
         RuntimeEngine runtime = manager.getRuntimeEngine(EmptyContext.get());
         KieSession ksession = runtime.getKieSession();
-        assertNotNull(ksession);       
-        
+        assertNotNull(ksession);
+
         ProcessInstance processInstance = ksession.startProcess("WaitForEvent");
         assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
-        
+
         ProcessInstance processInstanceThrow = ksession.startProcess("SendEvent");
         assertEquals(ProcessInstance.STATE_COMPLETED, processInstanceThrow.getState());
-        
+
         countDownListener.waitTillCompleted();
-        
+
         processInstance = runtime.getKieSession().getProcessInstance(processInstance.getId());
         assertNull(processInstance);
-    } 
-    
+    }
+
     @Test(timeout=10000)
     public void testAsyncThrowIntermediateEvent() throws Exception {
         CountDownAsyncJobListener countDownListener = configureListener(1);
@@ -124,62 +124,62 @@ public class AsyncThrowSignalEventTest extends AbstractExecutorBaseTest {
                 .userGroupCallback(userGroupCallback)
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-WaitForEvent.bpmn2"), ResourceType.BPMN2)
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-ThrowEventIntermediate.bpmn2"), ResourceType.BPMN2)
-                .addEnvironmentEntry("ExecutorService", executorService)                
+                .addEnvironmentEntry("ExecutorService", executorService)
                 .get();
-        
-        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment); 
+
+        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment);
         assertNotNull(manager);
-        
+
         RuntimeEngine runtime = manager.getRuntimeEngine(EmptyContext.get());
         KieSession ksession = runtime.getKieSession();
-        assertNotNull(ksession);       
-        
+        assertNotNull(ksession);
+
         ProcessInstance processInstance = ksession.startProcess("WaitForEvent");
         assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
-        
+
         ProcessInstance processInstanceThrow = ksession.startProcess("SendIntermediateEvent");
         assertEquals(ProcessInstance.STATE_COMPLETED, processInstanceThrow.getState());
-        
+
         countDownListener.waitTillCompleted();
-        
+
         processInstance = runtime.getKieSession().getProcessInstance(processInstance.getId());
         assertNull(processInstance);
-    } 
-    
+    }
+
     @Test(timeout=10000)
     public void testAsyncThrowManualEvent() throws Exception {
         CountDownAsyncJobListener countDownListener = configureListener(1);
         RuntimeEnvironment environment = RuntimeEnvironmentBuilder.Factory.get().newDefaultBuilder()
                 .userGroupCallback(userGroupCallback)
                 .addAsset(ResourceFactory.newClassPathResource("BPMN2-WaitForEvent.bpmn2"), ResourceType.BPMN2)
-                .addEnvironmentEntry("ExecutorService", executorService)                
+                .addEnvironmentEntry("ExecutorService", executorService)
                 .get();
-        
-        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment); 
+
+        manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(environment);
         assertNotNull(manager);
-        
+
         RuntimeEngine runtime = manager.getRuntimeEngine(EmptyContext.get());
         KieSession ksession = runtime.getKieSession();
-        assertNotNull(ksession);       
-        
+        assertNotNull(ksession);
+
         ProcessInstance processInstance = ksession.startProcess("WaitForEvent");
         assertEquals(ProcessInstance.STATE_ACTIVE, processInstance.getState());
 
-        ksession.signalEvent("ASYNC-MySignal", null);      
-        
+        ksession.signalEvent("ASYNC-MySignal", null);
+
         countDownListener.waitTillCompleted();
-        
+
         processInstance = runtime.getKieSession().getProcessInstance(processInstance.getId());
         assertNull(processInstance);
-    } 
-    
-    private ExecutorService buildExecutorService() {        
+    }
+
+    private ExecutorService buildExecutorService() {
         emf = Persistence.createEntityManagerFactory("org.jbpm.executor");
 
         executorService = ExecutorServiceFactory.newExecutorService(emf);
-        
+
         executorService.init();
-        
+
         return executorService;
     }
 }

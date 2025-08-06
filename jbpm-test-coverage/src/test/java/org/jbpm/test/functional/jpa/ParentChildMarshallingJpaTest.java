@@ -21,9 +21,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.drools.core.marshalling.impl.ClassObjectMarshallingStrategyAcceptor;
 import org.drools.core.marshalling.impl.SerializablePlaceholderResolverStrategy;
@@ -63,11 +63,11 @@ public class ParentChildMarshallingJpaTest extends JbpmTestCase {
 	public void testProcess() throws Exception {
 
 	    emfDomain = Persistence.createEntityManagerFactory("org.jbpm.persistence.parent-child");
-	    addEnvironmentEntry(EnvironmentName.OBJECT_MARSHALLING_STRATEGIES, 
+	    addEnvironmentEntry(EnvironmentName.OBJECT_MARSHALLING_STRATEGIES,
 	                        new ObjectMarshallingStrategy[] {
 	                        new JPAPlaceholderResolverStrategy(emfDomain),
 	                        new SerializablePlaceholderResolverStrategy(ClassObjectMarshallingStrategyAcceptor.DEFAULT) });
-	    
+
 		RuntimeManager manager = createRuntimeManager(Strategy.PROCESS_INSTANCE, "manager", "org/jbpm/test/functional/jpa/parent-child.bpmn");
 		RuntimeEngine runtime = manager.getRuntimeEngine(ProcessInstanceIdContext.get());
 		KieSession ksession = runtime.getKieSession();
@@ -100,7 +100,7 @@ public class ParentChildMarshallingJpaTest extends JbpmTestCase {
 
 			Map<String, Object> results = new LinkedHashMap<String, Object>();
 			results.put("output1_application", outputApplication);
-			
+
 
 			taskService.start(taskSummary.getId(), "john");
 			taskService.complete(taskSummary.getId(), "john", results);
@@ -112,7 +112,7 @@ public class ParentChildMarshallingJpaTest extends JbpmTestCase {
 			taskService.start(taskSummary.getId(), "mary");
 			taskService.complete(taskSummary.getId(), "mary", null);
 		}
-	
+
 		manager.disposeRuntimeEngine(runtime);
 
 		// Check!

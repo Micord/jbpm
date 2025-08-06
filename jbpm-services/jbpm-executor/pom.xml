@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm-services</artifactId>
-    <version>7.74.1.Final</version>
+    <version>7.74.1.Final-Micord.1</version>
   </parent>
 
   <artifactId>jbpm-executor</artifactId>
@@ -28,7 +28,7 @@
     </dependency>
     <dependency>
       <groupId>org.jbpm</groupId>
-      <artifactId>jbpm-services-api</artifactId>      
+      <artifactId>jbpm-services-api</artifactId>
     </dependency>
 
     <dependency>
@@ -60,8 +60,8 @@
 
     <dependency>
       <!--  only needed for metadata generation -->
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-jpamodelgen</artifactId>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-processor</artifactId>
       <optional>true</optional>
       <scope>provided</scope>
       <exclusions>
@@ -72,7 +72,7 @@
         </exclusion>
       </exclusions>
     </dependency>
-    
+
     <dependency>
       <groupId>commons-collections</groupId>
       <artifactId>commons-collections</artifactId>
@@ -100,7 +100,7 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
-    
+
     <!-- support for JMS based executor -->
     <dependency>
       <groupId>jakarta.jms</groupId>
@@ -127,16 +127,10 @@
     </dependency>
 
     <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-entitymanager</artifactId>
-      <scope>test</scope>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.hibernate</groupId>
+      <groupId>org.hibernate.orm</groupId>
       <artifactId>hibernate-core</artifactId>
       <optional>true</optional>
-      <scope>test</scope>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
@@ -170,7 +164,7 @@
       <artifactId>jbpm-audit</artifactId>
       <optional>true</optional>
     </dependency>
-    
+
     <!-- Test: jms -->
     <dependency>
       <groupId>org.hornetq</groupId>
@@ -217,17 +211,17 @@
         <filtering>true</filtering>
       </testResource>
     </testResources>
-   
+
      <plugins>
      <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <annotationProcessors>
-            <annotationProcessor>org.hibernate.jpamodelgen.JPAMetaModelEntityProcessor</annotationProcessor>
+            <annotationProcessor>org.hibernate.processor.HibernateProcessor</annotationProcessor>
           </annotationProcessors>
         </configuration>
       </plugin>
-      
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>

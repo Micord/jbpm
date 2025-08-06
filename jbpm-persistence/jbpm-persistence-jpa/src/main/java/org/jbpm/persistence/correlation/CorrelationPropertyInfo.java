@@ -17,17 +17,17 @@ package org.jbpm.persistence.correlation;
 
 import java.io.Serializable;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Index;
-import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Transient;
-import javax.persistence.Version;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.persistence.Version;
 
 import org.kie.internal.process.CorrelationProperty;
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 @Entity
 @Table(name = "CorrelationPropertyInfo", indexes = {@Index(name = "IDX_CorrPropInfo_Id", columnList = "correlationKey_keyId")})
-@SequenceGenerator(name="correlationPropertyInfoIdSeq", sequenceName="CORRELATION_PROP_ID_SEQ")
+@SequenceGenerator(name="correlationPropertyInfoIdSeq", sequenceName="CORRELATION_PROP_ID_SEQ", allocationSize = 1)
 public class CorrelationPropertyInfo implements CorrelationProperty<String>, Serializable {
 
 	private static final long serialVersionUID = -4469224502447675428L;
@@ -45,9 +45,9 @@ public class CorrelationPropertyInfo implements CorrelationProperty<String>, Ser
     private final int CORRELATION_KEY_LOG_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.correlationkey.length", "255"));
 
     public CorrelationPropertyInfo() {
-        
+
     }
-    
+
     public CorrelationPropertyInfo(String name, String value) {
         this.name = name;
         if (value != null && value.length() > CORRELATION_KEY_LOG_LENGTH) {
@@ -61,24 +61,25 @@ public class CorrelationPropertyInfo implements CorrelationProperty<String>, Ser
     @GeneratedValue(strategy = GenerationType.AUTO, generator="correlationPropertyInfoIdSeq")
     @Column(name = "propertyId")
     private long id;
-    
+
     @Version
     @Column(name = "OPTLOCK")
     private int version;
-    
+
     @ManyToOne
     private CorrelationKeyInfo correlationKey;
-    
+
     private String name;
+    @Column(name = "CORRELATION_VALUE")
     private String value;
-    
+
     @Override
     public String getName() {
         return this.name;
     }
 
     @Override
-    public String getType() {        
+    public String getType() {
         return String.class.getName();
     }
 
@@ -144,6 +145,6 @@ public class CorrelationPropertyInfo implements CorrelationProperty<String>, Ser
             return false;
         return true;
     }
-    
+
 
 }

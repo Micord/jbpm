@@ -16,7 +16,7 @@
 
 package org.jbpm.test.iodata;
 
-@javax.xml.bind.annotation.XmlRootElement
+@jakarta.xml.bind.annotation.XmlRootElement
 public class SignalObjectReport implements java.io.Serializable {
 
     static final long serialVersionUID = 1L;

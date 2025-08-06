@@ -18,11 +18,16 @@ package org.jbpm.test.persistence.scripts;
 
 import java.sql.Types;
 
-import org.hibernate.dialect.SybaseASE157Dialect;
+import org.hibernate.dialect.SybaseASEDialect;
 
-public class SybaseJbpmDialect extends SybaseASE157Dialect {
+public class SybaseJbpmDialect extends SybaseASEDialect {
 
-    public SybaseJbpmDialect() {
-        registerColumnType(Types.BIGINT, "numeric(19,0)");
+    @Override
+    protected String columnType(int sqlTypeCode) {
+        if (sqlTypeCode == Types.BIGINT) {
+            return "numeric(19,0)";
+        }
+
+        return super.columnType(sqlTypeCode);
     }
 }

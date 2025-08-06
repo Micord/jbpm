@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.persistence.Persistence;
+import jakarta.persistence.Persistence;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -39,7 +39,7 @@ import static java.util.Arrays.asList;
 @Ignore
 public class GenerateDDLScriptsTests {
     static public final boolean USE_BYTEA = false;
-    
+
     static {
         System.setProperty("org.kie.persistence.postgresql.useBytea", Boolean.toString(USE_BYTEA));
     }
@@ -155,9 +155,9 @@ public class GenerateDDLScriptsTests {
         Map<String, Object> properties = new HashMap<>();
         properties.put("hibernate.dialect", this.scriptFile.getDialect());
         properties.put("hibernate.id.new_generator_mappings", this.scriptFile.getNewGenerator());
-        properties.put("javax.persistence.schema-generation.scripts.action", "drop-and-create");
-        properties.put("javax.persistence.schema-generation.scripts.drop-target", dropFilePath.toString());
-        properties.put("javax.persistence.schema-generation.scripts.create-target", createFilePath.toString());
+        properties.put("jakarta.persistence.schema-generation.scripts.action", "drop-and-create");
+        properties.put("jakarta.persistence.schema-generation.scripts.drop-target", dropFilePath.toString());
+        properties.put("jakarta.persistence.schema-generation.scripts.create-target", createFilePath.toString());
         Persistence.generateSchema("dbGenerateDDL", properties);
     }
 }

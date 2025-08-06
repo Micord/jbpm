@@ -22,8 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 
 import org.kie.api.KieBase;
 import org.kie.api.io.ResourceType;
@@ -49,7 +49,7 @@ public class ProcessMain {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessMain.class);
     private static final boolean usePersistence = true;
-    
+
 	public static final void main(String[] args) throws Exception {
 		cleanupSingletonSessionId();
 		// load up the knowledge base
@@ -66,7 +66,7 @@ public class ProcessMain {
 		kbuilder.add(ResourceFactory.newClassPathResource("simple.bpmn"), ResourceType.BPMN2);
 		return kbuilder.newKieBase();
 	}
-	
+
     public static StatefulKnowledgeSession newStatefulKnowledgeSession(KieBase kbase) {
     	RuntimeEnvironmentBuilder builder = null;
     	if ( usePersistence ) {
@@ -80,16 +80,16 @@ public class ProcessMain {
 			PersistenceUtil.setupPoolingDataSource(properties);
 		    Map<String, String> map = new HashMap<String, String>();
 		    map.put("hibernate.dialect", "org.hibernate.dialect.H2Dialect");
-	        EntityManagerFactory emf = Persistence.createEntityManagerFactory(properties.getProperty("persistence.persistenceunit.name", "org.jbpm.persistence.jpa"), map);            	            
+	        EntityManagerFactory emf = Persistence.createEntityManagerFactory(properties.getProperty("persistence.persistenceunit.name", "org.jbpm.persistence.jpa"), map);
 	        builder = RuntimeEnvironmentBuilder.Factory.get()
                 .newDefaultBuilder()
                 .entityManagerFactory(emf);
     	} else {
             builder = RuntimeEnvironmentBuilder.Factory.get()
                 .newDefaultInMemoryBuilder();
-            DeploymentDescriptor descriptor = 
-				new DeploymentDescriptorManager().getDefaultDescriptor().getBuilder().auditMode(AuditMode.NONE).get();	
-            builder.addEnvironmentEntry("KieDeploymentDescriptor", descriptor);                
+            DeploymentDescriptor descriptor =
+				new DeploymentDescriptorManager().getDefaultDescriptor().getBuilder().auditMode(AuditMode.NONE).get();
+            builder.addEnvironmentEntry("KieDeploymentDescriptor", descriptor);
         }
         builder.knowledgeBase(kbase);
         RuntimeManager manager = RuntimeManagerFactory.Factory.get().newSingletonRuntimeManager(builder.get());
@@ -101,7 +101,7 @@ public class ProcessMain {
         if (tempDir.exists()) {
             String[] jbpmSerFiles = tempDir.list(new FilenameFilter() {
                 @Override
-                public boolean accept(File dir, String name) {                    
+                public boolean accept(File dir, String name) {
                     return name.endsWith("-jbpmSessionId.ser");
                 }
             });

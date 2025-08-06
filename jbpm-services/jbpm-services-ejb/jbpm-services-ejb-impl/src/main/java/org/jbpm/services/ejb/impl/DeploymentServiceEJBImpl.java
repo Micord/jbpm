@@ -18,20 +18,20 @@ package org.jbpm.services.ejb.impl;
 
 import java.util.function.Function;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
-import javax.ejb.ConcurrencyManagement;
-import javax.ejb.ConcurrencyManagementType;
-import javax.ejb.EJB;
-import javax.ejb.EJBContext;
-import javax.ejb.Lock;
-import javax.ejb.LockType;
-import javax.ejb.Singleton;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
+import jakarta.ejb.ConcurrencyManagement;
+import jakarta.ejb.ConcurrencyManagementType;
+import jakarta.ejb.EJB;
+import jakarta.ejb.EJBContext;
+import jakarta.ejb.Lock;
+import jakarta.ejb.LockType;
+import jakarta.ejb.Singleton;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnit;
 
 import org.jbpm.kie.services.impl.FormManagerService;
 import org.jbpm.kie.services.impl.KModuleDeploymentService;
@@ -65,12 +65,12 @@ public class DeploymentServiceEJBImpl extends KModuleDeploymentService implement
 
     @Inject
 	private Instance<IdentityProvider> identityProvider;
-	
+
 	private EJBContext context;
-	
+
 	private boolean isExecutorAvailable = false;
 	// inject resources
-	
+
 	@PostConstruct
     public void onInit() {
     	isExecutorAvailable = isExecutorOnClasspath();
@@ -82,30 +82,30 @@ public class DeploymentServiceEJBImpl extends KModuleDeploymentService implement
 		setManagerFactory(new RuntimeManagerFactoryImpl());
 		super.onInit();
 	}
-	
+
     @PreDestroy
 	@Override
 	public void shutdown() {
 		super.shutdown();
 	}
-	
+
 	@Resource
 	public void setContext(EJBContext context) {
 		this.context = context;
 	}
-	
+
 	@PersistenceUnit(unitName="org.jbpm.domain")
 	@Override
 	public void setEmf(EntityManagerFactory emf) {
-		
+
 		super.setEmf(emf);
 	}
-	
+
 	// inject ejb beans
 	@EJB(beanInterface=DefinitionServiceEJBLocal.class)
 	@Override
 	public void setBpmn2Service(DefinitionService bpmn2Service) {
-		
+
 		super.setBpmn2Service(bpmn2Service);
 		super.addListener((DeploymentEventListener) bpmn2Service);
 	}
@@ -113,7 +113,7 @@ public class DeploymentServiceEJBImpl extends KModuleDeploymentService implement
 	@EJB(beanInterface=RuntimeDataServiceEJBLocal.class)
 	@Override
 	public void setRuntimeDataService(RuntimeDataService runtimeDataService) {
-		
+
 		super.setRuntimeDataService(runtimeDataService);
 		super.addListener((DeploymentEventListener) runtimeDataService);
 
@@ -134,9 +134,9 @@ public class DeploymentServiceEJBImpl extends KModuleDeploymentService implement
     @Override
 	public void deploy(String groupId, String artifactId, String version) {
 		KModuleDeploymentUnit unit = new KModuleDeploymentUnit(groupId, artifactId, version);
-		
+
 		addAsyncHandler(unit);
-		
+
 		super.deploy(unit);
 	}
 
@@ -144,9 +144,9 @@ public class DeploymentServiceEJBImpl extends KModuleDeploymentService implement
 	public void deploy(String groupId, String artifactId, String version,
 			String kbaseName, String ksessionName) {
 		KModuleDeploymentUnit unit = new KModuleDeploymentUnit(groupId, artifactId, version, kbaseName, ksessionName);
-		
+
 		addAsyncHandler(unit);
-		
+
 		super.deploy(unit);
 	}
 
@@ -154,11 +154,11 @@ public class DeploymentServiceEJBImpl extends KModuleDeploymentService implement
 	public void deploy(String groupId, String artifactId, String version,
 			String kbaseName, String ksessionName, String strategy) {
 		KModuleDeploymentUnit unit = new KModuleDeploymentUnit(groupId, artifactId, version, kbaseName, ksessionName, strategy);
-		
+
 		addAsyncHandler(unit);
-		
+
 		super.deploy(unit);
-		
+
 	}
 
 	@Override
@@ -191,17 +191,17 @@ public class DeploymentServiceEJBImpl extends KModuleDeploymentService implement
 				descriptor = new DeploymentDescriptorImpl("org.jbpm.domain");
 			}
 			descriptor.getBuilder()
-			.addWorkItemHandler(new TransientNamedObjectModel("ejb", "async", "org.jbpm.executor.impl.wih.AsyncWorkItemHandler", 
+			.addWorkItemHandler(new TransientNamedObjectModel("ejb", "async", "org.jbpm.executor.impl.wih.AsyncWorkItemHandler",
 						new Object[]{EXECUTOR_EJB_JNDI_NAME, "org.jbpm.executor.commands.PrintOutCommand"}));
-			
+
 			unit.setDeploymentDescriptor(descriptor);
 		}
 	}
-	
+
 	protected boolean isExecutorOnClasspath() {
 		try {
 			Class.forName("org.jbpm.executor.impl.wih.AsyncWorkItemHandler");
-			
+
 			return true;
 		} catch (ClassNotFoundException e) {
 			return false;

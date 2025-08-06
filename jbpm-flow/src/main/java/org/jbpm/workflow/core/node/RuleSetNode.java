@@ -22,6 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.process.core.Context;
 import org.jbpm.process.core.ContextContainer;
 import org.jbpm.process.core.context.AbstractContext;
@@ -31,12 +32,12 @@ import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of a RuleSet node.
- * 
+ *
  */
 public class RuleSetNode extends StateBasedNode implements ContextContainer {
 
     private static final long serialVersionUID = 510l;
-    
+
     public static final String DRL_LANG = "http://www.jboss.org/drools/rule";
     public static final String DMN_LANG = "http://www.jboss.org/drools/dmn";
 
@@ -44,10 +45,10 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
 
     // NOTE: ContetxInstances are not persisted as current functionality (exception scope) does not require it
     private ContextContainer contextContainer = new ContextContainerImpl();
-    
+
     // drl related properties
     private String ruleFlowGroup;
-    
+
     // dmn related properties
     private String namespace;
     private String model;
@@ -56,7 +57,7 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
 
     private List<DataAssociation> inMapping = new LinkedList<DataAssociation>();
     private List<DataAssociation> outMapping = new LinkedList<DataAssociation>();
-    
+
     private Map<String, Object> parameters = new HashMap<String, Object>();
 
     public RuleSetNode() {
@@ -70,35 +71,35 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
     public String getRuleFlowGroup() {
         return this.ruleFlowGroup;
     }
-    
+
     public String getLanguage() {
         return language;
     }
-    
+
     public void setLanguage(String language) {
         this.language = language;
     }
-    
+
     public String getNamespace() {
         return namespace;
     }
-    
+
     public void setNamespace(String namespace) {
         this.namespace = namespace;
     }
-    
+
     public String getModel() {
         return model;
     }
-    
+
     public void setModel(String model) {
         this.model = model;
     }
-    
+
     public String getDecision() {
         return decision;
     }
-    
+
     public void setDecision(String decision) {
         this.decision = decision;
     }
@@ -115,31 +116,31 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
     public void validateAddIncomingConnection(final String type, final Connection connection) {
         super.validateAddIncomingConnection(type, connection);
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getTo().getMetaData().get("UniqueId") + ", " + connection.getTo().getName() 
-                    + "] only accepts default incoming connection type!");
+            throw new BpmnNodeIllegalArgumentException("This type of node only accepts default incoming connection type!",
+                connection.getFrom().getName(),
+                connection.getFrom().getNodeUniqueId());
         }
         if (getFrom() != null && !"true".equals(System.getProperty("jbpm.enable.multi.con"))) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getTo().getMetaData().get("UniqueId") + ", " + connection.getTo().getName() 
-                    + "] cannot have more than one incoming connection!");
+        	throw new BpmnNodeIllegalArgumentException("This type of node cannot have more than one incoming connection!",
+              connection.getTo().getName(),
+              connection.getTo().getNodeUniqueId());
         }
     }
 
     public void validateAddOutgoingConnection(final String type, final Connection connection) {
         super.validateAddOutgoingConnection(type, connection);
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getFrom().getMetaData().get("UniqueId") + ", " + connection.getFrom().getName() 
-                    + "] only accepts default outgoing connection type!");
+        	throw new BpmnNodeIllegalArgumentException("This type of node only accepts default outgoing connection type!",
+              connection.getFrom().getName(),
+              connection.getFrom().getNodeUniqueId());
         }
         if (getTo() != null && !"true".equals(System.getProperty("jbpm.enable.multi.con"))) {
-        	throw new IllegalArgumentException(
-                    "This type of node [" + connection.getFrom().getMetaData().get("UniqueId") + ", " + connection.getFrom().getName() 
-                    + "] cannot have more than one outgoing connection!");
+            throw new BpmnNodeIllegalArgumentException("This type of node cannot have more than one outgoing connection!",
+                connection.getTo().getName(),
+                connection.getTo().getNodeUniqueId());
         }
     }
-    
+
     public void addInMapping(String parameterName, String variableName) {
         inMapping.add(new DataAssociation(variableName, parameterName, null, null));
     }
@@ -154,9 +155,9 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
     public String getInMapping(String parameterName) {
         return getInMappings().get(parameterName);
     }
-    
+
     public Map<String, String> getInMappings() {
-        Map<String,String> in = new HashMap<String, String>(); 
+        Map<String,String> in = new HashMap<String, String>();
         for(DataAssociation a : inMapping) {
             if(a.getSources().size() ==1 && (a.getAssignments() == null || a.getAssignments().size()==0) && a.getTransformation() == null) {
                 in.put(a.getTarget(), a.getSources().get(0));
@@ -172,7 +173,7 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
     public List<DataAssociation> getInAssociations() {
         return Collections.unmodifiableList(inMapping);
     }
-    
+
     public void addOutMapping(String parameterName, String variableName) {
         outMapping.add(new DataAssociation(parameterName, variableName, null, null));
     }
@@ -187,9 +188,9 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
     public String getOutMapping(String parameterName) {
         return getOutMappings().get(parameterName);
     }
-    
+
     public Map<String, String> getOutMappings() {
-        Map<String,String> out = new HashMap<String, String>(); 
+        Map<String,String> out = new HashMap<String, String>();
         for(DataAssociation a : outMapping) {
             if(a.getSources().size() ==1 && (a.getAssignments() == null || a.getAssignments().size()==0) && a.getTransformation() == null) {
                 out.put(a.getSources().get(0), a.getTarget());
@@ -197,7 +198,7 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
         }
         return out;
     }
-    
+
     public void addOutAssociation(DataAssociation dataAssociation) {
         outMapping.add(dataAssociation);
     }
@@ -213,19 +214,19 @@ public class RuleSetNode extends StateBasedNode implements ContextContainer {
     public void setParameters(Map<String, Object> parameters) {
         this.parameters = parameters;
     }
-    
+
     public void setParameter(String param, Object value) {
         this.parameters.put(param, value);
     }
-    
+
     public Object getParameter(String param) {
         return this.parameters.get(param);
     }
-    
+
     public Object removeParameter(String param) {
         return this.parameters.remove(param);
     }
-    
+
     public boolean isDMN() {
         return DMN_LANG.equals(language);
     }
