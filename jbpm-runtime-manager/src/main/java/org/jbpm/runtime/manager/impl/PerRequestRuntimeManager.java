@@ -18,7 +18,6 @@ package org.jbpm.runtime.manager.impl;
 import java.util.HashMap;
 import java.util.Map;
 
-import jakarta.persistence.EntityNotFoundException;
 
 import org.drools.core.time.TimerService;
 import org.jbpm.process.core.timer.TimerServiceRegistry;
@@ -118,9 +117,7 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
 
         runtimeEngine.getKieSession().signalEvent(type, event);
 
-        if (canDispose(runtimeEngine)) {
-            disposeRuntimeEngine(runtimeEngine);
-        }
+        disposeRuntimeEngine(runtimeEngine);
     }
 
 
@@ -137,11 +134,6 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
 
     @Override
     public void disposeRuntimeEngine(RuntimeEngine runtime) {
-        if (isClosed()) {
-            logger.warn("Runtime manager {} is already closed", identifier);
-            return;
-        }
-
         logger.debug("Trying to dispose PerRequestRuntimeEngine {}", identifier);
         try {
             if (!canDispose(runtime)) {
@@ -155,7 +147,6 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
         try {
             if (!((RuntimeEngineImpl) runtime).isInitialized()) {
                 logger.debug("ksession {} was not created for this request", identifier);
-                internalDisposeRuntimeEngine(runtime);
                 return; // nothing else to do here
             }
 
@@ -165,8 +156,6 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
 
             if (canDestroy(runtime)) {
                 runtime.getKieSession().destroy();
-            } else {
-                internalDisposeRuntimeEngine(runtime);
             }
 
             TimerService timerService = TimerServiceRegistry.getInstance().get(getIdentifier() + TimerServiceRegistry.TIMER_SERVICE_SUFFIX);
@@ -175,8 +164,8 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
             }
         } catch (Exception e) {
             logger.error("error during disposal", e);
-            internalDisposeRuntimeEngine(runtime);
         } finally {
+            internalDisposeRuntimeEngine(runtime);
             local.get().remove(identifier);
         }
     }
@@ -221,6 +210,7 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
            // do nothing
         }
         super.close();
+        clearThreadLocalEngine();
         factory.close();
     }
 

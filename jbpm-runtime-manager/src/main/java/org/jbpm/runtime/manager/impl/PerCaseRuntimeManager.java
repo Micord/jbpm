@@ -72,10 +72,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A RuntimeManager implementation that is backed by the "Per Case" strategy. This means that every 
- * process instance that belongs to same case will be bound to a single (case scoped) ksession for it's entire life time.  
+ * A RuntimeManager implementation that is backed by the "Per Case" strategy. This means that every
+ * process instance that belongs to same case will be bound to a single (case scoped) ksession for it's entire life time.
  * Once started, whenever other operations are invoked,this manager will ensure that the correct ksession will be provided.
- * 
+ *
  * <br/>
  * This implementation supports the following <code>Context</code> implementations:
  * <ul>
@@ -86,7 +86,7 @@ import org.slf4j.LoggerFactory;
 public class PerCaseRuntimeManager extends AbstractRuntimeManager {
 
     private static final Logger logger = LoggerFactory.getLogger(PerCaseRuntimeManager.class);
-    
+
     private boolean useLocking = Boolean.parseBoolean(System.getProperty("org.jbpm.runtime.manager.pc.lock", "true"));
 
     private SessionFactory factory;
@@ -110,7 +110,7 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
     public RuntimeEngine getRuntimeEngine(Context<?> context) {
         if (isClosed()) {
             throw new IllegalStateException("Runtime manager " + identifier + " is already closed");
-        }        
+        }
         RuntimeEngine runtime = null;
         Object contextId = context.getContextId();
 
@@ -241,7 +241,7 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
                         saveLocalRuntime(o.toString(), null, engine);
                         finalKieSession.getEnvironment().set("CaseId", o.toString());
                     }
-                });                    
+                });
             }
         }
 
@@ -302,10 +302,6 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
 
     @Override
     public void disposeRuntimeEngine(RuntimeEngine runtime) {
-        if (isClosed()) {
-            logger.warn("Runtime manager {} is already closed", identifier);
-            return;
-        }
         // the init might not be init so we rely on the lazy kie session id
         Long ksessionId = ((RuntimeEngineImpl) runtime).getLazyKieSessionId();
         logger.debug("Trying to dispose for KieSessionId {} (Kie session id cannot be null at this point)", ksessionId);
@@ -314,14 +310,12 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
                 removeLocalRuntime(runtime);
                 logger.debug("About to release and clean runtime engine {}", runtime);
                 releaseAndCleanLock(ksessionId, runtime);
-                if (runtime instanceof Disposable) {
-                    // special handling for in memory to not allow to dispose if there is any context in the mapper
-                    if (mapper instanceof InMemoryMapper && ((InMemoryMapper) mapper).hasContext(ksessionId)) {
-                        return;
-                    }
-                    logger.debug("Calling dispose engine {}", runtime);
-                    ((Disposable) runtime).dispose();
+                // special handling for in memory to not allow to dispose if there is any context in the mapper
+                if (mapper instanceof InMemoryMapper && ((InMemoryMapper) mapper).hasContext(ksessionId)) {
+                    return;
                 }
+                logger.debug("Calling dispose engine {}", runtime);
+                ((Disposable) runtime).dispose();
                 if (ksessionId != null) {
                     TimerService timerService = TimerServiceRegistry.getInstance().get(getIdentifier() + TimerServiceRegistry.TIMER_SERVICE_SUFFIX);
                     if (timerService != null) {
@@ -332,15 +326,16 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
                     } else {
                         logger.debug("Not timer service found for engine {}. Cannot clean up timer jobs", runtime);
                     }
-                } 
+                }
             } else {
                 logger.debug("Cannot dispose the engine {}", runtime);
             }
         } catch (Exception e) {
-            releaseAndCleanLock(ksessionId, runtime);
-            removeLocalRuntime(runtime);           
             throw new RuntimeException(e);
-        }            
+        } finally {
+            releaseAndCleanLock(ksessionId, runtime);
+            removeLocalRuntime(runtime);
+        }
     }
 
     @Override
@@ -357,7 +352,7 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
                 removeRuntimeFromTaskService();
             }
         } catch (Exception e) {
-            // do nothing 
+            // do nothing
         }
         super.close();
         factory.close();
@@ -399,7 +394,7 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
             logger.debug("Saving persistence mapping for kieSessionId {} runtime engine {} manager {} and case id {}",ksessionId, runtime, managerId, caseId);
             mapper.saveMapping(new EnvironmentAwareProcessInstanceContext(event.getKieRuntime().getEnvironment(), event.getProcessInstance().getId()), ksessionId, managerId);
             saveLocalRuntime(caseId, event.getProcessInstance().getId(), runtime);
-            ((RuntimeEngineImpl) runtime).setContext(ProcessInstanceIdContext.get(event.getProcessInstance().getId()));            
+            ((RuntimeEngineImpl) runtime).setContext(ProcessInstanceIdContext.get(event.getProcessInstance().getId()));
         }
 
     }
@@ -500,7 +495,7 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
         super.init();
         TaskContentRegistry.get().addMarshallerContext(getIdentifier(), new ContentMarshallerContext(environment.getEnvironment(), environment.getClassLoader()));
         boolean owner = false;
-        TransactionManager tm = null; 
+        TransactionManager tm = null;
         if (environment.usePersistence()){
             tm = getTransactionManagerInternal(environment.getEnvironment());
             owner = tm.begin();
@@ -521,7 +516,7 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
             });
             factory.onDispose(initialKsession.getIdentifier());
             initialKsession.execute(new DestroyKSessionCommand(initialKsession, this));
-    
+
             if (!"false".equalsIgnoreCase(System.getProperty("org.jbpm.rm.init.timer"))) {
                 if (mapper instanceof JPAMapper) {
                     List<Long> ksessionsToInit = ((JPAMapper) mapper).findKSessionToInit(this.identifier);
@@ -541,7 +536,7 @@ public class PerCaseRuntimeManager extends AbstractRuntimeManager {
             throw new RuntimeException("Exception while initializing runtime manager " + this.identifier, e);
         }
     }
-    
+
     @Override
     public void activate() {
         super.activate();
