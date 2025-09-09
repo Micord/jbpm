@@ -26,6 +26,8 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.jbpm.kie.services.impl.query.SqlQueryDefinition;
 import org.jbpm.services.api.query.model.QueryDefinition;
 import org.jbpm.services.api.query.model.QueryDefinition.Target;
@@ -44,6 +46,7 @@ public class QueryDefinitionEntity {
     private Long id;
 
     @Lob
+    @JdbcTypeCode(SqlTypes.LONG32NVARCHAR)
     @Column(name="qExpression", length=65535)
     private String expression;
 

@@ -23,10 +23,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /*
  * create sequence hibernate_sequence start 1 increment 1;
- * create table testentity(id int8 not null, processInstanceByteArray bytea, errorInfo text, primary key(id)); 
+ * create table testentity(id int8 not null, processInstanceByteArray bytea, errorInfo text, primary key(id));
  */
 
 @Entity
@@ -42,6 +44,7 @@ public class TestEntity {
 
     @Lob
     @Column(length = 65535)
+    @JdbcTypeCode(SqlTypes.LONG32NVARCHAR)
     private String errorInfo;
 
     public TestEntity() {

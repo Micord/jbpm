@@ -29,6 +29,8 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name="BooleanExpression",
@@ -41,7 +43,9 @@ public class BooleanExpressionImpl implements org.kie.internal.task.api.model.Bo
     private Long   id;
     private String type;
 
-    @Lob @Column(length=65535)
+    @Lob
+    @Column(length=65535)
+    @JdbcTypeCode(SqlTypes.LONG32NVARCHAR)
     private String expression;
 
     public BooleanExpressionImpl() {

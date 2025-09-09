@@ -28,6 +28,8 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /*
  * Named queries defined in services orm file
@@ -38,23 +40,24 @@ import jakarta.persistence.UniqueConstraint;
 public class DeploymentStoreEntry implements Serializable {
 
 	private static final long serialVersionUID = 6669858787722894023L;
-	
+
 	@Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="deploymentStoreIdSeq")
     @Column(name = "id")
 	private Long id;
-	
+
 	@Column(name="DEPLOYMENT_ID")
 	private String deploymentId;
-	
+
 	@Lob
+	@JdbcTypeCode(SqlTypes.LONG32NVARCHAR)
 	@Column(length=65535)
 	private String deploymentUnit;
-	
+
 	private Integer state;
-	
+
 	private Date updateDate;
-	
+
 	private String attributes;
 
 	public Long getId() {
@@ -118,7 +121,7 @@ public class DeploymentStoreEntry implements Serializable {
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((state == null) ? 0 : state.hashCode());
 		result = prime * result
-				+ ((updateDate == null) ? 0 : updateDate.hashCode());		
+				+ ((updateDate == null) ? 0 : updateDate.hashCode());
 		return result;
 	}
 
@@ -170,7 +173,7 @@ public class DeploymentStoreEntry implements Serializable {
 				+ deploymentId + ", state=" + state + ", updateDate="
 				+ updateDate + "]";
 	}
-	
-	
+
+
 
 }

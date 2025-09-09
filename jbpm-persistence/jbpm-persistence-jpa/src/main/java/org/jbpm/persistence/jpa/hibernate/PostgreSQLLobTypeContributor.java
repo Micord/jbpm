@@ -24,12 +24,20 @@ import org.hibernate.service.ServiceRegistry;
 import org.hibernate.type.StandardBasicTypeTemplate;
 import org.hibernate.type.StandardBasicTypes;
 import org.hibernate.type.descriptor.java.PrimitiveByteArrayJavaType;
-import org.hibernate.type.descriptor.java.StringJavaType;
 import org.hibernate.type.descriptor.jdbc.BinaryJdbcType;
-import org.hibernate.type.descriptor.jdbc.LongVarbinaryJdbcType;
 
 
 public class PostgreSQLLobTypeContributor implements TypeContributor {
+    private static final boolean useBytea;
+
+    static {
+        String useByteaStr = System.getenv("ORG_KIE_PERSISTENCE_POSTGRESQL_USEBYTEA");
+
+        if (useByteaStr == null) {
+            useByteaStr = System.getProperty("org.kie.persistence.postgresql.useBytea", "false");
+        }
+        useBytea = Boolean.parseBoolean(useByteaStr);
+    }
 
     public class ByteaContributorType extends StandardBasicTypeTemplate<byte[]> {
 
@@ -41,28 +49,14 @@ public class PostgreSQLLobTypeContributor implements TypeContributor {
 
     }
 
-    public class TextContributorType extends StandardBasicTypeTemplate<String> {
-
-        private static final long serialVersionUID = 1619875355308645967L;
-
-        public TextContributorType() {
-            super(LongVarbinaryJdbcType.INSTANCE, StringJavaType.INSTANCE, StandardBasicTypes.MATERIALIZED_CLOB.getName());
-        }
-
-    }
-
     @Override
     public void contribute(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
         final Dialect dialect = serviceRegistry.getService(JdbcServices.class).getDialect();
         if (dialect instanceof org.hibernate.dialect.PostgreSQLDialect) {
-            if (Boolean.getBoolean("org.kie.persistence.postgresql.useBytea")) {
+
+            if (useBytea) {
                 typeContributions.contributeType(new ByteaContributorType());
             }
-            if (Boolean.getBoolean("org.kie.persistence.postgresql.useText")) {
-                typeContributions.contributeType(new TextContributorType());
-            }
         }
-
     }
-
 }

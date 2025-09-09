@@ -31,6 +31,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "email_header")
@@ -51,7 +53,9 @@ public class EmailNotificationHeaderImpl implements org.kie.internal.task.api.mo
 
     private String subject;
 
-    @Lob @Column(length=65535)
+    @Lob
+    @Column(length=65535)
+    @JdbcTypeCode(SqlTypes.LONG32NVARCHAR)
     private String body;
 
     public void writeExternal(ObjectOutput out) throws IOException {

@@ -30,6 +30,8 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.kie.internal.runtime.error.ExecutionError;
 
 
@@ -122,6 +124,7 @@ public class ExecutionErrorInfo extends ExecutionError implements Serializable {
 
     @Lob
     @Column(name="ERROR_INFO", length=65535)
+    @JdbcTypeCode(SqlTypes.LONG32NVARCHAR)
     @Override
     public String getError() {
         return super.getError();

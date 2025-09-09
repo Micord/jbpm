@@ -31,6 +31,8 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.kie.internal.task.api.model.InternalI18NText;
 
 @Entity
@@ -56,7 +58,9 @@ public class I18NTextImpl implements InternalI18NText {
 
     private String shortText;
 
-    @Lob @Column(length=65535)
+    @Lob
+    @Column(length=65535)
+    @JdbcTypeCode(SqlTypes.LONG32NVARCHAR)
     private String text;
 
     public I18NTextImpl() {
