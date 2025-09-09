@@ -11,7 +11,7 @@
 
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm</artifactId>
-    <version>7.74.1.Final-Micord.3</version>
+    <version>7.74.1.Final-Micord.4</version>
     <packaging>pom</packaging>
 
     <name>jBPM :: Multiproject</name>
@@ -60,7 +60,7 @@
         <jetty.version>12.0.16</jetty.version>
         <version.org.eclipse.persistence>4.0.7</version.org.eclipse.persistence>
         <kie-soup.version>7.74.1.Final-Micord.1</kie-soup.version>
-        <drools.version>7.74.1.Final-Micord.1</drools.version>
+        <drools.version>7.74.1.Final-Micord.2</drools.version>
         <droolsjbpm-knowledge.version>7.74.1.Final-Micord.1</droolsjbpm-knowledge.version>
         <version.com.thoughtworks.xstream>1.4.21</version.com.thoughtworks.xstream>
         <version.org.jboss.logging-4ee7>3.6.1.Final</version.org.jboss.logging-4ee7>
