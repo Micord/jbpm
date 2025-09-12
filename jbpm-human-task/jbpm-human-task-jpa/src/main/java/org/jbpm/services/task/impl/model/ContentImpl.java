@@ -30,35 +30,38 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.kie.internal.task.api.model.InternalContent;
 
 @Entity
 @Table(name="Content")
 @SequenceGenerator(name="contentIdSeq", sequenceName="CONTENT_ID_SEQ", allocationSize=1)
 public class ContentImpl implements InternalContent {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="contentIdSeq")
     private Long   id = 0L;;
-    
+
     @Lob
     @Column(length=2147483647)
+    @JdbcTypeCode(SqlTypes.BINARY)
     private byte[] content;
-    
+
     public ContentImpl() {
-        
+
     }
 
     public ContentImpl(byte[] content) {
         this.content = content;
     }
-    
+
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong( id );
         out.writeInt( content.length );
-        out.write( content );        
+        out.write( content );
     }
-    
+
     public void readExternal(ObjectInput in) throws IOException,
                                             ClassNotFoundException {
         id = in.readLong();
@@ -100,5 +103,5 @@ public class ContentImpl implements InternalContent {
                              other.content ) ) return false;
         return true;
     }
-        
+
 }

@@ -21,6 +21,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Lob;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity(name = "QRTZ_TRIGGERS")
 @IdClass(QrtzTriggersId.class)
@@ -76,5 +78,6 @@ public class QrtzTriggers {
 
     @Lob
     @Column(name = "JOB_DATA")
+    @JdbcTypeCode(SqlTypes.BINARY)
     private byte[] jobDate;
 }

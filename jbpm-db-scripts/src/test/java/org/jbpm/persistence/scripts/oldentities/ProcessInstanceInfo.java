@@ -32,6 +32,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Version;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @SequenceGenerator(name = "processInstanceInfoIdSeq", sequenceName = "PROCESS_INSTANCE_INFO_ID_SEQ", allocationSize = 1)
@@ -54,6 +56,7 @@ public class ProcessInstanceInfo {
 
     @Lob
     @Column(length = 2147483647)
+    @JdbcTypeCode(SqlTypes.BINARY)
     byte[] processInstanceByteArray;
 
     @ElementCollection

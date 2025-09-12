@@ -5,7 +5,7 @@
   <parent>
     <artifactId>test-kjar-parent</artifactId>
     <groupId>org.jbpm</groupId>
-    <version>7.74.1.Final-Micord.4</version>
+    <version>7.74.1.Final-Micord.5</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 

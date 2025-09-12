@@ -39,6 +39,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.kie.api.executor.STATUS;
 
 
@@ -75,9 +77,11 @@ public class RequestInfo implements org.kie.internal.executor.api.RequestInfo, S
 
     @Lob
     @Column(length=2147483647)
+    @JdbcTypeCode(SqlTypes.BINARY)
     private byte[] requestData;
     @Lob
     @Column(length=2147483647)
+    @JdbcTypeCode(SqlTypes.BINARY)
     private byte[] responseData;
     @OneToMany(cascade= CascadeType.ALL, mappedBy="requestInfo", fetch=FetchType.EAGER)
     private List<ErrorInfo> errorInfo = new ArrayList<ErrorInfo>();

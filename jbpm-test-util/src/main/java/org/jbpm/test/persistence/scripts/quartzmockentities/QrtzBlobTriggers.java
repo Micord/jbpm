@@ -20,6 +20,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity(name = "QRTZ_BLOB_TRIGGERS")
 public class QrtzBlobTriggers {
@@ -36,5 +38,6 @@ public class QrtzBlobTriggers {
 
     @Lob
     @Column(name = "BLOB_DATA")
+    @JdbcTypeCode(SqlTypes.BINARY)
     private byte[] blobData;
 }

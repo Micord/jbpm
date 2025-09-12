@@ -71,6 +71,7 @@ public class JpaSettings {
         XMLInputFactory factory = XMLInputFactory.newInstance();
         InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("META-INF/persistence.xml");
         XMLStreamReader reader = factory.createXMLStreamReader(is);
+
         while (reader.hasNext()) {
             int event = reader.next();
             if (event == XMLStreamConstants.START_ELEMENT && "jta-data-source".equals(reader.getLocalName())) {
@@ -78,6 +79,5 @@ public class JpaSettings {
             }
         }
         return null;
-
     }
 }

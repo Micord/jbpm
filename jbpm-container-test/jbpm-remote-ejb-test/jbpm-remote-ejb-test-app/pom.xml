@@ -6,7 +6,7 @@
   <parent>
     <artifactId>jbpm-remote-ejb-test</artifactId>
     <groupId>org.jbpm</groupId>
-    <version>7.74.1.Final-Micord.4</version>
+    <version>7.74.1.Final-Micord.5</version>
   </parent>
 
   <artifactId>jbpm-remote-ejb-test-app</artifactId>

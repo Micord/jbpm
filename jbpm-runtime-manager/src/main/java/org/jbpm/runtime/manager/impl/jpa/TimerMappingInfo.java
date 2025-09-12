@@ -28,6 +28,8 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 
 @Entity
@@ -56,6 +58,7 @@ public class TimerMappingInfo implements Serializable {
 
     @Lob
     @Column(length=2147483647)
+    @JdbcTypeCode(SqlTypes.BINARY)
     private byte[] info;
 
     public TimerMappingInfo() {

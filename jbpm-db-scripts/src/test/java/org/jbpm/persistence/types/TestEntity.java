@@ -40,6 +40,7 @@ public class TestEntity {
 
     @Lob
     @Column(length = 2147483647)
+    @JdbcTypeCode(SqlTypes.BINARY)
     private byte[] processInstanceByteArray;
 
     @Lob

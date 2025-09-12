@@ -21,6 +21,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Lob;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity(name = "QRTZ_JOB_DETAILS")
 @IdClass(QrtzJobDetailsId.class)
@@ -58,5 +60,6 @@ public class QrtzJobDetails {
 
     @Lob
     @Column(name = "JOB_DATA", length = 5000)
+    @JdbcTypeCode(SqlTypes.BINARY)
     private byte[] jobData;
 }

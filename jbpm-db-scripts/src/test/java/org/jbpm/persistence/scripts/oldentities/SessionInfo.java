@@ -26,6 +26,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Version;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 
 @Entity
@@ -46,6 +48,7 @@ public class SessionInfo {
 
     @Lob
     @Column(length = 2147483647)
+    @JdbcTypeCode(SqlTypes.BINARY)
     private byte[] rulesByteArray;
 
     public SessionInfo() {
