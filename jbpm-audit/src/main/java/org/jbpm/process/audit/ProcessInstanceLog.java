@@ -29,13 +29,14 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
-import jakarta.persistence.Transient;
 
 import org.jbpm.process.audit.event.AuditEvent;
 import org.jbpm.process.audit.event.AuditEventBuilder;
 import org.kie.api.runtime.KieRuntime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.jbpm.persistence.api.CorrelationSettings.CORRELATION_KEY_LENGTH;
 
 @Entity
 @Table(name = "ProcessInstanceLog", indexes = {@Index(name = "IDX_PInstLog_duration", columnList = "duration"),
@@ -57,10 +58,6 @@ public class ProcessInstanceLog implements Serializable, AuditEvent, org.kie.api
 
 	private static final long serialVersionUID = 510l;
 	private static final Logger logger = LoggerFactory.getLogger(ProcessInstanceLog.class);
-
-    @Transient
-    private final int CORRELATION_KEY_LOG_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.correlationkey.length", "255"));
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="processInstanceLogIdSeq")
@@ -355,9 +352,9 @@ public class ProcessInstanceLog implements Serializable, AuditEvent, org.kie.api
 	}
 
 	public void setCorrelationKey(String correlationKey) {
-	    if (correlationKey != null && correlationKey.length() > CORRELATION_KEY_LOG_LENGTH) {
-	        correlationKey = correlationKey.substring(0, CORRELATION_KEY_LOG_LENGTH);
-            logger.warn("CorrelationKey content was trimmed as it was too long (more than {} characters)", CORRELATION_KEY_LOG_LENGTH);
+	    if (correlationKey != null && correlationKey.length() > CORRELATION_KEY_LENGTH) {
+	        correlationKey = correlationKey.substring(0, CORRELATION_KEY_LENGTH);
+            logger.warn("CorrelationKey content was trimmed as it was too long (more than {} characters)", CORRELATION_KEY_LENGTH);
         }
 		this.correlationKey = correlationKey;
 	}

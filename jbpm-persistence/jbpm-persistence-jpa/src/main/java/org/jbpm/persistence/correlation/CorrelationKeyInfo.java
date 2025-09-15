@@ -29,13 +29,14 @@ import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 
 import org.jbpm.persistence.api.PersistentCorrelationKey;
 import org.kie.internal.process.CorrelationProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.jbpm.persistence.api.CorrelationSettings.CORRELATION_KEY_LENGTH;
 
 @Entity
 @SequenceGenerator(name="correlationKeyInfoIdSeq", sequenceName="CORRELATION_KEY_ID_SEQ", allocationSize = 1)
@@ -44,9 +45,6 @@ public class CorrelationKeyInfo implements PersistentCorrelationKey, Serializabl
 
 	private static final long serialVersionUID = 4469298702447675428L;
 	private static final Logger logger = LoggerFactory.getLogger(CorrelationKeyInfo.class);
-
-	@Transient
-    private final int CORRELATION_KEY_LOG_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.correlationkey.length", "255"));
 
 	@Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="correlationKeyInfoIdSeq")
@@ -86,7 +84,7 @@ public class CorrelationKeyInfo implements PersistentCorrelationKey, Serializabl
     public void setName(String name) {
         this.name = trimString(name);
         if (this.name != null && this.name.length() < name.length()) {
-            logger.warn("CorrelationKey content was trimmed as it was too long (more than {} characters)", CORRELATION_KEY_LOG_LENGTH);
+            logger.warn("CorrelationKey content was trimmed as it was too long (more than {} characters)", CORRELATION_KEY_LENGTH);
         }
     }
 
@@ -152,8 +150,8 @@ public class CorrelationKeyInfo implements PersistentCorrelationKey, Serializabl
 
     private String trimString(String name) {
         String trimmed = name;
-        if (trimmed != null && trimmed.length() > CORRELATION_KEY_LOG_LENGTH) {
-            trimmed = trimmed.substring(0, CORRELATION_KEY_LOG_LENGTH);
+        if (trimmed != null && trimmed.length() > CORRELATION_KEY_LENGTH) {
+            trimmed = trimmed.substring(0, CORRELATION_KEY_LENGTH);
         }
         return trimmed;
     }

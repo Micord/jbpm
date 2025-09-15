@@ -39,8 +39,8 @@ public class TestEntity {
     private Integer id;
 
     @Lob
-    @Column(length = 2147483647)
-    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column
+    @JdbcTypeCode(SqlTypes.LONG32VARBINARY)
     private byte[] processInstanceByteArray;
 
     @Lob

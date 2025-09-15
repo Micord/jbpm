@@ -41,11 +41,11 @@ public class ContentImpl implements InternalContent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="contentIdSeq")
-    private Long   id = 0L;;
+    private Long   id = 0L;
 
     @Lob
-    @Column(length=2147483647)
-    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column
+    @JdbcTypeCode(SqlTypes.LONG32VARBINARY)
     private byte[] content;
 
     public ContentImpl() {

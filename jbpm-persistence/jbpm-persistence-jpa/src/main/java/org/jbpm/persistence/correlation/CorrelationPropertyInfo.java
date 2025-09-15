@@ -26,12 +26,13 @@ import jakarta.persistence.Index;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 
 import org.kie.internal.process.CorrelationProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.jbpm.persistence.api.CorrelationSettings.CORRELATION_KEY_LENGTH;
 
 @Entity
 @Table(name = "CorrelationPropertyInfo", indexes = {@Index(name = "IDX_CorrPropInfo_Id", columnList = "correlationKey_keyId")})
@@ -41,18 +42,15 @@ public class CorrelationPropertyInfo implements CorrelationProperty<String>, Ser
 	private static final long serialVersionUID = -4469224502447675428L;
     private static final Logger logger = LoggerFactory.getLogger(CorrelationPropertyInfo.class);
 
-    @Transient
-    private final int CORRELATION_KEY_LOG_LENGTH = Integer.parseInt(System.getProperty("org.jbpm.correlationkey.length", "255"));
-
     public CorrelationPropertyInfo() {
 
     }
 
     public CorrelationPropertyInfo(String name, String value) {
         this.name = name;
-        if (value != null && value.length() > CORRELATION_KEY_LOG_LENGTH) {
-            value = value.substring(0, CORRELATION_KEY_LOG_LENGTH);
-            logger.warn("CorrelationKey content was trimmed as it was too long (more than {} characters)", CORRELATION_KEY_LOG_LENGTH);
+        if (value != null && value.length() > CORRELATION_KEY_LENGTH) {
+            value = value.substring(0, CORRELATION_KEY_LENGTH);
+            logger.warn("CorrelationKey content was trimmed as it was too long (more than {} characters)", CORRELATION_KEY_LENGTH);
         }
         this.value = value;
     }

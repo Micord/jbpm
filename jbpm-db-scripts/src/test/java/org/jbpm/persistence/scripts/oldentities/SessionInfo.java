@@ -47,8 +47,8 @@ public class SessionInfo {
     private Date lastModificationDate;
 
     @Lob
-    @Column(length = 2147483647)
-    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column
+    @JdbcTypeCode(SqlTypes.LONG32VARBINARY)
     private byte[] rulesByteArray;
 
     public SessionInfo() {

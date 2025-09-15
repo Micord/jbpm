@@ -57,8 +57,8 @@ public class TimerMappingInfo implements Serializable {
     private String uuid;
 
     @Lob
-    @Column(length=2147483647)
-    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column
+    @JdbcTypeCode(SqlTypes.LONG32VARBINARY)
     private byte[] info;
 
     public TimerMappingInfo() {

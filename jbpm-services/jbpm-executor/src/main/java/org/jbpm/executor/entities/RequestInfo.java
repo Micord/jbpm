@@ -76,12 +76,12 @@ public class RequestInfo implements org.kie.internal.executor.api.RequestInfo, S
     private Long processInstanceId;
 
     @Lob
-    @Column(length=2147483647)
-    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column
+    @JdbcTypeCode(SqlTypes.LONG32VARBINARY)
     private byte[] requestData;
     @Lob
-    @Column(length=2147483647)
-    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column
+    @JdbcTypeCode(SqlTypes.LONG32VARBINARY)
     private byte[] responseData;
     @OneToMany(cascade= CascadeType.ALL, mappedBy="requestInfo", fetch=FetchType.EAGER)
     private List<ErrorInfo> errorInfo = new ArrayList<ErrorInfo>();
