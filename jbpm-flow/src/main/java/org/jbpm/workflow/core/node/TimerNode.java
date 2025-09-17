@@ -16,7 +16,7 @@
 
 package org.jbpm.workflow.core.node;
 
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.process.core.timer.Timer;
 import org.jbpm.workflow.core.impl.ExtendedNodeImpl;
 import org.kie.api.definition.process.Connection;
@@ -25,9 +25,9 @@ import org.kie.api.definition.process.NodeType;
 public class TimerNode extends ExtendedNodeImpl {
 
     private static final long serialVersionUID = 510l;
-    
+
     private Timer timer;
-    
+
     public TimerNode() {
         super(NodeType.TIMER);
     }
@@ -35,7 +35,7 @@ public class TimerNode extends ExtendedNodeImpl {
     public void setTimer(Timer timer) {
         this.timer = timer;
     }
-    
+
     public Timer getTimer() {
         return this.timer;
     }
@@ -67,5 +67,5 @@ public class TimerNode extends ExtendedNodeImpl {
                 connection.getTo().getNodeUniqueId());
         }
     }
-    
+
 }

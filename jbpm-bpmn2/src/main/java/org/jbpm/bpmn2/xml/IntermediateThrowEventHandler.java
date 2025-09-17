@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.drools.core.xml.ExtensibleXmlParser;
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.bpmn2.core.Escalation;
 import org.jbpm.bpmn2.core.IntermediateLink;
 import org.jbpm.bpmn2.core.Message;
@@ -311,10 +311,10 @@ public class IntermediateThrowEventHandler extends AbstractNodeHandler {
 
 	protected void readDataInputAssociation(org.w3c.dom.Node xmlNode,
 			ActionNode actionNode) {
-		
-		
+
+
 		org.w3c.dom.Node subNode = xmlNode.getFirstChild();
-        if ("sourceRef".equals(subNode.getNodeName())) {            
+        if ("sourceRef".equals(subNode.getNodeName())) {
             // sourceRef
             String eventVariable = subNode.getTextContent();
             // targetRef
@@ -326,7 +326,7 @@ public class IntermediateThrowEventHandler extends AbstractNodeHandler {
             if (subNode != null && "transformation".equals(subNode.getNodeName())) {
                 String lang = subNode.getAttributes().getNamedItem("language").getNodeValue();
                 String expression = subNode.getTextContent();
-    
+
                 DataTransformer transformer = transformerRegistry.find(lang);
                 if (transformer == null) {
                     throw new IllegalArgumentException("No transformer registered for language " + lang);
@@ -334,12 +334,12 @@ public class IntermediateThrowEventHandler extends AbstractNodeHandler {
                 transformation = new Transformation(lang, expression, dataInputs.get(target));
                 actionNode.setMetaData("Transformation", transformation);
             }
-    
-            if (eventVariable != null && eventVariable.trim().length() > 0) {            
+
+            if (eventVariable != null && eventVariable.trim().length() > 0) {
                 if (dataInputs.containsKey(eventVariable)) {
                     eventVariable = dataInputs.get(eventVariable);
                 }
-                
+
                 actionNode.setMetaData("MappingVariable", eventVariable);
             }
         } else {

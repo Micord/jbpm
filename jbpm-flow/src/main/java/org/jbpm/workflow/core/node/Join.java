@@ -16,14 +16,14 @@
 
 package org.jbpm.workflow.core.node;
 
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.workflow.core.impl.NodeImpl;
 import org.kie.api.definition.process.Connection;
 import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of a join.
- * 
+ *
  */
 public class Join extends NodeImpl {
 
@@ -42,7 +42,7 @@ public class Join extends NodeImpl {
      * The outgoing connection of a join of this type is triggered
      * when one of its incoming connections has been triggered. It then
      * waits until all other incoming connections have been triggered
-     * before allowing 
+     * before allowing
      */
     public static final int TYPE_DISCRIMINATOR = 3;
     /**
@@ -50,9 +50,9 @@ public class Join extends NodeImpl {
      * when n of its incoming connections have been triggered.
      */
     public static final int TYPE_N_OF_M = 4;
-    
+
     public static final int TYPE_OR = 5;
-    
+
     private static final long serialVersionUID = 510l;
 
     private int type;
@@ -84,11 +84,11 @@ public class Join extends NodeImpl {
     public int getType() {
         return this.type;
     }
-    
+
     public void setN(String n) {
     	this.n = n;
     }
-    
+
     public String getN() {
     	return n;
     }
@@ -115,5 +115,5 @@ public class Join extends NodeImpl {
                 connection.getTo().getNodeUniqueId());
         }
     }
-    
+
 }

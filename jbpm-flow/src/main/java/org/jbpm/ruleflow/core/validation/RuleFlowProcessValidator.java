@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Queue;
 
 import org.drools.core.time.impl.CronExpression;
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.process.core.Work;
 import org.jbpm.process.core.context.exception.CompensationScope;
 import org.jbpm.process.core.context.variable.Variable;

@@ -16,7 +16,7 @@
 
 package org.jbpm.workflow.core.node;
 
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.workflow.core.Constraint;
 import org.jbpm.workflow.core.impl.ConnectionRef;
 import org.kie.api.definition.process.Connection;
@@ -24,7 +24,7 @@ import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of a milestone node.
- * 
+ *
  */
 public class MilestoneNode extends StateBasedNode implements Constrainable {
 
@@ -44,19 +44,19 @@ public class MilestoneNode extends StateBasedNode implements Constrainable {
     	}
         this.constraint = constraint.getConstraint();
     }
-    
+
     public void setConstraint(String constraint){
         this.constraint = constraint;
     }
 
     public String getConstraint(){
         return this.constraint;
-    }    
-    
+    }
+
     public String getMatchVariable() {
         return matchVariable;
     }
-    
+
     public void setMatchVariable(String matchVariable) {
         this.matchVariable = matchVariable;
     }
@@ -88,5 +88,5 @@ public class MilestoneNode extends StateBasedNode implements Constrainable {
               connection.getTo().getNodeUniqueId());
         }
     }
-    
+
 }

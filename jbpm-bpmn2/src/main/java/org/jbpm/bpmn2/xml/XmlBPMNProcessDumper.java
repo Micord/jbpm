@@ -35,7 +35,7 @@ import org.jbpm.bpmn2.core.DataStore;
 import org.jbpm.bpmn2.core.Definitions;
 import org.jbpm.bpmn2.core.Error;
 import org.jbpm.bpmn2.core.ItemDefinition;
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.compiler.xml.XmlProcessReader;
 import org.jbpm.process.core.ContextContainer;
 import org.jbpm.process.core.Work;
@@ -153,7 +153,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
             "             xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" + EOL +
             "             xsi:schemaLocation=\"http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd\"" + EOL +
             "             xmlns:g=\"http://www.jboss.org/drools/flow/gpd\"" + EOL +
-            (metaDataType == META_DATA_USING_DI ? 
+            (metaDataType == META_DATA_USING_DI ?
                 "             xmlns:bpmndi=\"http://www.omg.org/spec/BPMN/20100524/DI\"" + EOL +
             	"             xmlns:dc=\"http://www.omg.org/spec/DD/20100524/DC\"" + EOL +
         		"             xmlns:di=\"http://www.omg.org/spec/DD/20100524/DI\"" + EOL : "") +
@@ -217,9 +217,9 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
         // TODO: package, version
         xmlDump.append(">" + EOL + EOL);
         visitHeader(process, xmlDump, metaDataType);
-        
+
         List<org.jbpm.workflow.core.Node> processNodes = new ArrayList<org.jbpm.workflow.core.Node>();
-        for( Node procNode : process.getNodes()) { 
+        for( Node procNode : process.getNodes()) {
             processNodes.add((org.jbpm.workflow.core.Node) procNode);
         }
         visitNodes(processNodes, xmlDump, metaDataType);
@@ -273,13 +273,13 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
             int variablesAdded = 0;
             for (Variable variable: variableScope.getVariables()) {
                 String itemDefId = (String) variable.getMetaData("ItemSubjectRef");
-                if( itemDefId == null ) { 
+                if( itemDefId == null ) {
                     itemDefId = prefix + variable.getName();
                 }
                 if( itemDefId != null && ! dumpedItemDefs.add(itemDefId.intern()) ) {
-                   continue; 
+                   continue;
                 }
-                if( ! visitedVariables.add(variable.getName()) ) { 
+                if( ! visitedVariables.add(variable.getName()) ) {
                     continue;
                 }
                 ++variablesAdded;
@@ -290,7 +290,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
                 }
                 xmlDump.append("/>" + EOL);
             }
-            if( variablesAdded > 0 ) { 
+            if( variablesAdded > 0 ) {
                 xmlDump.append(EOL);
             }
         }
@@ -299,7 +299,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
     private void visitSubVariableScopes(Node[] nodes, StringBuilder xmlDump, Set<String> dumpedItemDefs) {
         for (Node node: nodes) {
             if (node instanceof ContextContainer) {
-                VariableScope variableScope = (VariableScope) 
+                VariableScope variableScope = (VariableScope)
                     ((ContextContainer) node).getDefaultContext(VariableScope.VARIABLE_SCOPE);
                 if (variableScope != null) {
                     visitVariableScope(variableScope, XmlBPMNProcessDumper.getUniqueNodeId(node) + "-", xmlDump, dumpedItemDefs);
@@ -424,7 +424,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
     	Map<String, Object> metaData = new HashMap<String, Object>();
         for (Map.Entry<String, Object> entry: input.entrySet()) {
         	String name = entry.getKey();
-        	if (entry.getKey().startsWith("custom") 
+        	if (entry.getKey().startsWith("custom")
         			&& entry.getValue() instanceof String) {
         		metaData.put(name, entry.getValue());
         	}
@@ -469,13 +469,13 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
                             parameterType = "";
                         }
                         xmlDump.append(
-                            "  <itemDefinition id=\"" + getUniqueNodeId(node) + "_InMessageType\" " + 
+                            "  <itemDefinition id=\"" + getUniqueNodeId(node) + "_InMessageType\" " +
                             	("".equals(parameterType) || "java.lang.Object".equals(parameterType) ?
                         			"" : "structureRef=\"" + parameterType + "\" ")
                         			+ "/>" + EOL +
                             "  <message id=\"" + getUniqueNodeId(node) + "_InMessage\" itemRef=\"" + getUniqueNodeId(node) + "_InMessageType\" />" + EOL +
                             "  <interface id=\"" + getUniqueNodeId(node) + "_ServiceInterface\" name=\"" + interfaceName + "\" implementationRef=\""+ interfaceRef+"\" >" + EOL +
-                            "    <operation id=\"" + getUniqueNodeId(node) + "_ServiceOperation\" name=\"" + operationName + "\" implementationRef=\""+ operationRef+"\" >" + EOL + 
+                            "    <operation id=\"" + getUniqueNodeId(node) + "_ServiceOperation\" name=\"" + operationName + "\" implementationRef=\""+ operationRef+"\" >" + EOL +
                             "      <inMessageRef>" + getUniqueNodeId(node) + "_InMessage</inMessageRef>" + EOL +
                             "    </operation>" + EOL +
                             "  </interface>" + EOL + EOL);
@@ -497,7 +497,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
                             messageType = "";
                         }
                         xmlDump.append(
-                            "  <itemDefinition id=\"" + getUniqueNodeId(node) + "_MessageType\" " + 
+                            "  <itemDefinition id=\"" + getUniqueNodeId(node) + "_MessageType\" " +
                             	("".equals(messageType) || "java.lang.Object".equals(messageType) ?
                         			"" : "structureRef=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(messageType) + "\" ")
                         			+ "/>" + EOL +
@@ -508,7 +508,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
                 String messageType = (String) node.getMetaData().get("MessageType");
                 if (messageType != null) {
                     xmlDump.append(
-                        "  <itemDefinition id=\"" + getUniqueNodeId(node) + "_MessageType\" " + 
+                        "  <itemDefinition id=\"" + getUniqueNodeId(node) + "_MessageType\" " +
                         	("".equals(messageType) || "java.lang.Object".equals(messageType) ?
                     			"" : "structureRef=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(messageType) + "\" ")
                     			+ "/>" + EOL +
@@ -518,7 +518,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
                 String messageType = (String) node.getMetaData().get("MessageType");
                 if (messageType != null) {
                     xmlDump.append(
-                        "  <itemDefinition id=\"" + getUniqueNodeId(node) + "_MessageType\" " + 
+                        "  <itemDefinition id=\"" + getUniqueNodeId(node) + "_MessageType\" " +
                         	("".equals(messageType) || "java.lang.Object".equals(messageType) ?
                     			"" : "structureRef=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(messageType) + "\" ") +
                     			"/>" + EOL +
@@ -532,9 +532,9 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
 		                messageRef = messageRef.substring(8);
 		                String messageType = (String) node.getMetaData().get("MessageType");
 		                xmlDump.append(
-		                    "  <itemDefinition id=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(messageRef) + "Type\" " + 
+		                    "  <itemDefinition id=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(messageRef) + "Type\" " +
 		                    	("".equals(messageType) || "java.lang.Object".equals(messageType) ?
-                        			"" : "structureRef=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(messageType) + "\" ") + 
+                        			"" : "structureRef=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(messageType) + "\" ") +
                         			"/>" + EOL +
 		                    "  <message id=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(messageRef) + "\" itemRef=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(messageRef) + "Type\" />" + EOL + EOL);
 	                }
@@ -549,7 +549,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
                             eventType = eventType.substring(8);
                             String messageType = (String) node.getMetaData().get("MessageType");
                             xmlDump.append(
-                                "  <itemDefinition id=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(eventType) + "Type\" " + 
+                                "  <itemDefinition id=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(eventType) + "Type\" " +
                                 	("".equals(messageType) || "java.lang.Object".equals(messageType) ?
                             			"" : "structureRef=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(messageType) + "\" ") +
                             			"/>" + EOL +
@@ -561,10 +561,10 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
             	ForEachNode forEachNode = (ForEachNode) node;
             	String type = null;
             	if (forEachNode.getVariableType() instanceof ObjectDataType) {
-            		type = ((ObjectDataType) forEachNode.getVariableType()).getClassName(); 
+            		type = ((ObjectDataType) forEachNode.getVariableType()).getClassName();
             	}
                 xmlDump.append(
-                    "  <itemDefinition id=\"" + XmlBPMNProcessDumper.getUniqueNodeId(forEachNode) + "_multiInstanceItemType\" " + 
+                    "  <itemDefinition id=\"" + XmlBPMNProcessDumper.getUniqueNodeId(forEachNode) + "_multiInstanceItemType\" " +
                     	(type == null || "java.lang.Object".equals(type) ? "" : "structureRef=\"" + XmlBPMNProcessDumper.replaceIllegalCharsAttribute(type) + "\" ") + "/>" + EOL + EOL);
             }
             if (node instanceof CompositeNode) {
@@ -621,15 +621,15 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
         }
     }
 
-    protected void visitErrors(Definitions definitions, StringBuilder xmlDump) { 
-        if( definitions == null ) { 
+    protected void visitErrors(Definitions definitions, StringBuilder xmlDump) {
+        if( definitions == null ) {
             return;
         }
         List<Error> errors = definitions.getErrors();
-        if( errors == null || errors.isEmpty() ) { 
+        if( errors == null || errors.isEmpty() ) {
             return;
         }
-        for( org.jbpm.bpmn2.core.Error error : errors ) { 
+        for( org.jbpm.bpmn2.core.Error error : errors ) {
             String id = XmlBPMNProcessDumper.replaceIllegalCharsAttribute(error.getId());
             String code = error.getErrorCode();
             xmlDump.append("  <error id=\"" + id + "\"" );
@@ -638,7 +638,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
             	xmlDump.append(" errorCode=\"" + code + "\"" );
             }
             String structureRef = error.getStructureRef();
-            if( structureRef != null ) { 
+            if( structureRef != null ) {
                 structureRef = XmlBPMNProcessDumper.replaceIllegalCharsAttribute(structureRef);
                 xmlDump.append(" structureRef=\"" + structureRef + "\"");
             }
@@ -716,7 +716,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
     		y += parentOffsetY;
 			xmlDump.append(
 				"      <bpmndi:BPMNShape bpmnElement=\"" + getUniqueNodeId(node) + "\" >" + EOL +
-				"        <dc:Bounds x=\"" + x + "\" " + "y=\"" + y + "\" " + 
+				"        <dc:Bounds x=\"" + x + "\" " + "y=\"" + y + "\" " +
 								   "width=\"" + width + "\" " + "height=\"" + height + "\" />" + EOL +
 			    "      </bpmndi:BPMNShape>" + EOL);
 			if (node instanceof CompositeNode) {
@@ -752,13 +752,13 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
         }
         // if the connection is a hidden one (compensations), don't dump
         Object hidden = ((ConnectionImpl) connection).getMetaData("hidden");
-        if( hidden != null && ((Boolean) hidden) ) { 
-           return; 
+        if( hidden != null && ((Boolean) hidden) ) {
+           return;
         }
 
         xmlDump.append("    <sequenceFlow id=\"" +
-    		getUniqueNodeId(connection.getFrom()) + "-" + 
-    		getUniqueNodeId(connection.getTo()) + 
+    		getUniqueNodeId(connection.getFrom()) + "-" +
+    		getUniqueNodeId(connection.getTo()) +
     		"\" sourceRef=\"" + getUniqueNodeId(connection.getFrom()) + "\" ");
         // TODO fromType, toType
         xmlDump.append("targetRef=\"" + getUniqueNodeId(connection.getTo()) + "\" ");
@@ -826,7 +826,7 @@ public class XmlBPMNProcessDumper implements XmlProcessDumper {
         for (Connection connection: connections) {
             String bendpoints = (String) connection.getMetaData().get("bendpoints");
             xmlDump.append(
-        		"      <bpmndi:BPMNEdge bpmnElement=\"" + 
+        		"      <bpmndi:BPMNEdge bpmnElement=\"" +
         			getUniqueNodeId(connection.getFrom()) + "-" + getUniqueNodeId(connection.getTo()) + "\" >" + EOL);
         	Integer x = (Integer) connection.getFrom().getMetaData().get("x");
         	if (x == null) {

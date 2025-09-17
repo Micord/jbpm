@@ -16,25 +16,25 @@
 
 package org.jbpm.workflow.core.node;
 
-import org.jbpm.bpmn2.BpmnNodeIllegalArgumentException;
+import org.jbpm.validation.bpmn2.BpmnNodeIllegalArgumentException;
 import org.jbpm.workflow.core.impl.ExtendedNodeImpl;
 import org.kie.api.definition.process.Connection;
 import org.kie.api.definition.process.NodeType;
 
 /**
  * Default implementation of an end node.
- * 
+ *
  */
 public class EndNode extends ExtendedNodeImpl {
-    
+
     public static final int CONTAINER_SCOPE = 0;
     public static final int PROCESS_SCOPE = 1;
 
 	private static final String[] EVENT_TYPES =
 		new String[] { EVENT_NODE_ENTER };
-	
+
     private static final long serialVersionUID = 510l;
-    
+
     private boolean terminate = true;
     private int scope = CONTAINER_SCOPE;
 
@@ -53,7 +53,7 @@ public class EndNode extends ExtendedNodeImpl {
 	public String[] getActionTypes() {
 		return EVENT_TYPES;
 	}
-	
+
     public void validateAddIncomingConnection(final String type, final Connection connection) {
         super.validateAddIncomingConnection(type, connection);
         if (!org.jbpm.workflow.core.Node.CONNECTION_DEFAULT_TYPE.equals(type)) {
