@@ -52,6 +52,10 @@ public class XmlProcessReader {
     public XmlProcessReader(final SemanticModules modules, ClassLoader classLoader, final SAXParser parser) {
         this.parser = new ExtensibleXmlParser() {
             @Override
+            public void error(final SAXParseException error) {
+                //empty cause of error is recoverable
+            }
+            @Override
             protected String buildPrintMessage(final SAXParseException x) {
                 return processParserMessage(super.getParents(), super.getAttrs(), super.buildPrintMessage(x));
             }
@@ -114,7 +118,7 @@ public class XmlProcessReader {
     public List<Process> getProcess() {
         return this.processes;
     }
-    
+
     public ProcessBuildData getProcessBuildData() {
         return (ProcessBuildData) this.parser.getData();
     }
