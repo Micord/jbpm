@@ -1,4 +1,4 @@
-/*
+  /*
  * Copyright 2017 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,7 @@
 package org.jbpm.services.task.identity;
 
 import java.security.Principal;
-import java.security.acl.Group;
+//import java.security.acl.Group;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -24,8 +24,8 @@ import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Set;
 
-import javax.security.auth.Subject;
-import javax.security.jacc.PolicyContext;
+//import javax.security.auth.Subject;
+//import javax.security.jacc.PolicyContext;
 
 import org.jbpm.services.task.identity.adapter.UserGroupAdapter;
 import org.kie.api.task.UserGroupCallback;
@@ -110,59 +110,59 @@ public class JAASUserGroupCallbackImpl extends AbstractUserGroupInfo implements 
 
 	public List<String> getGroupsForUser(String userId) {
 		List<String> roles = new ArrayList<String>();
-        try {
-            Subject subject = getSubjectFromContainer();
-    
-            if (subject != null) {
-                Set<Principal> principals = subject.getPrincipals();
-    
-                if (principals != null) {
-				    logger.debug("Adding roles from JAAS subject");
-                    roles = new ArrayList<String>();
-                    for (Principal principal : principals) {
-                        if (principal instanceof Group  && rolePrincipleName.equalsIgnoreCase(principal.getName())) {
-                            Enumeration<? extends Principal> groups = ((Group) principal).members();
-                            
-                            while (groups.hasMoreElements()) {
-                                Principal groupPrincipal = (Principal) groups.nextElement();
-                                roles.add(groupPrincipal.getName());
-                            }
-                            break;
-                        }
-                    }
-                }
-                
-            } else {
-				// use adapters
-				for (UserGroupAdapter adapter : ugAdapterServiceLoader) {
-				    logger.debug("Adding roles from UserGroupAdapter service ({})", adapter.getClass().getSimpleName());
-					List<String> userRoles = adapter.getGroupsForUser(userId);
-					if (userRoles != null) {
-						roles.addAll(userRoles);
-					}
-				}
-			}
-        
-            UserGroupAdapter adapter = externalUserGroupAdapterLocal.get();
-            if( adapter != null ) { 
-                logger.debug("Adding roles from external UserGroupAdapter ({})", adapter.getClass().getSimpleName());
-                List<String> userRoles = adapter.getGroupsForUser(userId);
-                if (userRoles != null) {
-                    roles.addAll(userRoles);
-                }
-            }
-        } catch (Exception e) {
-            logger.error("Error when getting user roles for userid:" + userId, e);
-        }
+//        try {
+//            Subject subject = getSubjectFromContainer();
+//
+//            if (subject != null) {
+//                Set<Principal> principals = subject.getPrincipals();
+//
+//                if (principals != null) {
+//				    logger.debug("Adding roles from JAAS subject");
+//                    roles = new ArrayList<String>();
+//                    for (Principal principal : principals) {
+//                        if (principal instanceof Group  && rolePrincipleName.equalsIgnoreCase(principal.getName())) {
+//                            Enumeration<? extends Principal> groups = ((Group) principal).members();
+//
+//                            while (groups.hasMoreElements()) {
+//                                Principal groupPrincipal = (Principal) groups.nextElement();
+//                                roles.add(groupPrincipal.getName());
+//                            }
+//                            break;
+//                        }
+//                    }
+//                }
+//
+//            } else {
+//				// use adapters
+//				for (UserGroupAdapter adapter : ugAdapterServiceLoader) {
+//				    logger.debug("Adding roles from UserGroupAdapter service ({})", adapter.getClass().getSimpleName());
+//					List<String> userRoles = adapter.getGroupsForUser(userId);
+//					if (userRoles != null) {
+//						roles.addAll(userRoles);
+//					}
+//				}
+//			}
+//
+//            UserGroupAdapter adapter = externalUserGroupAdapterLocal.get();
+//            if( adapter != null ) {
+//                logger.debug("Adding roles from external UserGroupAdapter ({})", adapter.getClass().getSimpleName());
+//                List<String> userRoles = adapter.getGroupsForUser(userId);
+//                if (userRoles != null) {
+//                    roles.addAll(userRoles);
+//                }
+//            }
+//        } catch (Exception e) {
+//            logger.error("Error when getting user roles for userid:" + userId, e);
+//        }
         return roles;
 	}
 
-	protected Subject getSubjectFromContainer() {
-         try {
-             return (Subject) PolicyContext.getContext( "javax.security.auth.Subject.container" );
-         } catch (Exception e) {
-             return null;
-         }
-     }
+//	protected Subject getSubjectFromContainer() {
+//         try {
+//             return (Subject) PolicyContext.getContext( "javax.security.auth.Subject.container" );
+//         } catch (Exception e) {
+//             return null;
+//         }
+//     }
 
 }
