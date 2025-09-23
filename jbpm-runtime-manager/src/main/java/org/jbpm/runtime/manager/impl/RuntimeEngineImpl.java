@@ -38,46 +38,46 @@ import org.kie.internal.runtime.manager.SessionNotFoundException;
  */
 public class RuntimeEngineImpl implements InternalRuntimeEngine, Disposable {
 
-	private RuntimeEngineInitlializer initializer;
-	private Context<?> context;
+	  private volatile RuntimeEngineInitlializer initializer;
+	  private volatile Context<?> context;
 
-    private KieSession ksession;
-    private Long kieSessionId = null;
+    private volatile KieSession ksession;
+    private volatile Long kieSessionId = null;
     private TaskService taskService;
     private AuditService auditService;
-    
+
     protected RuntimeManager manager;
-    
-    private boolean disposed = false;
-    private boolean invalid = false;
-    private boolean afterCompletion = false;
-    
-    private List<DisposeListener> listeners = new CopyOnWriteArrayList<DisposeListener>();
+
+    private volatile boolean disposed = false;
+    private volatile boolean invalid = false;
+    private volatile boolean afterCompletion = false;
+
+    private final List<DisposeListener> listeners = new CopyOnWriteArrayList<DisposeListener>();
 
 
     public RuntimeEngineImpl(Context<?> context, TaskService taskService) {
         this.context = context;
         this.taskService = taskService;
     }
-    
+
     public RuntimeEngineImpl(KieSession ksession, TaskService taskService) {
         this.ksession = ksession;
         this.kieSessionId = ksession.getIdentifier();
         this.taskService = taskService;
     }
-    
+
     public RuntimeEngineImpl(Context<?> context, RuntimeEngineInitlializer initializer) {
-    	this.context = context;
+    	  this.context = context;
         this.initializer = initializer;
     }
-    
+
     @Override
     public KieSession getKieSession() {
-        internalGetKieSession();
+        this.ksession = internalGetKieSession();
         ((AbstractRuntimeManager) manager).checkPermission();
         return this.ksession;
     }
-    
+
     @Override
     public TaskService getTaskService() {
         if (this.disposed) {
@@ -89,7 +89,7 @@ public class RuntimeEngineImpl implements InternalRuntimeEngine, Disposable {
         		// init ksession in case there is security manager configured
         		if (((InternalRuntimeManager) manager).hasSecurityManager() && ksession == null && initializer != null) {
                     try {
-                        ksession = initializer.initKieSession(context, (InternalRuntimeManager) manager, this);
+                        this.ksession = initializer.initKieSession(context, (InternalRuntimeManager) manager, this);
                         this.kieSessionId = ksession.getIdentifier();
                     } catch (SessionNotFoundException e) {
                         invalid = true;
@@ -106,7 +106,7 @@ public class RuntimeEngineImpl implements InternalRuntimeEngine, Disposable {
 
     @Override
     public void dispose() {
-        if (!this.disposed) {         
+        if (!this.disposed) {
             // first call listeners and then dispose itself
             for (DisposeListener listener : listeners) {
                 listener.onDispose(this);
@@ -118,7 +118,9 @@ public class RuntimeEngineImpl implements InternalRuntimeEngine, Disposable {
 	                // do nothing most likely ksession was already disposed
 	            } catch (Exception e) {
 	                e.printStackTrace();
-	            }
+	            } finally {
+                  ksession = null;
+              }
             }
             if (auditService != null) {
             	auditService.dispose();
@@ -148,7 +150,7 @@ public class RuntimeEngineImpl implements InternalRuntimeEngine, Disposable {
     }
 
 	@Override
-	public AuditService getAuditService() {	
+	public AuditService getAuditService() {
 		if (auditService == null) {
 			boolean usePersistence = ((InternalRuntimeManager)manager).getEnvironment().usePersistence();
 			if (usePersistence) {
@@ -159,7 +161,7 @@ public class RuntimeEngineImpl implements InternalRuntimeEngine, Disposable {
 		}
 		return auditService;
 	}
-	
+
 	public KieSession internalGetKieSession() {
         if (this.disposed) {
             throw new IllegalStateException("This runtime is already diposed");
@@ -196,16 +198,16 @@ public class RuntimeEngineImpl implements InternalRuntimeEngine, Disposable {
 	public void setAfterCompletion(boolean completing) {
 		this.afterCompletion = completing;
 	}
-		   
+
     public Context<?> getContext() {
         return context;
     }
-    
+
     public void setContext(Context<?> context) {
         this.context = context;
     }
 
-    
+
     public Long getLazyKieSessionId() {
         return (initializer != null && initializer.getKieSessionId() != null) ? initializer.getKieSessionId() : this.kieSessionId;
     }

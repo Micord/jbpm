@@ -15,9 +15,8 @@
  */
 package org.jbpm.runtime.manager.impl;
 
-import java.util.HashMap;
 import java.util.Map;
-
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.drools.core.time.TimerService;
 import org.jbpm.process.core.timer.TimerServiceRegistry;
@@ -60,14 +59,8 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
     private SessionFactory factory;
     private TaskServiceFactory taskServiceFactory;
 
-    private static ThreadLocal<Map<String, RuntimeEngine>> local = new ThreadLocal<Map<String, RuntimeEngine>>() {
-
-        @Override
-        protected Map<String, RuntimeEngine> initialValue() {
-            return new HashMap<String, RuntimeEngine>();
-        }
-
-    };
+    private final ThreadLocal<Map<String, RuntimeEngine>> local = ThreadLocal.withInitial(
+        ConcurrentHashMap::new);
 
     public PerRequestRuntimeManager(RuntimeEnvironment environment, SessionFactory factory, TaskServiceFactory taskServiceFactory, String identifier) {
         super(environment, identifier);
@@ -82,7 +75,7 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
     		throw new IllegalStateException("Runtime manager " + identifier + " is already closed");
     	}
 
-    	RuntimeEngine runtime = null;
+    	RuntimeEngineImpl runtime = null;
         if (local.get().get(identifier) != null) {
         	RuntimeEngine engine = local.get().get(identifier);
         	// check if engine is not already disposed as afterCompletion might be issued from another thread
@@ -95,7 +88,7 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
     	if (engineInitEager) {
 	        InternalTaskService internalTaskService = newTaskService(taskServiceFactory);
 	        runtime = new RuntimeEngineImpl(factory.newKieSession(), internalTaskService);
-	        ((RuntimeEngineImpl) runtime).setManager(this);
+	        runtime.setManager(this);
 
 	        configureRuntimeOnTaskService(internalTaskService, runtime);
 	        registerDisposeCallback(runtime, new DisposeSessionTransactionSynchronization(this, runtime), runtime.getKieSession().getEnvironment());
@@ -104,7 +97,7 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
 	        attachManager(runtime);
     	} else {
     		runtime = new RuntimeEngineImpl(context, new PerRequestInitializer());
-	        ((RuntimeEngineImpl) runtime).setManager(this);
+	        runtime.setManager(this);
     	}
         local.get().put(identifier, runtime);
 
@@ -135,16 +128,13 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
     @Override
     public void disposeRuntimeEngine(RuntimeEngine runtime) {
         logger.debug("Trying to dispose PerRequestRuntimeEngine {}", identifier);
+
         try {
             if (!canDispose(runtime)) {
                 logger.debug("Cannot dispose per request runtime engine {}", identifier);
                 return;
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
 
-        try {
             if (!((RuntimeEngineImpl) runtime).isInitialized()) {
                 logger.debug("ksession {} was not created for this request", identifier);
                 return; // nothing else to do here
@@ -166,7 +156,6 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
             logger.error("error during disposal", e);
         } finally {
             internalDisposeRuntimeEngine(runtime);
-            local.get().remove(identifier);
         }
     }
 
@@ -175,6 +164,7 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
         if (runtimeEngine instanceof Disposable) {
             ((Disposable) runtimeEngine).dispose();
         }
+        local.get().remove(identifier);
     }
 
     @Override
