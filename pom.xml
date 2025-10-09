@@ -11,7 +11,7 @@
 
     <groupId>org.jbpm</groupId>
     <artifactId>jbpm</artifactId>
-    <version>7.74.1.Final-Micord.8</version>
+    <version>7.74.1.Final-Micord.9</version>
     <packaging>pom</packaging>
 
     <name>jBPM :: Multiproject</name>

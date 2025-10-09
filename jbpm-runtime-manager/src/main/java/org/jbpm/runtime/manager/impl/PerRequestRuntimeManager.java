@@ -137,6 +137,7 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
 
             if (!((RuntimeEngineImpl) runtime).isInitialized()) {
                 logger.debug("ksession {} was not created for this request", identifier);
+                internalDisposeRuntimeEngine(runtime);
                 return; // nothing else to do here
             }
 
@@ -146,6 +147,8 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
 
             if (canDestroy(runtime)) {
                 runtime.getKieSession().destroy();
+            } else {
+                internalDisposeRuntimeEngine(runtime);
             }
 
             TimerService timerService = TimerServiceRegistry.getInstance().get(getIdentifier() + TimerServiceRegistry.TIMER_SERVICE_SUFFIX);
@@ -154,8 +157,9 @@ public class PerRequestRuntimeManager extends AbstractRuntimeManager {
             }
         } catch (Exception e) {
             logger.error("error during disposal", e);
-        } finally {
             internalDisposeRuntimeEngine(runtime);
+        } finally {
+            local.get().remove(identifier);
         }
     }
 
